@@ -1,6 +1,6 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { Link } from 'expo-router';
+import React from "react";
+import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { Link } from "expo-router";
 
 export default function AboutScreen() {
   return (
@@ -13,7 +13,9 @@ export default function AboutScreen() {
               <Text className="text-blue-600 text-lg">← Back</Text>
             </TouchableOpacity>
           </Link>
-          <Text className="text-2xl font-bold text-gray-800">About Lexsee v3</Text>
+          <Text className="text-2xl font-bold text-gray-800">
+            About Lexsee v3
+          </Text>
         </View>
       </View>
 
@@ -27,38 +29,51 @@ export default function AboutScreen() {
             <Text className="text-2xl font-bold text-gray-800">Lexsee v3</Text>
             <Text className="text-gray-600">Version 1.0.0</Text>
           </View>
-          
+
           <Text className="text-gray-700 text-center leading-6">
-            Your intelligent AI legal assistant, designed to help you navigate complex legal matters with ease and confidence.
+            Your intelligent AI legal assistant, designed to help you navigate
+            complex legal matters with ease and confidence.
           </Text>
         </View>
 
         {/* Features */}
         <View className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mb-6">
-          <Text className="text-xl font-semibold text-gray-800 mb-4">Features</Text>
+          <Text className="text-xl font-semibold text-gray-800 mb-4">
+            Features
+          </Text>
           <View className="space-y-3">
             <View className="flex-row items-center">
               <Text className="text-blue-600 mr-3">✓</Text>
-              <Text className="text-gray-700 flex-1">AI-powered legal question answering</Text>
+              <Text className="text-gray-700 flex-1">
+                AI-powered legal question answering
+              </Text>
             </View>
             <View className="flex-row items-center">
               <Text className="text-blue-600 mr-3">✓</Text>
-              <Text className="text-gray-700 flex-1">Secure user authentication</Text>
+              <Text className="text-gray-700 flex-1">
+                Secure user authentication
+              </Text>
             </View>
             <View className="flex-row items-center">
               <Text className="text-blue-600 mr-3">✓</Text>
-              <Text className="text-gray-700 flex-1">Document analysis and review</Text>
+              <Text className="text-gray-700 flex-1">
+                Document analysis and review
+              </Text>
             </View>
             <View className="flex-row items-center">
               <Text className="text-blue-600 mr-3">✓</Text>
-              <Text className="text-gray-700 flex-1">Legal research assistance</Text>
+              <Text className="text-gray-700 flex-1">
+                Legal research assistance
+              </Text>
             </View>
           </View>
         </View>
 
         {/* Technology Stack */}
         <View className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mb-6">
-          <Text className="text-xl font-semibold text-gray-800 mb-4">Built With</Text>
+          <Text className="text-xl font-semibold text-gray-800 mb-4">
+            Built With
+          </Text>
           <View className="space-y-3">
             <View className="flex-row items-center">
               <Text className="text-gray-600 mr-3">•</Text>
@@ -85,7 +100,9 @@ export default function AboutScreen() {
 
         {/* Contact Info */}
         <View className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mb-6">
-          <Text className="text-xl font-semibold text-gray-800 mb-4">Contact</Text>
+          <Text className="text-xl font-semibold text-gray-800 mb-4">
+            Contact
+          </Text>
           <Text className="text-gray-700 mb-2">
             For support or inquiries, please contact:
           </Text>
@@ -94,10 +111,14 @@ export default function AboutScreen() {
 
         {/* Legal Disclaimer */}
         <View className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 mb-6">
-          <Text className="text-lg font-semibold text-yellow-800 mb-2">Important Disclaimer</Text>
+          <Text className="text-lg font-semibold text-yellow-800 mb-2">
+            Important Disclaimer
+          </Text>
           <Text className="text-yellow-700 text-sm leading-5">
-            Lexsee v3 provides AI-generated legal information for educational purposes only. 
-            This is not a substitute for professional legal advice. Always consult with a qualified attorney for specific legal matters.
+            Lexsee v3 provides AI-generated legal information for educational
+            purposes only. This is not a substitute for professional legal
+            advice. Always consult with a qualified attorney for specific legal
+            matters.
           </Text>
         </View>
 

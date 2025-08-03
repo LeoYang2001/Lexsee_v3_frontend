@@ -1,6 +1,6 @@
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import { Link } from 'expo-router';
+import React from "react";
+import { View, Text, TouchableOpacity } from "react-native";
+import { Link } from "expo-router";
 
 export default function AuthIndexScreen() {
   return (
@@ -8,7 +8,9 @@ export default function AuthIndexScreen() {
       <View className="bg-white rounded-2xl p-8 shadow-xl">
         {/* Header */}
         <View className="items-center mb-8">
-          <Text className="text-4xl font-bold text-gray-800 mb-2">Lexsee v3</Text>
+          <Text className="text-4xl font-bold text-gray-800 mb-2">
+            Lexsee v3
+          </Text>
           <Text className="text-lg text-gray-600 text-center">
             Your AI Legal Assistant
           </Text>
@@ -20,7 +22,8 @@ export default function AuthIndexScreen() {
             Welcome!
           </Text>
           <Text className="text-gray-600 text-center">
-            Sign in to access your legal AI assistant or create a new account to get started.
+            Sign in to access your legal AI assistant or create a new account to
+            get started.
           </Text>
         </View>
 

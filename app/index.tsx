@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
-import { router } from 'expo-router';
-import { getCurrentUser } from 'aws-amplify/auth';
+import React, { useEffect, useState } from "react";
+import { View, Text, ActivityIndicator } from "react-native";
+import { router } from "expo-router";
+import { getCurrentUser } from "aws-amplify/auth";
 
 export default function IndexScreen() {
   const [loading, setLoading] = useState(true);
@@ -14,10 +14,10 @@ export default function IndexScreen() {
     try {
       await getCurrentUser();
       // User is authenticated, redirect to home
-      router.replace('/(home)');
+      router.replace("/(home)");
     } catch (error) {
       // User is not authenticated, redirect to auth
-      router.replace('/(auth)');
+      router.replace("/(auth)");
     } finally {
       setLoading(false);
     }

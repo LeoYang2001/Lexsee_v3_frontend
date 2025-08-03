@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
-import { Link, router } from 'expo-router';
-import { signUp } from 'aws-amplify/auth';
+import React, { useState } from "react";
+import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
+import { Link, router } from "expo-router";
+import { signUp } from "aws-amplify/auth";
 
 export default function SignUpScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSignUp = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert("Error", "Please fill in all fields");
       return;
     }
 
@@ -26,24 +26,25 @@ export default function SignUpScreen() {
         },
       });
 
-      if (nextStep.signUpStep === 'CONFIRM_SIGN_UP') {
+      if (nextStep.signUpStep === "CONFIRM_SIGN_UP") {
         Alert.alert(
-          'Verification Required',
-          'Please check your email for a verification code.',
+          "Verification Required",
+          "Please check your email for a verification code.",
           [
             {
-              text: 'OK',
-              onPress: () => router.push({
-                pathname: '/(auth)/verify-email',
-                params: { email }
-              })
-            }
+              text: "OK",
+              onPress: () =>
+                router.push({
+                  pathname: "/(auth)/verify-email",
+                  params: { email },
+                }),
+            },
           ]
         );
       }
     } catch (error) {
-      console.error('Error signing up:', error);
-      Alert.alert('Sign Up Error', (error as Error).message);
+      console.error("Error signing up:", error);
+      Alert.alert("Sign Up Error", (error as Error).message);
     } finally {
       setLoading(false);
     }
@@ -54,7 +55,9 @@ export default function SignUpScreen() {
       <View className="bg-white rounded-2xl p-8 shadow-lg">
         {/* Header */}
         <View className="items-center mb-8">
-          <Text className="text-3xl font-bold text-gray-800 mb-2">Create Account</Text>
+          <Text className="text-3xl font-bold text-gray-800 mb-2">
+            Create Account
+          </Text>
           <Text className="text-gray-600">Join Lexsee v3 today</Text>
         </View>
 
@@ -82,7 +85,8 @@ export default function SignUpScreen() {
               secureTextEntry
             />
             <Text className="text-sm text-gray-500 mt-1">
-              Must be at least 8 characters with uppercase, lowercase, numbers, and symbols
+              Must be at least 8 characters with uppercase, lowercase, numbers,
+              and symbols
             </Text>
           </View>
 
@@ -93,7 +97,7 @@ export default function SignUpScreen() {
             style={{ opacity: loading ? 0.6 : 1 }}
           >
             <Text className="text-white text-center font-semibold text-lg">
-              {loading ? 'Creating Account...' : 'Create Account'}
+              {loading ? "Creating Account..." : "Create Account"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -107,12 +111,10 @@ export default function SignUpScreen() {
               </Text>
             </TouchableOpacity>
           </Link>
-          
+
           <Link href="/(auth)" asChild>
             <TouchableOpacity>
-              <Text className="text-gray-600 text-center">
-                ← Back
-              </Text>
+              <Text className="text-gray-600 text-center">← Back</Text>
             </TouchableOpacity>
           </Link>
         </View>

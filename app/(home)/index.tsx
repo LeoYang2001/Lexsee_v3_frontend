@@ -52,80 +52,35 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Main Content */}
+      {/* User Information */}
       <View className="flex-1 px-6 py-8">
-        <Text className="text-xl font-semibold text-gray-800 mb-6">
-          Lexsee v3 - Your AI Legal Assistant
-        </Text>
-
-        {/* Action Cards */}
-        <View className="space-y-4">
-          <Link href="/(home)/chat" asChild>
-            <TouchableOpacity className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-              <View className="flex-row items-center">
-                <View className="w-12 h-12 bg-blue-100 rounded-lg items-center justify-center mr-4">
-                  <Text className="text-2xl">💬</Text>
-                </View>
-                <View className="flex-1">
-                  <Text className="text-lg font-semibold text-gray-800">
-                    Start Chat
-                  </Text>
-                  <Text className="text-gray-600">
-                    Ask legal questions and get AI assistance
-                  </Text>
-                </View>
-                <Text className="text-gray-400">→</Text>
-              </View>
-            </TouchableOpacity>
-          </Link>
-
-          <Link href="/(home)/profile" asChild>
-            <TouchableOpacity className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-              <View className="flex-row items-center">
-                <View className="w-12 h-12 bg-green-100 rounded-lg items-center justify-center mr-4">
-                  <Text className="text-2xl">👤</Text>
-                </View>
-                <View className="flex-1">
-                  <Text className="text-lg font-semibold text-gray-800">
-                    Profile
-                  </Text>
-                  <Text className="text-gray-600">
-                    Manage your account settings
-                  </Text>
-                </View>
-                <Text className="text-gray-400">→</Text>
-              </View>
-            </TouchableOpacity>
-          </Link>
-
-          <Link href="/(about)" asChild>
-            <TouchableOpacity className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-              <View className="flex-row items-center">
-                <View className="w-12 h-12 bg-purple-100 rounded-lg items-center justify-center mr-4">
-                  <Text className="text-2xl">ℹ️</Text>
-                </View>
-                <View className="flex-1">
-                  <Text className="text-lg font-semibold text-gray-800">
-                    About
-                  </Text>
-                  <Text className="text-gray-600">
-                    Learn more about Lexsee v3
-                  </Text>
-                </View>
-                <Text className="text-gray-400">→</Text>
-              </View>
-            </TouchableOpacity>
-          </Link>
-        </View>
-
-        {/* Quick Stats */}
-        <View className="mt-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-6">
-          <Text className="text-white text-lg font-semibold mb-2">
-            Getting Started
+        <View className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <Text className="text-xl font-semibold text-gray-800 mb-4">
+            User Information
           </Text>
-          <Text className="text-blue-100">
-            Welcome to Lexsee v3! Start by asking a legal question in the chat.
-          </Text>
+
+          <View className="space-y-3">
+            <View>
+              <Text className="text-sm text-gray-500">Email</Text>
+              <Text className="text-gray-800 font-medium">
+                {user?.signInDetails?.loginId || "Not available"}
+              </Text>
+            </View>
+
+            <View>
+              <Text className="text-sm text-gray-500">User ID</Text>
+              <Text className="text-gray-800 font-medium">
+                {user?.userId || "Not available"}
+              </Text>
+            </View>
+
+            <View>
+              <Text className="text-sm text-gray-500">Username</Text>
+              <Text className="text-gray-800 font-medium">
+                {user?.username || "Not available"}
+              </Text>
+            </View>
+          </View>
         </View>
       </View>
     </View>

@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
-import { Link, router } from 'expo-router';
-import { signIn } from 'aws-amplify/auth';
+import React, { useState } from "react";
+import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
+import { Link, router } from "expo-router";
+import { signIn } from "aws-amplify/auth";
 
 export default function SignInScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSignIn = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert("Error", "Please fill in all fields");
       return;
     }
 
@@ -22,11 +22,11 @@ export default function SignInScreen() {
       });
 
       if (isSignedIn) {
-        router.replace('/(home)');
+        router.replace("/(home)");
       }
     } catch (error) {
-      console.error('Error signing in:', error);
-      Alert.alert('Sign In Error', (error as Error).message);
+      console.error("Error signing in:", error);
+      Alert.alert("Sign In Error", (error as Error).message);
     } finally {
       setLoading(false);
     }
@@ -37,7 +37,9 @@ export default function SignInScreen() {
       <View className="bg-white rounded-2xl p-8 shadow-lg">
         {/* Header */}
         <View className="items-center mb-8">
-          <Text className="text-3xl font-bold text-gray-800 mb-2">Welcome Back</Text>
+          <Text className="text-3xl font-bold text-gray-800 mb-2">
+            Welcome Back
+          </Text>
           <Text className="text-gray-600">Sign in to your account</Text>
         </View>
 
@@ -73,7 +75,7 @@ export default function SignInScreen() {
             style={{ opacity: loading ? 0.6 : 1 }}
           >
             <Text className="text-white text-center font-semibold text-lg">
-              {loading ? 'Signing In...' : 'Sign In'}
+              {loading ? "Signing In..." : "Sign In"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -87,12 +89,10 @@ export default function SignInScreen() {
               </Text>
             </TouchableOpacity>
           </Link>
-          
+
           <Link href="/(auth)" asChild>
             <TouchableOpacity>
-              <Text className="text-gray-600 text-center">
-                ← Back
-              </Text>
+              <Text className="text-gray-600 text-center">← Back</Text>
             </TouchableOpacity>
           </Link>
         </View>

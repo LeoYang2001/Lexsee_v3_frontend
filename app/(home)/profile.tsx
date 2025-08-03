@@ -1,6 +1,6 @@
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import { Link } from 'expo-router';
+import React from "react";
+import { View, Text, TouchableOpacity } from "react-native";
+import { Link } from "expo-router";
 
 export default function ProfileScreen() {
   return (

@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
-import { Link, router, useLocalSearchParams } from 'expo-router';
-import { confirmSignUp, resendSignUpCode } from 'aws-amplify/auth';
+import React, { useState, useEffect } from "react";
+import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
+import { Link, router, useLocalSearchParams } from "expo-router";
+import { confirmSignUp, resendSignUpCode } from "aws-amplify/auth";
 
 export default function VerifyEmailScreen() {
   const { email } = useLocalSearchParams<{ email: string }>();
-  const [code, setCode] = useState(['', '', '', '', '', '']);
+  const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
 
@@ -25,14 +25,14 @@ export default function VerifyEmailScreen() {
   };
 
   const handleVerify = async () => {
-    const verificationCode = code.join('');
+    const verificationCode = code.join("");
     if (verificationCode.length !== 6) {
-      Alert.alert('Error', 'Please enter all 6 digits');
+      Alert.alert("Error", "Please enter all 6 digits");
       return;
     }
 
     if (!email) {
-      Alert.alert('Error', 'Email not found. Please go back and try again.');
+      Alert.alert("Error", "Email not found. Please go back and try again.");
       return;
     }
 
@@ -45,20 +45,20 @@ export default function VerifyEmailScreen() {
 
       if (isSignUpComplete) {
         Alert.alert(
-          'Success!',
-          'Your email has been verified successfully. You can now sign in.',
+          "Success!",
+          "Your email has been verified successfully. You can now sign in.",
           [
             {
-              text: 'OK',
-              onPress: () => router.replace('/(auth)/sign-in')
-            }
+              text: "OK",
+              onPress: () => router.replace("/(auth)/sign-in"),
+            },
           ]
         );
       }
     } catch (error) {
-      console.error('Error confirming sign up:', error);
-      Alert.alert('Verification Failed', (error as Error).message);
-      setCode(['', '', '', '', '', '']); // Clear the code on error
+      console.error("Error confirming sign up:", error);
+      Alert.alert("Verification Failed", (error as Error).message);
+      setCode(["", "", "", "", "", ""]); // Clear the code on error
     } finally {
       setLoading(false);
     }
@@ -72,11 +72,14 @@ export default function VerifyEmailScreen() {
       await resendSignUpCode({
         username: email,
       });
-      Alert.alert('Code Sent', 'A new verification code has been sent to your email.');
+      Alert.alert(
+        "Code Sent",
+        "A new verification code has been sent to your email."
+      );
       setResendTimer(60); // 60 second cooldown
     } catch (error) {
-      console.error('Error resending code:', error);
-      Alert.alert('Error', (error as Error).message);
+      console.error("Error resending code:", error);
+      Alert.alert("Error", (error as Error).message);
     } finally {
       setLoading(false);
     }
@@ -96,9 +99,7 @@ export default function VerifyEmailScreen() {
           <Text className="text-gray-600 text-center mt-2">
             We've sent a 6-digit verification code to
           </Text>
-          <Text className="text-blue-600 font-medium text-center">
-            {email}
-          </Text>
+          <Text className="text-blue-600 font-medium text-center">{email}</Text>
         </View>
 
         {/* Code Input */}
@@ -116,7 +117,7 @@ export default function VerifyEmailScreen() {
                 keyboardType="number-pad"
                 maxLength={1}
                 style={{
-                  borderColor: digit ? '#3B82F6' : '#D1D5DB',
+                  borderColor: digit ? "#3B82F6" : "#D1D5DB",
                 }}
               />
             ))}
@@ -127,13 +128,13 @@ export default function VerifyEmailScreen() {
         <TouchableOpacity
           className="bg-blue-600 rounded-xl py-4 mb-6"
           onPress={handleVerify}
-          disabled={loading || code.join('').length !== 6}
+          disabled={loading || code.join("").length !== 6}
           style={{
-            opacity: loading || code.join('').length !== 6 ? 0.6 : 1,
+            opacity: loading || code.join("").length !== 6 ? 0.6 : 1,
           }}
         >
           <Text className="text-white text-center font-semibold text-lg">
-            {loading ? 'Verifying...' : 'Verify Email'}
+            {loading ? "Verifying..." : "Verify Email"}
           </Text>
         </TouchableOpacity>
 
@@ -147,7 +148,7 @@ export default function VerifyEmailScreen() {
           ) : (
             <TouchableOpacity onPress={handleResendCode} disabled={loading}>
               <Text className="text-blue-600 font-medium">
-                {loading ? 'Sending...' : 'Resend Code'}
+                {loading ? "Sending..." : "Resend Code"}
               </Text>
             </TouchableOpacity>
           )}
@@ -156,9 +157,7 @@ export default function VerifyEmailScreen() {
         {/* Back to Sign In */}
         <Link href="/(auth)/sign-in" asChild>
           <TouchableOpacity>
-            <Text className="text-gray-600 text-center">
-              ← Back to Sign In
-            </Text>
+            <Text className="text-gray-600 text-center">← Back to Sign In</Text>
           </TouchableOpacity>
         </Link>
       </View>
