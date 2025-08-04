@@ -84,89 +84,77 @@ export default function SignInScreen() {
               {/* Form */}
               <View className="space-y-6">
                 <View>
-                  <Text className="text-white mb-3 font-medium text-lg">
+                  <Text
+                    style={{
+                      fontSize: 14,
+                    }}
+                    className="text-white my-3 opacity-70 font-medium"
+                  >
                     Email
                   </Text>
                   <View
                     style={{
                       borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: emailFocused
+                        ? "rgba(255, 255, 255, 0.5)"
+                        : "transparent",
                     }}
                     className="relative overflow-hidden"
                   >
-                    {/* Blur backdrop when focused */}
-                    {true && (
-                      <BlurView
-                        intensity={20}
-                        tint="light"
+                    <BlurView intensity={20}>
+                      <TextInput
+                        className="rounded-xl px-4 py-4 text-white bg-white/10"
                         style={{
-                          position: "absolute",
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
+                          fontSize: 16,
                         }}
+                        value={email}
+                        onChangeText={setEmail}
+                        placeholder="Enter your email"
+                        placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        onFocus={() => setEmailFocused(true)}
+                        onBlur={() => setEmailFocused(false)}
                       />
-                    )}
-
-                    <TextInput
-                      className="rounded-xl px-4 py-4 text-white bg-white/10"
-                      style={{
-                        fontSize: 16,
-                        borderWidth: 2,
-                        borderColor: emailFocused
-                          ? "white"
-                          : "rgba(255, 255, 255, 0.3)",
-                      }}
-                      value={email}
-                      onChangeText={setEmail}
-                      placeholder="Enter your email"
-                      placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      onFocus={() => setEmailFocused(true)}
-                      onBlur={() => setEmailFocused(false)}
-                    />
+                    </BlurView>
                   </View>
                 </View>
 
                 <View>
-                  <Text className="text-white mb-3 font-medium text-lg">
+                  <Text
+                    style={{
+                      fontSize: 14,
+                    }}
+                    className="text-white my-3 opacity-70 font-medium"
+                  >
                     Password
                   </Text>
-                  <View className="relative">
-                    {/* Blur backdrop when focused */}
-                    {passwordFocused && (
-                      <BlurView
-                        intensity={20}
-                        tint="light"
+                  <View
+                    style={{
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: passwordFocused
+                        ? "rgba(255, 255, 255, 0.5)"
+                        : "transparent",
+                    }}
+                    className="relative overflow-hidden"
+                  >
+                    <BlurView intensity={20}>
+                      <TextInput
+                        className="rounded-xl px-4 py-4 text-white bg-white/10"
                         style={{
-                          position: "absolute",
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          borderRadius: 12,
+                          fontSize: 16,
                         }}
+                        value={password}
+                        onChangeText={setPassword}
+                        placeholder="Enter your password"
+                        placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                        secureTextEntry
+                        onFocus={() => setPasswordFocused(true)}
+                        onBlur={() => setPasswordFocused(false)}
                       />
-                    )}
-
-                    <TextInput
-                      className="rounded-xl px-4 py-4 text-white bg-white/10"
-                      style={{
-                        fontSize: 16,
-                        borderWidth: 2,
-                        borderColor: passwordFocused
-                          ? "white"
-                          : "rgba(255, 255, 255, 0.3)",
-                      }}
-                      value={password}
-                      onChangeText={setPassword}
-                      placeholder="Enter your password"
-                      placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                      secureTextEntry
-                      onFocus={() => setPasswordFocused(true)}
-                      onBlur={() => setPasswordFocused(false)}
-                    />
+                    </BlurView>
                   </View>
                 </View>
 

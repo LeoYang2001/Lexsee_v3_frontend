@@ -1,88 +1,143 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, Alert } from "react-native";
-import { Link, router } from "expo-router";
-import { getCurrentUser, signOut } from "aws-amplify/auth";
+import React from "react";
+import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { router } from "expo-router";
+import { useAppSelector } from "../../store/hooks";
+import { Feather } from "@expo/vector-icons";
 
 export default function HomeScreen() {
-  const [user, setUser] = useState<any>(null);
+  const { user, isAuthenticated } = useAppSelector((state) => state.user);
 
-  useEffect(() => {
-    fetchUser();
-  }, []);
-
-  const fetchUser = async () => {
-    try {
-      const currentUser = await getCurrentUser();
-      setUser(currentUser);
-    } catch (error) {
-      console.error("Error fetching user:", error);
+  // Redirect to auth if not authenticated (shouldn't happen, but safety check)
+  React.useEffect(() => {
+    if (!isAuthenticated) {
       router.replace("/(auth)");
     }
-  };
+  }, [isAuthenticated]);
 
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      router.replace("/(auth)");
-    } catch (error) {
-      console.error("Error signing out:", error);
-      Alert.alert("Sign Out Error", (error as Error).message);
-    }
-  };
+  const QuickActionCard = ({
+    icon,
+    title,
+    subtitle,
+    onPress,
+    color = "#FA541C",
+  }: {
+    icon: string;
+    title: string;
+    subtitle: string;
+    onPress: () => void;
+    color?: string;
+  }) => (
+    <TouchableOpacity
+      onPress={onPress}
+      className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mb-4"
+    >
+      <View className="flex-row items-center">
+        <View
+          className="w-12 h-12 rounded-full items-center justify-center mr-4"
+          style={{ backgroundColor: `${color}20` }}
+        >
+          <Feather name={icon as any} size={24} color={color} />
+        </View>
+        <View className="flex-1">
+          <Text className="text-lg font-semibold text-gray-800">{title}</Text>
+          <Text className="text-gray-500 text-sm mt-1">{subtitle}</Text>
+        </View>
+        <Feather name="chevron-right" size={20} color="#9CA3AF" />
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
-    <View className="flex-1 bg-gray-50">
-      {/* Header */}
-      <View className="bg-white pt-12 pb-6 px-6 shadow-sm">
-        <View className="flex-row justify-between items-center">
-          <View>
+    <ScrollView className="flex-1 bg-gray-50">
+      {/* Welcome Section */}
+      <View className="bg-white mx-6 mt-6 rounded-xl p-6 shadow-sm border border-gray-100">
+        <View className="flex-row items-center">
+          <View className="w-16 h-16 bg-orange-100 rounded-full items-center justify-center mr-4">
+            <Feather name="user" size={28} color="#FA541C" />
+          </View>
+          <View className="flex-1">
             <Text className="text-2xl font-bold text-gray-800">
               Welcome back!
             </Text>
-            <Text className="text-gray-600 mt-1">
-              {user?.signInDetails?.loginId || "User"}
+            <Text className="text-gray-600 mt-1 text-lg">
+              {user?.displayName || user?.email || "User"}
             </Text>
           </View>
-          <TouchableOpacity
-            onPress={handleSignOut}
-            className="bg-red-100 px-4 py-2 rounded-lg"
-          >
-            <Text className="text-red-600 font-medium">Sign Out</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
-      {/* User Information */}
-      <View className="flex-1 px-6 py-8">
-        <View className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <Text className="text-xl font-semibold text-gray-800 mb-4">
-            User Information
-          </Text>
+      {/* Quick Actions */}
+      <View className="px-6 py-6">
+        <Text className="text-xl font-bold text-gray-800 mb-4">
+          Quick Actions
+        </Text>
 
-          <View className="space-y-3">
+        <QuickActionCard
+          icon="info"
+          title="About LexSee"
+          subtitle="Learn more about our legal services"
+          onPress={() => router.push("/(about)")}
+          color="#3B82F6"
+        />
+
+        <QuickActionCard
+          icon="file-text"
+          title="App Information"
+          subtitle="Version, terms, and app details"
+          onPress={() => router.push("/(home)/info")}
+          color="#10B981"
+        />
+
+        <QuickActionCard
+          icon="phone"
+          title="Contact Support"
+          subtitle="Get help from our support team"
+          onPress={() => router.push("/(home)/contact")}
+          color="#8B5CF6"
+        />
+
+        <QuickActionCard
+          icon="settings"
+          title="Settings"
+          subtitle="Manage your account and preferences"
+          onPress={() => router.push("/(home)/settings")}
+          color="#6B7280"
+        />
+      </View>
+
+      {/* User Information */}
+      <View className="px-6 pb-6">
+        <Text className="text-xl font-bold text-gray-800 mb-4">
+          Account Details
+        </Text>
+
+        <View className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <View className="space-y-4">
             <View>
-              <Text className="text-sm text-gray-500">Email</Text>
-              <Text className="text-gray-800 font-medium">
-                {user?.signInDetails?.loginId || "Not available"}
+              <Text className="text-sm text-gray-500 font-medium">Email</Text>
+              <Text className="text-gray-800 font-medium text-lg mt-1">
+                {user?.email || "Not available"}
               </Text>
             </View>
 
-            <View>
-              <Text className="text-sm text-gray-500">User ID</Text>
-              <Text className="text-gray-800 font-medium">
+            <View className="border-t border-gray-100 pt-4">
+              <Text className="text-sm text-gray-500 font-medium">User ID</Text>
+              <Text className="text-gray-800 font-medium mt-1">
                 {user?.userId || "Not available"}
               </Text>
             </View>
 
-            <View>
-              <Text className="text-sm text-gray-500">Username</Text>
-              <Text className="text-gray-800 font-medium">
+            <View className="border-t border-gray-100 pt-4">
+              <Text className="text-sm text-gray-500 font-medium">
+                Username
+              </Text>
+              <Text className="text-gray-800 font-medium mt-1">
                 {user?.username || "Not available"}
               </Text>
             </View>
           </View>
         </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }

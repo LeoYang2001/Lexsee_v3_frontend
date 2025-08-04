@@ -1,13 +1,28 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from "react-native";
 import { Link, router, useLocalSearchParams } from "expo-router";
 import { confirmSignUp, resendSignUpCode } from "aws-amplify/auth";
+import GradientBackground from "../../components/common/GradientBackground";
+import { BlurView } from "expo-blur";
 
 export default function VerifyEmailScreen() {
   const { email } = useLocalSearchParams<{ email: string }>();
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
+
+  // Create refs for each input
+  const inputRefs = useRef<(TextInput | null)[]>([]);
 
   useEffect(() => {
     if (resendTimer > 0) {
@@ -16,11 +31,35 @@ export default function VerifyEmailScreen() {
     }
   }, [resendTimer]);
 
+  // Auto-focus first input on mount and start resend countdown
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      inputRefs.current[0]?.focus();
+    }, 100);
+
+    // Start 60-second countdown when component mounts (since email was just sent)
+    setResendTimer(60);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   const handleCodeChange = (value: string, index: number) => {
     if (value.length <= 1) {
       const newCode = [...code];
       newCode[index] = value;
       setCode(newCode);
+
+      // Auto-focus next input
+      if (value && index < 5) {
+        inputRefs.current[index + 1]?.focus();
+      }
+    }
+  };
+
+  const handleKeyPress = (key: string, index: number) => {
+    // Handle backspace to go to previous input
+    if (key === "Backspace" && !code[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
     }
   };
 
@@ -86,81 +125,158 @@ export default function VerifyEmailScreen() {
   };
 
   return (
-    <View className="flex-1 justify-center px-6 bg-gradient-to-br from-blue-50 to-indigo-100">
-      <View className="bg-white rounded-2xl p-8 shadow-xl">
-        {/* Header */}
-        <View className="items-center mb-8">
-          <View className="w-16 h-16 bg-blue-100 rounded-full items-center justify-center mb-4">
-            <Text className="text-2xl">📧</Text>
-          </View>
-          <Text className="text-2xl font-bold text-gray-800 text-center">
-            Check Your Email
-          </Text>
-          <Text className="text-gray-600 text-center mt-2">
-            We've sent a 6-digit verification code to
-          </Text>
-          <Text className="text-blue-600 font-medium text-center">{email}</Text>
-        </View>
-
-        {/* Code Input */}
-        <View className="mb-8">
-          <Text className="text-gray-700 mb-4 text-center font-medium">
-            Enter verification code
-          </Text>
-          <View className="flex-row justify-center space-x-3">
-            {code.map((digit, index) => (
-              <TextInput
-                key={index}
-                className="w-12 h-12 border-2 border-gray-300 rounded-lg text-center text-xl font-semibold"
-                value={digit}
-                onChangeText={(value) => handleCodeChange(value, index)}
-                keyboardType="number-pad"
-                maxLength={1}
-                style={{
-                  borderColor: digit ? "#3B82F6" : "#D1D5DB",
-                }}
-              />
-            ))}
-          </View>
-        </View>
-
-        {/* Verify Button */}
-        <TouchableOpacity
-          className="bg-blue-600 rounded-xl py-4 mb-6"
-          onPress={handleVerify}
-          disabled={loading || code.join("").length !== 6}
-          style={{
-            opacity: loading || code.join("").length !== 6 ? 0.6 : 1,
-          }}
+    <GradientBackground
+      imagePath={require("../../assets/images/signInBgImage.png")}
+      gradientLocations={[0, 0.3, 0.6, 1]}
+      overlayOpacity={0.65}
+    >
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      >
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Text className="text-white text-center font-semibold text-lg">
-            {loading ? "Verifying..." : "Verify Email"}
-          </Text>
-        </TouchableOpacity>
+          <View className="flex-1 justify-start  px-6 py-16">
+            {/* Spacer for top */}
+            <View className="h-[20%]" />
 
-        {/* Resend Code */}
-        <View className="items-center mb-6">
-          <Text className="text-gray-600 mb-2">Didn't receive the code?</Text>
-          {resendTimer > 0 ? (
-            <Text className="text-gray-500">
-              Resend available in {resendTimer}s
-            </Text>
-          ) : (
-            <TouchableOpacity onPress={handleResendCode} disabled={loading}>
-              <Text className="text-blue-600 font-medium">
-                {loading ? "Sending..." : "Resend Code"}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
+            {/* Content Container */}
+            <View className="flex-1 justify-center">
+              {/* Header */}
+              <View className="items-start  mb-12">
+                <Text
+                  style={{
+                    fontSize: 28,
+                  }}
+                  className=" font-semibold text-white mb-4 text-center"
+                >
+                  Verification Code Sent
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 16,
+                  }}
+                  className=" font-semibold text-white text-center mb-2"
+                >
+                  Check your email {email}
+                </Text>
+              </View>
 
-        {/* Back to Sign In */}
-        <Link href="/(auth)/sign-in" asChild>
-          <TouchableOpacity>
-            <Text className="text-gray-600 text-center">← Back to Sign In</Text>
-          </TouchableOpacity>
-        </Link>
-      </View>
-    </View>
+              {/* Form */}
+              <View className="space-y-6">
+                <View>
+                  {/* 6-Digit Code Input */}
+                  <View className="flex-row justify-center gap-3 mb-6">
+                    {code.map((digit, index) => (
+                      <View
+                        key={index}
+                        style={{
+                          borderRadius: 12,
+                          borderWidth: 1,
+                          borderColor:
+                            focusedIndex === index
+                              ? "rgba(255, 255, 255, 0.5)"
+                              : "transparent",
+                        }}
+                        className="relative overflow-hidden"
+                      >
+                        <BlurView intensity={20}>
+                          <TextInput
+                            ref={(ref) => {
+                              inputRefs.current[index] = ref;
+                            }}
+                            className="w-14 h-14 text-white bg-white/10 text-center text-xl font-semibold"
+                            style={{
+                              fontSize: 18,
+                              borderRadius: 12,
+                            }}
+                            value={digit}
+                            onChangeText={(value) =>
+                              handleCodeChange(value, index)
+                            }
+                            onKeyPress={({ nativeEvent }) =>
+                              handleKeyPress(nativeEvent.key, index)
+                            }
+                            onFocus={() => setFocusedIndex(index)}
+                            onBlur={() => setFocusedIndex(null)}
+                            keyboardType="number-pad"
+                            maxLength={1}
+                            placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                          />
+                        </BlurView>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Verify Email Button */}
+                <TouchableOpacity
+                  style={{
+                    height: 52,
+                    backgroundColor: "#FA541C",
+                    borderRadius: 12,
+                    marginTop: 24,
+                    opacity: loading || code.join("").length !== 6 ? 0.6 : 1,
+                  }}
+                  className="flex justify-center items-center"
+                  onPress={handleVerify}
+                  disabled={loading || code.join("").length !== 6}
+                >
+                  <Text className="text-white text-center font-semibold text-lg">
+                    {loading ? "Verifying..." : "Verify Email"}
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Resend Email Button */}
+                <TouchableOpacity
+                  style={{
+                    height: 52,
+                    backgroundColor:
+                      resendTimer > 0 ? "#150702" : "rgba(255, 255, 255, 0.2)",
+                    borderRadius: 12,
+                    marginTop: 16,
+                    borderWidth: 1,
+                    borderColor: "#FF6A3760",
+                    opacity: resendTimer > 0 || loading ? 0.6 : 1,
+                  }}
+                  className="flex justify-center items-center"
+                  onPress={handleResendCode}
+                  disabled={resendTimer > 0 || loading}
+                >
+                  <Text
+                    style={{
+                      color: "#FF6A3760",
+                    }}
+                    className="text-center font-semibold text-lg"
+                  >
+                    {resendTimer > 0
+                      ? `Resend Email (${resendTimer}s)`
+                      : loading
+                        ? "Sending..."
+                        : "Resend Email"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Footer Links */}
+              {/* <View className="mt-8 items-center">
+                <Link href="/(auth)/sign-in" asChild>
+                  <TouchableOpacity className="mt-4">
+                    <Text className="text-white text-center text-lg">
+                      ← Back to Sign In
+                    </Text>
+                  </TouchableOpacity>
+                </Link>
+              </View> */}
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </GradientBackground>
   );
 }

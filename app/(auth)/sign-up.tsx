@@ -18,15 +18,22 @@ import { BlurView } from "expo-blur";
 export default function SignUpScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   // Focus states for input styling
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+  const [confirmPasswordFocused, setConfirmPasswordFocused] = useState(false);
 
   const handleSignUp = async () => {
-    if (!email || !password) {
+    if (!email || !password || !confirmPassword) {
       Alert.alert("Error", "Please fill in all fields");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert("Error", "Passwords do not match");
       return;
     }
 
@@ -102,85 +109,114 @@ export default function SignUpScreen() {
               {/* Form */}
               <View className="space-y-6">
                 <View>
-                  <Text className="text-white mb-3 font-medium text-lg">
+                  <Text
+                    style={{
+                      fontSize: 14,
+                    }}
+                    className="text-white my-3 opacity-70 font-medium"
+                  >
                     Email
                   </Text>
-                  <View className="relative">
-                    {/* Blur backdrop when focused */}
-                    {emailFocused && (
-                      <BlurView
-                        intensity={20}
-                        tint="light"
+                  <View
+                    style={{
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: emailFocused
+                        ? "rgba(255, 255, 255, 0.5)"
+                        : "transparent",
+                    }}
+                    className="relative overflow-hidden"
+                  >
+                    <BlurView intensity={20}>
+                      <TextInput
+                        className="rounded-xl px-4 py-4 text-white bg-white/10"
                         style={{
-                          position: "absolute",
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          borderRadius: 12,
+                          fontSize: 16,
                         }}
+                        value={email}
+                        onChangeText={setEmail}
+                        placeholder="Enter your email"
+                        placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        onFocus={() => setEmailFocused(true)}
+                        onBlur={() => setEmailFocused(false)}
                       />
-                    )}
-
-                    <TextInput
-                      className="rounded-xl px-4 py-4 text-white bg-white/10"
-                      style={{
-                        fontSize: 16,
-                        borderWidth: 2,
-                        borderColor: emailFocused
-                          ? "white"
-                          : "rgba(255, 255, 255, 0.3)",
-                      }}
-                      value={email}
-                      onChangeText={setEmail}
-                      placeholder="Enter your email"
-                      placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      onFocus={() => setEmailFocused(true)}
-                      onBlur={() => setEmailFocused(false)}
-                    />
+                    </BlurView>
                   </View>
                 </View>
 
                 <View>
-                  <Text className="text-white mb-3 font-medium text-lg">
+                  <Text
+                    style={{
+                      fontSize: 14,
+                    }}
+                    className="text-white my-3 opacity-70 font-medium"
+                  >
                     Password
                   </Text>
-                  <View className="relative">
-                    {/* Blur backdrop when focused */}
-                    {passwordFocused && (
-                      <BlurView
-                        intensity={20}
-                        tint="light"
+                  <View
+                    style={{
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: passwordFocused
+                        ? "rgba(255, 255, 255, 0.5)"
+                        : "transparent",
+                    }}
+                    className="relative overflow-hidden"
+                  >
+                    <BlurView intensity={20}>
+                      <TextInput
+                        className="rounded-xl px-4 py-4 text-white bg-white/10"
                         style={{
-                          position: "absolute",
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          borderRadius: 12,
+                          fontSize: 16,
                         }}
+                        value={password}
+                        onChangeText={setPassword}
+                        placeholder="Enter your password"
+                        placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                        secureTextEntry
+                        onFocus={() => setPasswordFocused(true)}
+                        onBlur={() => setPasswordFocused(false)}
                       />
-                    )}
+                    </BlurView>
+                  </View>
+                </View>
 
-                    <TextInput
-                      className="rounded-xl px-4 py-4 text-white bg-white/10"
-                      style={{
-                        fontSize: 16,
-                        borderWidth: 2,
-                        borderColor: passwordFocused
-                          ? "white"
-                          : "rgba(255, 255, 255, 0.3)",
-                      }}
-                      value={password}
-                      onChangeText={setPassword}
-                      placeholder="Enter your password"
-                      placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                      secureTextEntry
-                      onFocus={() => setPasswordFocused(true)}
-                      onBlur={() => setPasswordFocused(false)}
-                    />
+                <View>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                    }}
+                    className="text-white my-3 opacity-70 font-medium"
+                  >
+                    Confirm Password
+                  </Text>
+                  <View
+                    style={{
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: confirmPasswordFocused
+                        ? "rgba(255, 255, 255, 0.5)"
+                        : "transparent",
+                    }}
+                    className="relative overflow-hidden"
+                  >
+                    <BlurView intensity={20}>
+                      <TextInput
+                        className="rounded-xl px-4 py-4 text-white bg-white/10"
+                        style={{
+                          fontSize: 16,
+                        }}
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                        placeholder="Confirm your password"
+                        placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                        secureTextEntry
+                        onFocus={() => setConfirmPasswordFocused(true)}
+                        onBlur={() => setConfirmPasswordFocused(false)}
+                      />
+                    </BlurView>
                   </View>
                   <Text className="text-sm text-gray-300 mt-2 px-2">
                     Must be at least 8 characters with uppercase, lowercase,
