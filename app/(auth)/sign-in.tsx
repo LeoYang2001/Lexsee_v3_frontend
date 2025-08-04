@@ -12,6 +12,8 @@ import {
 } from "react-native";
 import { Link, router } from "expo-router";
 import { signIn } from "aws-amplify/auth";
+import { useAppDispatch } from "../../store/hooks";
+import { fetchUserInfo } from "../../store/slices/userSlice";
 import GradientBackground from "../../components/common/GradientBackground";
 import { BlurView } from "expo-blur";
 
@@ -19,6 +21,7 @@ export default function SignInScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const dispatch = useAppDispatch();
 
   // Focus states for input styling
   const [emailFocused, setEmailFocused] = useState(false);
@@ -38,7 +41,20 @@ export default function SignInScreen() {
       });
 
       if (isSignedIn) {
-        router.replace("/(home)");
+        // Fetch user info and update Redux store
+        const resultAction = await dispatch(fetchUserInfo());
+
+        if (fetchUserInfo.fulfilled.match(resultAction)) {
+          // User info fetched successfully, redirect to home
+          router.replace("/(home)");
+        } else {
+          // Failed to fetch user info, show error but user is still signed in
+          Alert.alert(
+            "Warning",
+            "Signed in successfully but failed to load user data. Please restart the app."
+          );
+          router.replace("/(home)");
+        }
       }
     } catch (error) {
       console.error("Error signing in:", error);
