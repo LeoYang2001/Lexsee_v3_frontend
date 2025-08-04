@@ -42,10 +42,14 @@ export default function IndexScreen() {
   // Show loading after splash
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator size="large" color="#3B82F6" />
-        <Text className="text-lg text-gray-600 mt-4">Loading...</Text>
-      </View>
+      <LinearGradient
+        colors={["#1F2734", "#131416"]}
+        className="  flex items-center justify-center "
+      >
+        <View className=" w-full h-full ">
+          <ActivityIndicator size="large" color="#FA541C" />
+        </View>
+      </LinearGradient>
     );
   }
 

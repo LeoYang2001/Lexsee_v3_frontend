@@ -1,56 +1,194 @@
-import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
-import { Link } from "expo-router";
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Animated,
+  Dimensions,
+} from "react-native";
+import { Link, router } from "expo-router";
+import Logo from "../../components/common/Logo";
+import GradientBackground from "../../components/common/GradientBackground";
+
+const { width, height } = Dimensions.get("window");
+
+// Placeholder carousel data
+const carouselData = [
+  {
+    id: 1,
+    image: require("../../assets/carouselImages/bgImage1.png"), // Using icon as placeholder
+    title: "Welcome to LexSee",
+    description:
+      "Your intelligent AI legal assistant, ready to help you navigate complex legal matters with ease and confidence.",
+  },
+  {
+    id: 2,
+    image: require("../../assets/carouselImages/bgImage2.png"), // Fixed extension to .jpeg
+    title: "AI-Powered Legal Chat",
+    description:
+      "Ask legal questions and get instant, accurate responses from our advanced AI trained on legal documents and precedents.",
+  },
+  {
+    id: 3,
+    image: require("../../assets/carouselImages/bgImage3.png"), // Using splash-icon as placeholder
+    title: "Document Analysis",
+    description:
+      "Upload and analyze legal documents with AI assistance for quick insights and comprehensive understanding.",
+  },
+];
 
 export default function AuthIndexScreen() {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const fadeAnims = useState(() =>
+    carouselData.map((_, index) => new Animated.Value(index === 0 ? 1 : 0))
+  )[0];
+
+  // Animated values for indicator bars
+  const indicatorWidths = useState(() =>
+    carouselData.map((_, index) => new Animated.Value(index === 0 ? 148 : 45))
+  )[0];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const nextIndex = (currentIndex + 1) % carouselData.length;
+
+      // Fade out current image and fade in next image
+      Animated.timing(fadeAnims[currentIndex], {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }).start();
+
+      Animated.timing(fadeAnims[nextIndex], {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }).start();
+
+      // Animate indicator bars
+      // Shrink current indicator
+      Animated.timing(indicatorWidths[currentIndex], {
+        toValue: 45,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
+
+      // Expand next indicator
+      Animated.timing(indicatorWidths[nextIndex], {
+        toValue: 148,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
+
+      setCurrentIndex(nextIndex);
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [currentIndex, fadeAnims, indicatorWidths]);
+
+  const currentSlide = carouselData[currentIndex];
+
   return (
-    <View className="flex-1 justify-center px-6 bg-gradient-to-br from-blue-50 to-indigo-100">
-      <View className="bg-white rounded-2xl p-8 shadow-xl">
-        {/* Header */}
-        <View className="items-center mb-8">
-          <Text className="text-4xl font-bold text-gray-800 mb-2">
-            Lexsee v3
-          </Text>
-          <Text className="text-lg text-gray-600 text-center">
-            Your AI Legal Assistant
-          </Text>
-        </View>
+    <View className="flex-1 relative">
+      {/* Fallback background */}
+      <View
+        style={{
+          position: "absolute",
+          width: width,
+          height: height,
+          backgroundColor: "#080A10",
+        }}
+      />
 
-        {/* Welcome Message */}
-        <View className="mb-8">
-          <Text className="text-xl font-semibold text-gray-800 text-center mb-2">
-            Welcome!
-          </Text>
-          <Text className="text-gray-600 text-center">
-            Sign in to access your legal AI assistant or create a new account to
-            get started.
-          </Text>
-        </View>
+      {/* Multiple Background Images with Gradient */}
+      {carouselData.map((slide, index) => (
+        <Animated.View
+          key={slide.id}
+          style={{
+            position: "absolute",
+            width: width,
+            height: height,
+            opacity: fadeAnims[index],
+          }}
+        >
+          <GradientBackground imagePath={slide.image} />
+        </Animated.View>
+      ))}
 
-        {/* Action Buttons */}
-        <View className="space-y-4">
-          <Link href="/(auth)/sign-in" asChild>
-            <TouchableOpacity className="bg-blue-600 rounded-xl py-4 px-6">
-              <Text className="text-white text-center font-semibold text-lg">
-                Sign In
+      {/* Content Overlay */}
+      <View className="flex-1 justify-between ">
+        <View className=" h-[40%]" />
+        <View className=" flex-1 flex-col   px-6  justify-start items-center">
+          {/* Top Section - Title and Description */}
+          <View
+            style={{
+              height: 200,
+            }}
+            className=" flex  flex-col "
+          >
+            <Text
+              style={{
+                fontSize: 46,
+              }}
+              className=" font-bold text-white  text-center"
+            >
+              {currentIndex === 0 ? (
+                <>
+                  Welcome to{" "}
+                  <Text style={{ color: "#FA541C", opacity: 0.9 }}>LexSee</Text>
+                </>
+              ) : (
+                currentSlide.title
+              )}
+            </Text>
+            <Text
+              style={{
+                fontSize: 14,
+              }}
+              className="   text-white opacity-100 text-center my-3 leading-6 px-4"
+            >
+              {currentSlide.description}
+            </Text>
+          </View>
+
+          {/* Middle Section - Indicators */}
+          <View className="flex-row justify-center items-center gap-1 my-20">
+            {carouselData.map((_, index) => (
+              <Animated.View
+                key={index}
+                style={{
+                  width: indicatorWidths[index],
+                  height: 5,
+                  backgroundColor:
+                    index === currentIndex ? "#FA541C" : "#FFFFFF",
+                  opacity: index === currentIndex ? 1 : 0.5,
+                  borderRadius: 2.5,
+                }}
+              />
+            ))}
+          </View>
+
+          {/* Bottom Section - Action Button */}
+          <View className="mb-8 w-full">
+            <TouchableOpacity
+              style={{
+                height: 44,
+                backgroundColor: "#FA541C",
+                borderRadius: 9,
+              }}
+              className="  flex justify-center items-center"
+              onPress={() => router.replace("/(auth)/sign-in")}
+            >
+              <Text
+                style={{
+                  fontSize: 15,
+                }}
+                className="text-white  font-semibold "
+              >
+                Get Started
               </Text>
             </TouchableOpacity>
-          </Link>
-
-          <Link href="/(auth)/sign-up" asChild>
-            <TouchableOpacity className="bg-white border-2 border-blue-600 rounded-xl py-4 px-6">
-              <Text className="text-blue-600 text-center font-semibold text-lg">
-                Create Account
-              </Text>
-            </TouchableOpacity>
-          </Link>
-        </View>
-
-        {/* Footer */}
-        <View className="mt-8 pt-6 border-t border-gray-200">
-          <Text className="text-sm text-gray-500 text-center">
-            By continuing, you agree to our Terms of Service and Privacy Policy
-          </Text>
+          </View>
         </View>
       </View>
     </View>
