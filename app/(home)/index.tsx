@@ -21,8 +21,6 @@ import { useTheme } from "../../theme/ThemeContext";
 import DashCard from "../../components/home/DashCard";
 import { mockWordList } from "../../data/wordslist_mock";
 import FlexCard from "../../components/common/FlexCard";
-import { FadeIn } from "react-native-reanimated";
-import SearchPage from "../../components/home/SearchPage";
 
 export default function HomeScreen() {
   const { user, isAuthenticated } = useAppSelector((state) => state.user);
@@ -34,10 +32,7 @@ export default function HomeScreen() {
   const anchor1Ref = useRef<View>(null);
   const anchor2Ref = useRef<View>(null);
   const headerRef = useRef<View>(null);
-  const [anchor1Y, setAnchor1Y] = useState(0);
-  const [anchor2Y, setAnchor2Y] = useState(0);
   const [headerHeight, setHeaderHeight] = useState(0);
-  const [anchorDistance, setAnchorDistance] = useState(0.25);
   const [ifShowHeader, setIfShowHeader] = useState(true);
   const screenHeight = Dimensions.get("window").height;
   const translateY = useSharedValue(0);
@@ -53,29 +48,21 @@ export default function HomeScreen() {
 
   // Dynamically update anchor positions while scrolling
   const handleScroll = () => {
+    let anchor1Y = 0;
+    let anchor2Y = 0;
     anchor1Ref.current?.measure((x, y, width, height, pageX, pageY) => {
-      setAnchor1Y(pageY);
+      anchor1Y = pageY;
     });
     anchor2Ref.current?.measure((x, y, width, height, pageX, pageY) => {
-      setAnchor2Y(pageY);
+      anchor2Y = pageY;
     });
-  };
-
-  // Only update anchorDistance when anchor1Y or anchor2Y changes
-  React.useEffect(() => {
-    if (!anchor1Ref || !anchor2Ref) return;
-    setAnchorDistance((anchor2Y - anchor1Y) / screenHeight);
-  }, [anchor1Y, anchor2Y]);
-
-  // Only update ifShowHeader when anchorDistance changes
-  React.useEffect(() => {
-    if (anchorDistance < 0) return;
-    if (anchorDistance < anchorSnapPoints[0]) {
+    let distance = (anchor2Y - anchor1Y) / screenHeight;
+    if (distance < anchorSnapPoints[0]) {
       setIfShowHeader(false);
-    } else if (anchorDistance > anchorSnapPoints[1]) {
+    } else if (distance > anchorSnapPoints[1]) {
       setIfShowHeader(true);
     }
-  }, [anchorDistance]);
+  };
 
   // Animate header by its actual height
   React.useEffect(() => {
@@ -129,7 +116,7 @@ export default function HomeScreen() {
             onLayout={() => {
               anchor1Ref.current?.measure(
                 (x, y, width, height, pageX, pageY) => {
-                  setAnchor1Y(pageY);
+                  // setAnchor1Y(pageY);
                 }
               );
             }}
@@ -161,7 +148,7 @@ export default function HomeScreen() {
                     onLayout={() => {
                       anchor2Ref.current?.measure(
                         (x, y, width, height, pageX, pageY) => {
-                          setAnchor2Y(pageY);
+                          // setAnchor2Y(pageY);
                         }
                       );
                     }}
