@@ -1,11 +1,43 @@
-import React from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
-import { router } from "expo-router";
-import { useAppSelector } from "../../store/hooks";
-import { Feather } from "@expo/vector-icons";
+import React, { useRef, useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+  Dimensions,
+} from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+} from "react-native-reanimated";
+import { router, useRouter } from "expo-router";
+import { useAppSelector, useAppDispatch } from "../../store/hooks";
+import { AntDesign, Feather } from "@expo/vector-icons";
+import CustomHeader from "../../components/home/Header";
+import { useTheme } from "../../theme/ThemeContext";
+import DashCard from "../../components/home/DashCard";
+import { mockWordList } from "../../data/wordslist_mock";
+import FlexCard from "../../components/common/FlexCard";
 
 export default function HomeScreen() {
   const { user, isAuthenticated } = useAppSelector((state) => state.user);
+  const dispatch = useAppDispatch();
+  const router = useRouter();
+
+  const anchorSnapPoints = [0.15, 0.2];
+
+  const anchor1Ref = useRef<View>(null);
+  const anchor2Ref = useRef<View>(null);
+  const headerRef = useRef<View>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const [ifShowHeader, setIfShowHeader] = useState(true);
+  const screenHeight = Dimensions.get("window").height;
+  const translateY = useSharedValue(0);
+
+  const theme = useTheme();
 
   // Redirect to auth if not authenticated (shouldn't happen, but safety check)
   React.useEffect(() => {
@@ -14,130 +46,124 @@ export default function HomeScreen() {
     }
   }, [isAuthenticated]);
 
-  const QuickActionCard = ({
-    icon,
-    title,
-    subtitle,
-    onPress,
-    color = "#FA541C",
-  }: {
-    icon: string;
-    title: string;
-    subtitle: string;
-    onPress: () => void;
-    color?: string;
-  }) => (
-    <TouchableOpacity
-      onPress={onPress}
-      className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mb-4"
-    >
-      <View className="flex-row items-center">
-        <View
-          className="w-12 h-12 rounded-full items-center justify-center mr-4"
-          style={{ backgroundColor: `${color}20` }}
-        >
-          <Feather name={icon as any} size={24} color={color} />
-        </View>
-        <View className="flex-1">
-          <Text className="text-lg font-semibold text-gray-800">{title}</Text>
-          <Text className="text-gray-500 text-sm mt-1">{subtitle}</Text>
-        </View>
-        <Feather name="chevron-right" size={20} color="#9CA3AF" />
-      </View>
-    </TouchableOpacity>
-  );
+  // Dynamically update anchor positions while scrolling
+  const handleScroll = () => {
+    let anchor1Y = 0;
+    let anchor2Y = 0;
+    anchor1Ref.current?.measure((x, y, width, height, pageX, pageY) => {
+      anchor1Y = pageY;
+    });
+    anchor2Ref.current?.measure((x, y, width, height, pageX, pageY) => {
+      anchor2Y = pageY;
+    });
+    let distance = (anchor2Y - anchor1Y) / screenHeight;
+    if (distance < anchorSnapPoints[0]) {
+      setIfShowHeader(false);
+    } else if (distance > anchorSnapPoints[1]) {
+      setIfShowHeader(true);
+    }
+  };
+
+  // Animate header by its actual height
+  React.useEffect(() => {
+    const target = ifShowHeader ? 0 : -headerHeight;
+    translateY.value = withTiming(target, { duration: 200 });
+  }, [ifShowHeader, headerHeight]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
 
   return (
-    <ScrollView className="flex-1 bg-gray-50">
-      {/* Welcome Section */}
-      <View className="bg-white mx-6 mt-6 rounded-xl p-6 shadow-sm border border-gray-100">
-        <View className="flex-row items-center">
-          <View className="w-16 h-16 bg-orange-100 rounded-full items-center justify-center mr-4">
-            <Feather name="user" size={28} color="#FA541C" />
-          </View>
-          <View className="flex-1">
-            <Text className="text-2xl font-bold text-gray-800">
-              Welcome back!
-            </Text>
-            <Text className="text-gray-600 mt-1 text-lg">
-              {user?.displayName || user?.email || "User"}
-            </Text>
-          </View>
-        </View>
-      </View>
+    <View
+      style={{ backgroundColor: theme.background }}
+      className="flex-1  px-3"
+    >
+      {/* Reanimated View  */}
+      <Animated.View style={[{ flex: 1 }, animatedStyle]}>
+        {/* Top Section with dynamic height */}
+        <View
+          ref={headerRef}
+          onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
+        >
+          <CustomHeader />
+          <View className="flex-col gap-6 items-center mt-6">
+            <TouchableOpacity
+              style={{
+                height: 49,
+                backgroundColor: "#2b2c2d",
+                borderRadius: 12,
+                paddingHorizontal: 16,
+              }}
+              className=" w-full flex  justify-center"
+              onPress={() => router.push("/(home)/search")}
+            >
+              <AntDesign
+                color={"white"}
+                style={{ opacity: 0.6 }}
+                name="search1"
+                size={22}
+              />
+            </TouchableOpacity>
 
-      {/* Quick Actions */}
-      <View className="px-6 py-6">
-        <Text className="text-xl font-bold text-gray-800 mb-4">
-          Quick Actions
-        </Text>
-
-        <QuickActionCard
-          icon="info"
-          title="About LexSee"
-          subtitle="Learn more about our legal services"
-          onPress={() => router.push("/(about)")}
-          color="#3B82F6"
-        />
-
-        <QuickActionCard
-          icon="file-text"
-          title="App Information"
-          subtitle="Version, terms, and app details"
-          onPress={() => router.push("/(home)/info")}
-          color="#10B981"
-        />
-
-        <QuickActionCard
-          icon="phone"
-          title="Contact Support"
-          subtitle="Get help from our support team"
-          onPress={() => router.push("/(home)/contact")}
-          color="#8B5CF6"
-        />
-
-        <QuickActionCard
-          icon="settings"
-          title="Settings"
-          subtitle="Manage your account and preferences"
-          onPress={() => router.push("/(home)/settings")}
-          color="#6B7280"
-        />
-      </View>
-
-      {/* User Information */}
-      <View className="px-6 pb-6">
-        <Text className="text-xl font-bold text-gray-800 mb-4">
-          Account Details
-        </Text>
-
-        <View className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <View className="space-y-4">
-            <View>
-              <Text className="text-sm text-gray-500 font-medium">Email</Text>
-              <Text className="text-gray-800 font-medium text-lg mt-1">
-                {user?.email || "Not available"}
-              </Text>
-            </View>
-
-            <View className="border-t border-gray-100 pt-4">
-              <Text className="text-sm text-gray-500 font-medium">User ID</Text>
-              <Text className="text-gray-800 font-medium mt-1">
-                {user?.userId || "Not available"}
-              </Text>
-            </View>
-
-            <View className="border-t border-gray-100 pt-4">
-              <Text className="text-sm text-gray-500 font-medium">
-                Username
-              </Text>
-              <Text className="text-gray-800 font-medium mt-1">
-                {user?.username || "Not available"}
-              </Text>
-            </View>
+            <DashCard />
           </View>
         </View>
-      </View>
-    </ScrollView>
+
+        <View style={{ height: "100%", paddingTop: 45 }}>
+          <View
+            ref={anchor1Ref}
+            onLayout={() => {
+              anchor1Ref.current?.measure(
+                (x, y, width, height, pageX, pageY) => {
+                  // setAnchor1Y(pageY);
+                }
+              );
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 12,
+                opacity: 0.7,
+              }}
+              className=" opacity-1  text-white  my-3"
+            >
+              Recently Pinned
+            </Text>
+          </View>
+          <ScrollView
+            className="flex-1 "
+            scrollEventThrottle={16}
+            showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+          >
+            {/* Placeholder list of 10 items */}
+            {mockWordList.map((word, idx) => (
+              <View className="relative my-2" key={word.id || idx}>
+                <FlexCard word={word} ifDetail={false} ifGraphic={false} />
+                {idx === 1 && (
+                  <View
+                    className=" absolute"
+                    ref={anchor2Ref}
+                    onLayout={() => {
+                      anchor2Ref.current?.measure(
+                        (x, y, width, height, pageX, pageY) => {
+                          // setAnchor2Y(pageY);
+                        }
+                      );
+                    }}
+                  >
+                    {/* <Text className=" opacity-0">ANCHOR2</Text>
+                    <Text className="text-xs  text-gray-400">
+                      Distance: {(anchorDistance * 100).toFixed(1)}%
+                    </Text> */}
+                  </View>
+                )}
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      </Animated.View>
+    </View>
   );
 }

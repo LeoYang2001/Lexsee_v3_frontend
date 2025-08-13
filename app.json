@@ -35,6 +35,13 @@
             "backgroundColor": "#1F2734"
           }
         }
+      ],
+      [
+        "expo-video",
+        {
+          "supportsBackgroundPlayback": true,
+          "supportsPictureInPicture": true
+        }
       ]
     ]
   }

@@ -1,6 +1,11 @@
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Drawer } from "expo-router/drawer";
 import { Feather } from "@expo/vector-icons";
+import {
+  DrawerContentScrollView,
+  DrawerItemList,
+} from "@react-navigation/drawer";
+import ThemeToggleButton from "../../components/home/ThemeToggleButton";
 
 export default function HomeLayout() {
   return (
@@ -8,14 +13,7 @@ export default function HomeLayout() {
       <Drawer
         screenOptions={{
           drawerPosition: "right",
-          headerShown: true,
-          headerStyle: {
-            backgroundColor: "#FA541C",
-          },
-          headerTintColor: "#fff",
-          headerTitleStyle: {
-            fontWeight: "bold",
-          },
+          headerShown: false,
           drawerStyle: {
             backgroundColor: "#f8f9fa",
             width: 280,
@@ -27,6 +25,12 @@ export default function HomeLayout() {
             fontWeight: "500",
           },
         }}
+        drawerContent={(props) => (
+          <DrawerContentScrollView {...props}>
+            <DrawerItemList {...props} />
+            <ThemeToggleButton />
+          </DrawerContentScrollView>
+        )}
       >
         <Drawer.Screen
           name="index"
