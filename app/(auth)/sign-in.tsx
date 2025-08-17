@@ -11,7 +11,7 @@ import {
   Animated,
 } from "react-native";
 import { Link, router } from "expo-router";
-import { signIn } from "aws-amplify/auth";
+import { signIn, signInWithRedirect } from "aws-amplify/auth";
 import { useAppDispatch } from "../../store/hooks";
 import { fetchUserInfo } from "../../store/slices/userSlice";
 import GradientBackground from "../../components/common/GradientBackground";
@@ -61,6 +61,20 @@ export default function SignInScreen() {
       Alert.alert("Sign In Error", (error as Error).message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSignInWithGoogle = async () => {
+    try {
+      setLoading(true);
+
+      await signInWithRedirect({
+        provider: "Google",
+      });
+      setLoading(false);
+    } catch (e) {
+      setLoading(false);
+      console.error("Error signing in with Google:", e);
     }
   };
 
@@ -190,6 +204,14 @@ export default function SignInScreen() {
                   </Text>
                 </TouchableOpacity>
               </View>
+              <TouchableOpacity
+                onPress={handleSignInWithGoogle}
+                className="text-white text-center font-semibold text-lg"
+              >
+                <Text className="text-white font-semibold">
+                  📧 Googleでサインイン
+                </Text>
+              </TouchableOpacity>
 
               {/* Footer Links */}
               <View className="mt-8 items-center">
