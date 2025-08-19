@@ -1,7 +1,8 @@
 export type Word = {
-  id: number;
+  id: string;
   word: string;
   imgUrl: string;
+  status?: string;
   meanings: {
     definition: string;
     partOfSpeech: string;

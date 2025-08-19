@@ -9,9 +9,10 @@ interface PhoneticAudioProps {
     text: string;
     audioUrl?: string;
   };
+  size?: number;
 }
 
-const PhoneticAudio = ({ phonetics }: PhoneticAudioProps) => {
+const PhoneticAudio = ({ phonetics, size = 14 }: PhoneticAudioProps) => {
   const videoSource = phonetics.audioUrl;
   const [audioPlayer, setAudioPlayer] = useState<VideoPlayer | null>(null);
 
@@ -29,6 +30,7 @@ const PhoneticAudio = ({ phonetics }: PhoneticAudioProps) => {
       className="flex flex-row items-center gap-2 mt-2"
       onPress={() => {
         if (audioPlayer) {
+          console.log(phonetics.text, "audioUrl:", phonetics.audioUrl);
           audioPlayer.currentTime = 0; // Reset to the beginning
           audioPlayer.play();
         } else {
@@ -36,10 +38,12 @@ const PhoneticAudio = ({ phonetics }: PhoneticAudioProps) => {
         }
       }}
     >
-      <Text style={{ color: "#fff", opacity: 0.7, fontSize: 14 }}>
+      <Text style={{ color: "#fff", opacity: 0.7, fontSize: size }}>
         {phonetics.text}
       </Text>
-      <Volume2 size={16} color={"#fff"} opacity={0.7} />
+      <View className=" flex justify-center items-center">
+        <Volume2 size={size + 2} color={"#fff"} opacity={0.7} />
+      </View>
     </TouchableOpacity>
   );
 };
