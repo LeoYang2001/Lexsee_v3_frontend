@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -7,13 +7,14 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
   Dimensions,
+  TouchableWithoutFeedback,
 } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
-import { router, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { AntDesign, Feather } from "@expo/vector-icons";
 import CustomHeader from "../../components/home/Header";
@@ -21,13 +22,14 @@ import { useTheme } from "../../theme/ThemeContext";
 import DashCard from "../../components/home/DashCard";
 import { mockWordList } from "../../data/wordslist_mock";
 import FlexCard from "../../components/common/FlexCard";
+import { Word } from "../../types/common/Word";
+import { client } from "../client";
 
 export default function HomeScreen() {
   const { user, isAuthenticated } = useAppSelector((state) => state.user);
-  const dispatch = useAppDispatch();
   const router = useRouter();
 
-  const anchorSnapPoints = [0.15, 0.2];
+  const anchorSnapPoints = [0.15, 0.25];
 
   const anchor1Ref = useRef<View>(null);
   const anchor2Ref = useRef<View>(null);
@@ -36,6 +38,18 @@ export default function HomeScreen() {
   const [ifShowHeader, setIfShowHeader] = useState(true);
   const screenHeight = Dimensions.get("window").height;
   const translateY = useSharedValue(0);
+  const [activeCardId, setActiveCardId] = useState<String | null>(null);
+
+  const { words, isLoading, isSynced, error } = useAppSelector(
+    (state) => state.wordsList
+  );
+  // const { profile } = useAppSelector((state) => state.profile);
+
+  // Filter words for crrent user
+
+  // Filter by status
+  const collectedWords = words.filter((word) => word.status === "COLLECTED");
+  // const learnedWords = userWords.filter(word => word.status === "LEARNED");
 
   const theme = useTheme();
 
@@ -48,6 +62,7 @@ export default function HomeScreen() {
 
   // Dynamically update anchor positions while scrolling
   const handleScroll = () => {
+    if (collectedWords.length < 3) return; // Avoid measuring if not enough words)
     let anchor1Y = 0;
     let anchor2Y = 0;
     anchor1Ref.current?.measure((x, y, width, height, pageX, pageY) => {
@@ -75,95 +90,102 @@ export default function HomeScreen() {
   }));
 
   return (
-    <View
-      style={{ backgroundColor: theme.background }}
-      className="flex-1  px-3"
+    <TouchableWithoutFeedback
+      onPress={() => {
+        if (activeCardId) {
+          setActiveCardId(null);
+        }
+      }}
     >
-      {/* Reanimated View  */}
-      <Animated.View style={[{ flex: 1 }, animatedStyle]}>
-        {/* Top Section with dynamic height */}
-        <View
-          ref={headerRef}
-          onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
-        >
-          <CustomHeader />
-          <View className="flex-col gap-6 items-center mt-6">
-            <TouchableOpacity
-              style={{
-                height: 49,
-                backgroundColor: "#2b2c2d",
-                borderRadius: 12,
-                paddingHorizontal: 16,
-              }}
-              className=" w-full flex  justify-center"
-              onPress={() => router.push("/(home)/search")}
-            >
-              <AntDesign
-                color={"white"}
-                style={{ opacity: 0.6 }}
-                name="search1"
-                size={22}
-              />
-            </TouchableOpacity>
-
-            <DashCard />
-          </View>
-        </View>
-
-        <View style={{ height: "100%", paddingTop: 45 }}>
+      <View
+        style={{ backgroundColor: theme.background }}
+        className="flex-1  px-3"
+      >
+        {/* Reanimated View  */}
+        <Animated.View style={[{ flex: 1 }, animatedStyle]}>
+          {/* Top Section with dynamic height */}
           <View
-            ref={anchor1Ref}
-            onLayout={() => {
-              anchor1Ref.current?.measure(
-                (x, y, width, height, pageX, pageY) => {
-                  // setAnchor1Y(pageY);
-                }
-              );
-            }}
+            ref={headerRef}
+            onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
           >
-            <Text
-              style={{
-                fontSize: 12,
-                opacity: 0.7,
-              }}
-              className=" opacity-1  text-white  my-3"
-            >
-              Recently Pinned
-            </Text>
+            <CustomHeader />
+            <View className="flex-col gap-6 items-center mt-6">
+              <TouchableOpacity
+                style={{
+                  height: 49,
+                  backgroundColor: "#2b2c2d",
+                  borderRadius: 12,
+                  paddingHorizontal: 16,
+                }}
+                className=" w-full flex  justify-center"
+                onPress={() => router.push("/(home)/search")}
+              >
+                <AntDesign
+                  color={"white"}
+                  style={{ opacity: 0.6 }}
+                  name="search1"
+                  size={22}
+                />
+              </TouchableOpacity>
+
+              <DashCard />
+            </View>
           </View>
-          <ScrollView
-            className="flex-1 "
-            scrollEventThrottle={16}
-            showsVerticalScrollIndicator={false}
-            onScroll={handleScroll}
-          >
-            {/* Placeholder list of 10 items */}
-            {mockWordList.map((word, idx) => (
-              <View className="relative my-2" key={word.id || idx}>
-                <FlexCard word={word} ifDetail={false} ifGraphic={false} />
-                {idx === 1 && (
-                  <View
-                    className=" absolute"
-                    ref={anchor2Ref}
-                    onLayout={() => {
-                      anchor2Ref.current?.measure(
-                        (x, y, width, height, pageX, pageY) => {
-                          // setAnchor2Y(pageY);
-                        }
-                      );
-                    }}
-                  >
-                    {/* <Text className=" opacity-0">ANCHOR2</Text>
-                    <Text className="text-xs  text-gray-400">
-                      Distance: {(anchorDistance * 100).toFixed(1)}%
-                    </Text> */}
+
+          <View style={{ height: "100%", paddingTop: 45 }}>
+            <View
+              ref={anchor1Ref}
+              onLayout={() => {
+                anchor1Ref.current?.measure(
+                  (x, y, width, height, pageX, pageY) => {
+                    // setAnchor1Y(pageY);
+                  }
+                );
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 12,
+                  opacity: 0.7,
+                }}
+                className=" opacity-1  text-white  my-3"
+              >
+                Recently Pinned
+              </Text>
+            </View>
+            <ScrollView
+              className="flex-1 "
+              scrollEventThrottle={16}
+              showsVerticalScrollIndicator={false}
+              onScroll={handleScroll}
+            >
+              {collectedWords.map((word, idx) => (
+                <TouchableWithoutFeedback
+                  onPress={() => {
+                    if (activeCardId === word.id) {
+                      setActiveCardId(null);
+                    } else {
+                      setActiveCardId(word.id);
+                    }
+                  }}
+                  key={word.id || idx}
+                >
+                  <View className="relative my-2">
+                    <FlexCard
+                      word={word}
+                      ifDetail={activeCardId === word.id}
+                      ifGraphic={false}
+                    />
+                    {idx === 1 && (
+                      <View className=" absolute" ref={anchor2Ref}></View>
+                    )}
                   </View>
-                )}
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-      </Animated.View>
-    </View>
+                </TouchableWithoutFeedback>
+              ))}
+            </ScrollView>
+          </View>
+        </Animated.View>
+      </View>
+    </TouchableWithoutFeedback>
   );
 }

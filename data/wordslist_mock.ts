@@ -2,7 +2,7 @@ import { Word } from "../types/common/Word";
 
 export const mockWordList: Word[] = [
   {
-    id: 1741102920,
+    id: "1741102920",
     word: "demagogue",
     imgUrl:
       "https://mir-s3-cdn-cf.behance.net/project_modules/1400/20bad270130695.5b99118ee3463.png",
@@ -23,7 +23,7 @@ export const mockWordList: Word[] = [
     timeStamp: "2025-03-04T15:42:04.808Z",
   },
   {
-    id: 1742051190,
+    id: "1742051190",
     word: "expose",
     imgUrl:
       "https://images.squarespace-cdn.com/content/v1/58ea01293a0411706aed7ca7/e0c86b7e-5ee3-439e-a640-c0d4faf0b02b/_5+Ultimate+Tactics+To+Expose+Someone%27s+True+Nature.png",
@@ -49,7 +49,7 @@ export const mockWordList: Word[] = [
     timeStamp: "2025-03-15T15:06:58.678Z",
   },
   {
-    id: 1730601510,
+    id: "1730601510",
     word: "avaricious",
     imgUrl: "https://cdn.langeek.co/photo/22033/original/?type=jpeg",
     meanings: [
@@ -69,7 +69,7 @@ export const mockWordList: Word[] = [
     timeStamp: "2024-11-03T02:38:33.939Z",
   },
   {
-    id: 1730513399,
+    id: "1730513399",
     word: "umbrage",
     imgUrl:
       "https://aalegalnyc.com/wp-content/uploads/2018/11/strategic-umbrage-negotiating-tactic.jpg",
@@ -131,7 +131,7 @@ export const mockWordList: Word[] = [
     timeStamp: "2024-11-02T15:49:59.798Z",
   },
   {
-    id: 17305133991,
+    id: "17305133991",
     word: "umbrage",
     imgUrl:
       "https://aalegalnyc.com/wp-content/uploads/2018/11/strategic-umbrage-negotiating-tactic.jpg",
@@ -193,7 +193,7 @@ export const mockWordList: Word[] = [
     timeStamp: "2024-11-02T15:49:59.798Z",
   },
   {
-    id: 17305133992,
+    id: "17305133992",
     word: "umbrage",
     imgUrl:
       "https://aalegalnyc.com/wp-content/uploads/2018/11/strategic-umbrage-negotiating-tactic.jpg",
@@ -255,7 +255,7 @@ export const mockWordList: Word[] = [
     timeStamp: "2024-11-02T15:49:59.798Z",
   },
   {
-    id: 17305133993,
+    id: "17305133993",
     word: "umbrage",
     imgUrl:
       "https://aalegalnyc.com/wp-content/uploads/2018/11/strategic-umbrage-negotiating-tactic.jpg",
