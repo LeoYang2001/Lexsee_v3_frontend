@@ -78,6 +78,19 @@ export default function SignInScreen() {
     }
   };
 
+  const handleSignInWithApple = async () => {
+    try {
+      setLoading(true);
+      await signInWithRedirect({
+        provider: "Apple",
+      });
+      setLoading(false);
+    } catch (e) {
+      setLoading(false);
+      console.error("Error signing in with Apple:", e);
+    }
+  };
+
   return (
     <GradientBackground
       imagePath={require("../../assets/images/signInBgImage.png")}
@@ -204,13 +217,20 @@ export default function SignInScreen() {
                   </Text>
                 </TouchableOpacity>
               </View>
+              {Platform.OS === "ios" && (
+                <TouchableOpacity
+                  onPress={handleSignInWithApple}
+                  className="bg-red-400 rounded-xl"
+                >
+                  <Text className="text-white font-semibold p-4 ">Apple</Text>
+                </TouchableOpacity>
+              )}
+
               <TouchableOpacity
                 onPress={handleSignInWithGoogle}
-                className="text-white text-center font-semibold text-lg"
+                className="bg-blue-400 rounded-xl"
               >
-                <Text className="text-white font-semibold">
-                  📧 Googleでサインイン
-                </Text>
+                <Text className="text-white font-semibold p-4 ">Google</Text>
               </TouchableOpacity>
 
               {/* Footer Links */}

@@ -10,7 +10,7 @@ import {
   ScrollView,
   Animated,
 } from "react-native";
-import { Link, router } from "expo-router";
+import { Link, router, useRouter } from "expo-router";
 import { signUp } from "aws-amplify/auth";
 import GradientBackground from "../../components/common/GradientBackground";
 import { BlurView } from "expo-blur";
@@ -27,6 +27,7 @@ export default function SignUpScreen() {
   const [confirmPasswordFocused, setConfirmPasswordFocused] = useState(false);
 
   const handleSignUp = async () => {
+    const router = useRouter();
     if (!email || !password || !confirmPassword) {
       Alert.alert("Error", "Please fill in all fields");
       return;
@@ -243,16 +244,18 @@ export default function SignUpScreen() {
 
               {/* Footer Links */}
               <View className="mt-8 items-center">
-                <Link href="/(auth)/sign-in" asChild>
-                  <TouchableOpacity>
-                    <Text className="text-white text-center text-lg">
-                      Already have an account?{" "}
-                      <Text style={{ color: "#FA541C", fontWeight: "600" }}>
-                        Sign In
-                      </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    router.back();
+                  }}
+                >
+                  <Text className="text-white text-center text-lg">
+                    Already have an account?{" "}
+                    <Text style={{ color: "#FA541C", fontWeight: "600" }}>
+                      Sign In
                     </Text>
-                  </TouchableOpacity>
-                </Link>
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
