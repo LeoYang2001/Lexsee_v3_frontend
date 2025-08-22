@@ -7,7 +7,21 @@ import {
 } from "@react-navigation/drawer";
 import ThemeToggleButton from "../../components/home/ThemeToggleButton";
 
+import { TouchableOpacity, Text, Alert } from "react-native";
+import { useRouter } from "expo-router";
+import { signOut as amplifySignOut } from "aws-amplify/auth";
+
 export default function HomeLayout() {
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    try {
+      await amplifySignOut();
+      router.replace("/(auth)/sign-in");
+    } catch (error) {
+      Alert.alert("Sign Out Error", (error as Error).message);
+    }
+  };
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Drawer
@@ -29,6 +43,23 @@ export default function HomeLayout() {
           <DrawerContentScrollView {...props}>
             <DrawerItemList {...props} />
             <ThemeToggleButton />
+            {/* add signout button here */}
+            <TouchableOpacity
+              style={{
+                marginTop: 24,
+                backgroundColor: "#FA541C",
+                borderRadius: 8,
+                paddingVertical: 12,
+                alignItems: "center",
+              }}
+              onPress={handleSignOut}
+            >
+              <Text
+                style={{ color: "white", fontWeight: "bold", fontSize: 16 }}
+              >
+                Sign Out
+              </Text>
+            </TouchableOpacity>
           </DrawerContentScrollView>
         )}
       >
