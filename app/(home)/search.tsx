@@ -6,25 +6,56 @@ import {
   TextInput,
   TouchableWithoutFeedback,
   Keyboard,
+  FlatList,
 } from "react-native";
 import { useTheme } from "../../theme/ThemeContext";
 import { ChevronLeft } from "lucide-react-native";
 import { AntDesign } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { ScrollView } from "react-native-gesture-handler";
+import { getWordSuggestions } from "../../apis/getWordSuggestions";
 
 export default function SearchPage() {
   const theme = useTheme();
   const [showInput, setShowInput] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
   const mockHistoryList = [
-    { id: 1, text: "Example search 1" },
-    { id: 2, text: "Example search 2" },
-    { id: 3, text: "Example search 3" },
-    { id: 4, text: "Example search 4" },
-    { id: 5, text: "Example search 5" },
+    { id: 1, text: "wistful" },
+    { id: 2, text: "serene" },
+    { id: 3, text: "melancholy" },
+    { id: 4, text: "ephemeral" },
+    { id: 5, text: "nostalgia" },
   ];
+
+  // Debounced search suggestions
+  useEffect(() => {
+    const timeoutId = setTimeout(async () => {
+      if (searchQuery.trim().length > 0) {
+        setIsLoadingSuggestions(true);
+        const wordSuggestions = await getWordSuggestions(searchQuery);
+        setSuggestions(wordSuggestions);
+        setIsLoadingSuggestions(false);
+      } else {
+        setSuggestions([]);
+        setIsLoadingSuggestions(false);
+      }
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  const handleWordSelect = (word: string) => {
+    setSearchQuery("");
+    setSuggestions([]);
+    Keyboard.dismiss();
+    // Navigate to definition page
+    router.push(`/(definition)?word=${encodeURIComponent(word)}`);
+  };
+
   useEffect(() => {
     setTimeout(() => {
       if (inputRef.current) {
@@ -45,7 +76,6 @@ export default function SearchPage() {
         <View className=" mt-16 w-full  justify-between flex-row items-center ">
           <TouchableOpacity
             onPress={() => {
-              // Handle back navigation
               router.back();
             }}
           >
@@ -61,6 +91,8 @@ export default function SearchPage() {
             <TextInput
               ref={inputRef}
               autoFocus
+              value={searchQuery}
+              onChangeText={setSearchQuery}
               style={{
                 height: "100%",
                 backgroundColor: "#2b2c2d",
@@ -76,10 +108,16 @@ export default function SearchPage() {
                 left: 0,
               }}
               className="w-full"
-              placeholder="Search..."
+              placeholder="Search for words..."
               placeholderTextColor="#aaa"
               onBlur={() => setShowInput(false)}
               onFocus={() => setShowInput(true)}
+              returnKeyType="search"
+              onSubmitEditing={() => {
+                if (searchQuery.trim()) {
+                  handleWordSelect(searchQuery.trim());
+                }
+              }}
             />
             {!showInput && (
               <TouchableOpacity
@@ -110,8 +148,9 @@ export default function SearchPage() {
             )}
           </View>
         </View>
-        {/* SEARCH HISTORY  */}
-        <View className="w-full flex-1 mt-6 border border-red-500">
+
+        {/* SEARCH SUGGESTIONS OR HISTORY */}
+        <View className="w-full flex-1 mt-6">
           <View className=" flex flex-row justify-between items-center">
             <Text
               style={{
@@ -119,32 +158,68 @@ export default function SearchPage() {
               }}
               className=" text-white opacity-70"
             >
-              History
+              {searchQuery.trim().length > 0 ? "Suggestions" : "History"}
             </Text>
-            <TouchableOpacity>
-              <Text
-                style={{
-                  fontSize: 12,
-                }}
-                className="text-white opacity-70"
-              >
-                Clear all
-              </Text>
-            </TouchableOpacity>
-          </View>
-          <ScrollView className="px-3 pt-6" keyboardShouldPersistTaps="always">
-            {mockHistoryList.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                className="py-2 border-b border-white/10"
-                onPress={() => {
-                  // Handle search item press
-                  console.log(`Search for: ${item.text}`);
-                }}
-              >
-                <Text className="text-white">{item.text}</Text>
+            {searchQuery.trim().length === 0 && (
+              <TouchableOpacity>
+                <Text
+                  style={{
+                    fontSize: 12,
+                  }}
+                  className="text-white opacity-70"
+                >
+                  Clear all
+                </Text>
               </TouchableOpacity>
-            ))}
+            )}
+          </View>
+
+          <ScrollView className="px-3 pt-6" keyboardShouldPersistTaps="always">
+            {/* Show suggestions if there's a search query, otherwise show history */}
+            {searchQuery.trim().length > 0 ? (
+              <>
+                {isLoadingSuggestions ? (
+                  // Loading state
+                  <View className="py-4">
+                    <Text className="text-white opacity-50 text-center">
+                      Loading suggestions...
+                    </Text>
+                  </View>
+                ) : suggestions.length > 0 ? (
+                  // Show suggestions
+                  suggestions.map((word, index) => (
+                    <TouchableOpacity
+                      key={`suggestion-${index}`}
+                      className="py-3 border-b border-white/10"
+                      onPress={() => handleWordSelect(word)}
+                    >
+                      <Text className="text-white text-base">{word}</Text>
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  // No suggestions found
+                  <View className="py-4">
+                    <Text className="text-white opacity-50 text-center">
+                      No suggestions found
+                    </Text>
+                  </View>
+                )}
+              </>
+            ) : (
+              // Show history when no search query
+              mockHistoryList.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  className="py-3 border-b border-white/10"
+                  onPress={() => handleWordSelect(item.text)}
+                >
+                  <View className="flex flex-row items-center justify-between">
+                    <Text className="text-white text-base">{item.text}</Text>
+                    <AntDesign name="clockcircleo" size={14} color="#666" />
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
           </ScrollView>
         </View>
       </View>
