@@ -1,7 +1,7 @@
 export type Word = {
-  id: string;
+  id?: string;
   word: string;
-  imgUrl: string;
+  imgUrl?: string;
   status?: string;
   meanings: {
     definition: string;
@@ -9,9 +9,11 @@ export type Word = {
     synonyms: string[];
     antonyms: string[];
   }[];
-  phonetics: {
-    text: string;
-    audioUrl: string;
-  };
-  timeStamp: string;
+  phonetics: Phonetics;
+  timeStamp?: string;
+};
+
+export type Phonetics = {
+  text: string;
+  audioUrl?: string;
 };

@@ -3,17 +3,16 @@ import React, { useEffect, useState } from "react";
 import { Volume2 } from "lucide-react-native";
 import { useVideoPlayer, VideoPlayer } from "expo-video";
 import { useEvent } from "expo";
+import { Phonetics } from "../../types/common/Word";
 
 interface PhoneticAudioProps {
-  phonetics: {
-    text: string;
-    audioUrl?: string;
-  };
+  phonetics: Phonetics;
   size?: number;
 }
 
 const PhoneticAudio = ({ phonetics, size = 14 }: PhoneticAudioProps) => {
   const videoSource = phonetics.audioUrl;
+
   const [audioPlayer, setAudioPlayer] = useState<VideoPlayer | null>(null);
 
   const player = useVideoPlayer(videoSource || null, (playerInstance) => {
@@ -30,7 +29,6 @@ const PhoneticAudio = ({ phonetics, size = 14 }: PhoneticAudioProps) => {
       className="flex flex-row items-center gap-2 mt-2"
       onPress={() => {
         if (audioPlayer) {
-          console.log(phonetics.text, "audioUrl:", phonetics.audioUrl);
           audioPlayer.currentTime = 0; // Reset to the beginning
           audioPlayer.play();
         } else {

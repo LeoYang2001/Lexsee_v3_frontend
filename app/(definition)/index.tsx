@@ -12,7 +12,7 @@ import { useTheme } from "../../theme/ThemeContext";
 import { router, useLocalSearchParams } from "expo-router";
 import { Bookmark, ChevronLeft, Phone } from "lucide-react-native";
 import { useAppSelector } from "../../store/hooks";
-import { Word } from "../../types/common/Word";
+import { Phonetics, Word } from "../../types/common/Word";
 import PhoneticAudio from "../../components/common/PhoneticAudio";
 import Animated, {
   useSharedValue,
@@ -21,6 +21,8 @@ import Animated, {
   withTiming,
   interpolateColor,
 } from "react-native-reanimated";
+import { fetchDefinition } from "../../apis/fetchDefinition";
+import { fetchAudioUrl } from "../../apis/fetchPhonetics";
 
 function CollectBtn({ saveStatus }: { saveStatus: string }) {
   const scale = useSharedValue(1);
@@ -180,6 +182,32 @@ function CollectBtn({ saveStatus }: { saveStatus: string }) {
   );
 }
 
+// Add this skeleton component at the top of your file
+function SkeletonBox({
+  width,
+  height,
+  style,
+}: {
+  width: number | string;
+  height: number;
+  style?: any;
+}) {
+  return (
+    <View
+      style={[
+        {
+          width,
+          height,
+          backgroundColor: "#323335",
+          borderRadius: 4,
+          opacity: 0.6,
+        },
+        style,
+      ]}
+    />
+  );
+}
+
 export default function DefinitionPage() {
   const theme = useTheme();
   const params = useLocalSearchParams();
@@ -188,12 +216,155 @@ export default function DefinitionPage() {
     (state) => state.wordsList
   );
 
-  const matchedWord = words.find((word) => word.id === params.id);
-
-  const [wordInfo, setWordInfo] = useState<Word | undefined>(matchedWord);
-  const [saveStatus, setSaveStatus] = useState("saved");
+  const [wordInfo, setWordInfo] = useState<Word | undefined>(undefined);
+  const [saveStatus, setSaveStatus] = useState("saving");
   const [viewMode, setViewMode] = useState("definition"); // definition view mode or conversation view mode
+  const [isLoadingDefinition, setIsLoadingDefinition] = useState(false);
 
+  const [phonetics, setPhonetics] = useState<Phonetics | undefined>(undefined);
+  const [isUsingAI, setIsUsingAI] = useState(false);
+  const [definitionSource, setDefinitionSource] = useState<
+    "dictionary" | "ai" | null
+  >(null);
+
+  useEffect(() => {
+    const getDefinition = async () => {
+      setIsLoadingDefinition(true);
+      setIsUsingAI(false);
+      setDefinitionSource(null);
+
+      const searchWord = params.word as string;
+
+      if (!searchWord) {
+        setIsLoadingDefinition(false);
+        return alert("No word provided");
+      }
+
+      // First, try to find the word in existing words list
+      const existingWord = words.find((word) => word.word === searchWord);
+
+      if (existingWord) {
+        setWordInfo(existingWord);
+        setSaveStatus("saved");
+        setDefinitionSource("dictionary"); // Assuming stored words came from dictionary
+        setIsLoadingDefinition(false);
+      } else {
+        // Define callbacks for fetchDefinition
+        const callbacks = {
+          onAIStart: () => {
+            console.log("🤖 AI generation started");
+            setIsUsingAI(true);
+          },
+          onAIEnd: () => {
+            console.log("🤖 AI generation ended");
+            setIsUsingAI(false);
+          },
+          onSourceChange: (source: "dictionary" | "ai") => {
+            console.log("📍 Source changed to:", source);
+            setDefinitionSource(source);
+          },
+        };
+
+        // Call fetchDefinition with callbacks
+        const fetchedWord = await fetchDefinition(searchWord, callbacks);
+
+        if (fetchedWord) {
+          setWordInfo(fetchedWord);
+          setSaveStatus("unsaved");
+        } else {
+          alert("Failed to fetch definition for the word: " + searchWord);
+        }
+
+        setIsLoadingDefinition(false);
+      }
+    };
+
+    getDefinition();
+  }, [params.word, words]);
+
+  useEffect(() => {
+    const fetchPhonectics = async () => {
+      if (wordInfo) {
+        // If audio is missing, fetch it
+        if (!wordInfo.phonetics.audioUrl) {
+          const audioUrl = await fetchAudioUrl(wordInfo.word);
+          // Use the phonetics object from wordInfo to preserve required properties (like text)
+          setPhonetics({ ...wordInfo.phonetics, audioUrl });
+          console.log(`get audioUrl for word ${wordInfo.word}: `, audioUrl);
+        } else {
+          // Ensure phonetics state reflects wordInfo if already present
+          setPhonetics(wordInfo.phonetics);
+        }
+      }
+    };
+
+    // call the async function
+    fetchPhonectics();
+  }, [wordInfo]);
+
+  // AI Status Component
+  const AIStatusIndicator = () => {
+    if (definitionSource === "ai") {
+      return (
+        <View
+          style={{
+            backgroundColor: "rgba(228, 72, 20, 0.1)",
+            borderWidth: 1,
+            borderColor: "rgba(228, 72, 20, 0.3)",
+            borderRadius: 8,
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            marginTop: 8,
+            flexDirection: "row",
+            alignItems: "center",
+          }}
+        >
+          <View
+            style={{
+              width: 6,
+              height: 6,
+              backgroundColor: "#E44814",
+              borderRadius: 3,
+              marginRight: 8,
+            }}
+          />
+          <Text style={{ color: "#E44814", fontSize: 12, opacity: 0.9 }}>
+            Definition generated by AI
+          </Text>
+        </View>
+      );
+    }
+    return null;
+  };
+
+  // Loading State with AI Indicator
+  const LoadingStateIndicator = () => {
+    if (isLoadingDefinition) {
+      return (
+        <View style={{ alignItems: "center", marginTop: 20 }}>
+          <ActivityIndicator size="small" color="#E44814" />
+          <Text
+            style={{ color: "#fff", opacity: 0.8, marginTop: 8, fontSize: 14 }}
+          >
+            {isUsingAI ? "Generating with AI..." : "Fetching definition..."}
+          </Text>
+          {isUsingAI && (
+            <Text
+              style={{
+                color: "#E44814",
+                opacity: 0.7,
+                marginTop: 4,
+                fontSize: 12,
+              }}
+            >
+              Dictionary unavailable, using AI fallback
+            </Text>
+          )}
+        </View>
+      );
+    }
+    return null;
+  };
   // Animated values
   const definitionHeight = useSharedValue(
     Dimensions.get("window").height - 257
@@ -297,7 +468,7 @@ export default function DefinitionPage() {
           },
           animatedDefinitionStyle,
         ]}
-        className=" px-3 "
+        className=" px-3  overflow-hidden"
       >
         <View className=" mt-16 w-full  justify-between flex-row items-center  ">
           <TouchableOpacity
@@ -324,29 +495,58 @@ export default function DefinitionPage() {
           </TouchableOpacity>
         </View>
 
-        {wordInfo && (
-          <View className="mt-3 px-2 flex-1   flex flex-col">
-            <View className=" flex flex-row justify-between items-center">
-              <View className=" flex flex-col gap-1">
+        <View className="mt-3 px-2 flex-1   flex flex-col">
+          <View className=" flex flex-row justify-between items-center">
+            <View className=" flex flex-col gap-1">
+              {/* Word Title - Skeleton or Real */}
+              {isLoadingDefinition ? (
+                <SkeletonBox width={200} height={36} />
+              ) : (
                 <Text
                   style={{
                     fontSize: 30,
                   }}
                   className=" text-white "
                 >
-                  {wordInfo.word}
+                  {wordInfo?.word}
                 </Text>
-                <PhoneticAudio size={20} phonetics={wordInfo.phonetics} />
-              </View>
-              <TouchableOpacity
-                disabled={saveStatus === "saving"}
-                onPress={handleUpdateWordStatus}
-              >
-                <CollectBtn saveStatus={saveStatus} />
-              </TouchableOpacity>
+              )}
+
+              {/* Phonetics - Skeleton or Real */}
+              {isLoadingDefinition || !phonetics ? (
+                <SkeletonBox width={150} height={24} style={{ marginTop: 4 }} />
+              ) : (
+                phonetics && <PhoneticAudio size={20} phonetics={phonetics} />
+              )}
             </View>
-            <View className=" mt-4 flex flex-row gap-3">
-              {wordInfo.meanings.map((meaning, index) => (
+            <TouchableOpacity
+              disabled={saveStatus === "saving"}
+              onPress={handleUpdateWordStatus}
+            >
+              <CollectBtn saveStatus={saveStatus} />
+            </TouchableOpacity>
+          </View>
+
+          <AIStatusIndicator />
+          <LoadingStateIndicator />
+          {/* Part of Speech Tags - Skeleton or Real */}
+          <View className=" mt-4 flex flex-row gap-3">
+            {isLoadingDefinition ? (
+              // Skeleton tags
+              <>
+                <SkeletonBox
+                  width={50}
+                  height={28}
+                  style={{ borderRadius: 2 }}
+                />
+                <SkeletonBox
+                  width={70}
+                  height={28}
+                  style={{ borderRadius: 2 }}
+                />
+              </>
+            ) : (
+              wordInfo?.meanings.map((meaning, index) => (
                 <View
                   style={{
                     borderRadius: 2,
@@ -364,34 +564,48 @@ export default function DefinitionPage() {
                     {meaning.partOfSpeech}
                   </Text>
                 </View>
-              ))}
-            </View>
-            {viewMode === "definition" && (
-              <View className=" w-full flex-1  flex flex-col">
-                <ImageBackground
-                  source={require("../../assets/images/imagePreview.png")}
+              ))
+            )}
+          </View>
+
+          {viewMode === "definition" && (
+            <View className=" w-full flex-1  flex flex-col">
+              <ImageBackground
+                source={require("../../assets/images/imagePreview.png")}
+                style={{
+                  height: 145,
+                  borderRadius: 10,
+                  overflow: "hidden",
+                }}
+                className=" w-full mt-4 flex justify-center items-center"
+                resizeMode="cover"
+              >
+                <TouchableOpacity
                   style={{
-                    height: 145,
-                    borderRadius: 10,
-                    overflow: "hidden",
+                    backgroundColor: "#E44814",
                   }}
-                  className=" w-full mt-4 flex justify-center items-center"
-                  resizeMode="cover"
+                  className=" p-2  px-4 rounded-full "
                 >
-                  <TouchableOpacity
-                    style={{
-                      backgroundColor: "#E44814",
-                    }}
-                    className=" p-2  px-4 rounded-full "
-                  >
-                    <Text className=" text-white font-semibold">
-                      Select a Picture
-                    </Text>
-                  </TouchableOpacity>
-                </ImageBackground>
-                <ScrollView className=" w-full py-4 flex-1">
-                  <View className=" text-white  opacity-70">
-                    {wordInfo.meanings.map((meaning, index) => (
+                  <Text className=" text-white font-semibold">
+                    Select a Picture
+                  </Text>
+                </TouchableOpacity>
+              </ImageBackground>
+
+              <ScrollView className=" w-full py-4 flex-1">
+                <View className=" text-white  opacity-70">
+                  {isLoadingDefinition ? (
+                    // Skeleton definitions
+                    <>
+                      <View className=" mb-4 flex flex-col gap-2">
+                        <SkeletonBox width={80} height={20} />
+                        <SkeletonBox width="100%" height={16} />
+                        <SkeletonBox width="90%" height={16} />
+                        <SkeletonBox width="95%" height={16} />
+                      </View>
+                    </>
+                  ) : (
+                    wordInfo?.meanings.map((meaning, index) => (
                       <View key={index} className=" mb-4 flex flex-col gap-2">
                         <Text
                           style={{
@@ -410,13 +624,13 @@ export default function DefinitionPage() {
                           {meaning.definition}
                         </Text>
                       </View>
-                    ))}
-                  </View>
-                </ScrollView>
-              </View>
-            )}
-          </View>
-        )}
+                    ))
+                  )}
+                </View>
+              </ScrollView>
+            </View>
+          )}
+        </View>
       </Animated.View>
 
       {/* Conversation View with Animated Height */}

@@ -42,7 +42,7 @@ const FlexCard = ({ word, ifDetail, ifGraphic }: FlexCardProps) => {
   const goToDefinition = () => {
     router.navigate({
       pathname: "/(definition)",
-      params: { id: word.id },
+      params: { word: word.word },
     });
   };
 
