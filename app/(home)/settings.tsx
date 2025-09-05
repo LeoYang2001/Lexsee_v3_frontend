@@ -22,7 +22,7 @@ export default function SettingsScreen() {
           try {
             await signOut();
             dispatch(clearUser());
-            router.replace("/(auth)");
+            console.log("✅ User signed out successfully");
           } catch (error) {
             console.error("Error signing out:", error);
             Alert.alert("Sign Out Error", (error as Error).message);

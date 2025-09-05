@@ -108,7 +108,7 @@ export default function SignUpScreen() {
               </View>
 
               {/* Form */}
-              <View className="space-y-6">
+              <View className="space-y-6  mb-4">
                 <View>
                   <Text
                     style={{
@@ -136,7 +136,6 @@ export default function SignUpScreen() {
                         }}
                         value={email}
                         onChangeText={setEmail}
-                        placeholder="Enter your email"
                         placeholderTextColor="rgba(255, 255, 255, 0.6)"
                         keyboardType="email-address"
                         autoCapitalize="none"
@@ -174,7 +173,6 @@ export default function SignUpScreen() {
                         }}
                         value={password}
                         onChangeText={setPassword}
-                        placeholder="Enter your password"
                         placeholderTextColor="rgba(255, 255, 255, 0.6)"
                         secureTextEntry
                         onFocus={() => setPasswordFocused(true)}
@@ -211,7 +209,6 @@ export default function SignUpScreen() {
                         }}
                         value={confirmPassword}
                         onChangeText={setConfirmPassword}
-                        placeholder="Confirm your password"
                         placeholderTextColor="rgba(255, 255, 255, 0.6)"
                         secureTextEntry
                         onFocus={() => setConfirmPasswordFocused(true)}
@@ -219,10 +216,10 @@ export default function SignUpScreen() {
                       />
                     </BlurView>
                   </View>
-                  <Text className="text-sm text-gray-300 mt-2 px-2">
+                  {/* <Text className="text-sm text-gray-300 mt-2 px-2">
                     Must be at least 8 characters with uppercase, lowercase,
                     numbers, and symbols
-                  </Text>
+                  </Text> */}
                 </View>
 
                 <TouchableOpacity

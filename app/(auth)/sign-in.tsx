@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
   Animated,
+  Image,
 } from "react-native";
 import { Link, router } from "expo-router";
 import { signIn, signInWithRedirect } from "aws-amplify/auth";
@@ -46,14 +47,14 @@ export default function SignInScreen() {
 
         if (fetchUserInfo.fulfilled.match(resultAction)) {
           // User info fetched successfully, redirect to home
-          router.replace("/(home)");
+          // router.replace("/(home)");
         } else {
           // Failed to fetch user info, show error but user is still signed in
           Alert.alert(
             "Warning",
             "Signed in successfully but failed to load user data. Please restart the app."
           );
-          router.replace("/(home)");
+          // router.replace("/(home)");
         }
       }
     } catch (error) {
@@ -153,7 +154,6 @@ export default function SignInScreen() {
                         }}
                         value={email}
                         onChangeText={setEmail}
-                        placeholder="Enter your email"
                         placeholderTextColor="rgba(255, 255, 255, 0.6)"
                         keyboardType="email-address"
                         autoCapitalize="none"
@@ -191,7 +191,6 @@ export default function SignInScreen() {
                         }}
                         value={password}
                         onChangeText={setPassword}
-                        placeholder="Enter your password"
                         placeholderTextColor="rgba(255, 255, 255, 0.6)"
                         secureTextEntry
                         onFocus={() => setPasswordFocused(true)}
@@ -217,24 +216,59 @@ export default function SignInScreen() {
                   </Text>
                 </TouchableOpacity>
               </View>
-              {Platform.OS === "ios" && (
-                <TouchableOpacity
-                  onPress={handleSignInWithApple}
-                  className="bg-red-400 rounded-xl"
-                >
-                  <Text className="text-white font-semibold p-4 ">Apple</Text>
-                </TouchableOpacity>
-              )}
+              <View className="mt-14 flex flex-row justify-center gap-12">
+                {Platform.OS === "ios" && (
+                  <TouchableOpacity
+                    onPress={handleSignInWithApple}
+                    style={{
+                      backgroundColor: "#333333",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 44,
+                      height: 44,
+                    }}
+                    disabled={loading}
+                    className=" rounded-full"
+                  >
+                    <Image
+                      source={require("../../assets/loginIcons/apple-logo.png")} // Update path to your Apple icon
+                      style={{
+                        width: 22,
+                        height: 22,
+                        tintColor: "#000", // Makes the icon white
+                      }}
+                      resizeMode="contain"
+                    />
+                  </TouchableOpacity>
+                )}
 
-              <TouchableOpacity
-                onPress={handleSignInWithGoogle}
-                className="bg-blue-400 rounded-xl"
-              >
-                <Text className="text-white font-semibold p-4 ">Google</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleSignInWithGoogle}
+                  style={{
+                    backgroundColor: "#333333",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 44,
+                    height: 44,
+                  }}
+                  disabled={loading}
+                  className=" rounded-full"
+                >
+                  <Image
+                    source={require("../../assets/loginIcons/google.png")} // Update path to your Google icon
+                    style={{
+                      width: 22,
+                      height: 22,
+                    }}
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
+              </View>
 
               {/* Footer Links */}
-              <View className="mt-8 items-center">
+              <View className="mt-20 items-center">
                 <Link href="/(auth)/sign-up" asChild>
                   <TouchableOpacity>
                     <Text className="text-white text-center text-lg">
