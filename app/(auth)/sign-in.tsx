@@ -46,14 +46,14 @@ export default function SignInScreen() {
 
         if (fetchUserInfo.fulfilled.match(resultAction)) {
           // User info fetched successfully, redirect to home
-          router.replace("/(home)");
+          // router.replace("/(home)");
         } else {
           // Failed to fetch user info, show error but user is still signed in
           Alert.alert(
             "Warning",
             "Signed in successfully but failed to load user data. Please restart the app."
           );
-          router.replace("/(home)");
+          // router.replace("/(home)");
         }
       }
     } catch (error) {
