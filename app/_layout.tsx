@@ -6,7 +6,7 @@ import { Provider } from "react-redux";
 import { store } from "../store";
 import outputs from "../amplify_outputs.json";
 import "../global.css";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { client } from "./client";
 import { useAppDispatch } from "../store/hooks";
 import {
@@ -28,6 +28,8 @@ Amplify.configure(outputs);
 
 function AppContent() {
   const dispatch = useAppDispatch();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [wordsSubscription, setWordsSubscription] = useState<any>(null);
 
   // Move your profile helper functions here
   const serializeProfile = async (profile: any) => {
@@ -99,38 +101,16 @@ function AppContent() {
     }
   };
 
-  const handleSuccessfulAuth = async (user: any) => {
-    try {
-      // Fetch user info and store in Redux
-      const resultAction = await dispatch(fetchUserInfo());
-
-      if (fetchUserInfo.fulfilled.match(resultAction)) {
-        // Check if user has setup profile
-        const userHasProfile = await checkUserProfile(
-          resultAction.payload.userId
-        );
-
-        if (userHasProfile) {
-          router.replace("/(home)");
-        } else {
-          router.replace("/(auth)");
-        }
-      } else {
-        dispatch(clearUser());
-        dispatch(clearProfile());
-        router.replace("/(auth)");
-      }
-    } catch (error) {
-      console.error("Error handling successful auth:", error);
-      router.replace("/(auth)");
+  // Function to start words subscription
+  const startWordsSubscription = () => {
+    if (wordsSubscription) {
+      console.log("📋 Words subscription already active");
+      return;
     }
-  };
 
-  useEffect(() => {
-    dispatch(setLoading(true));
+    console.log("🔄 Starting words subscription for authenticated user");
 
-    // 1. Subscribe to Word changes
-    const wordsSub = (client.models as any).Word.observeQuery().subscribe({
+    const sub = (client.models as any).Word.observeQuery().subscribe({
       next: ({ items, isSynced }: any) => {
         console.log("Words received:", [...items], "Synced:", isSynced);
         const cleanWords = [...items].map((word) => {
@@ -146,7 +126,65 @@ function AppContent() {
       },
     });
 
-    // 2. Subscribe to Auth status changes
+    setWordsSubscription(sub);
+  };
+
+  // Function to stop words subscription
+  const stopWordsSubscription = () => {
+    if (wordsSubscription) {
+      console.log("🛑 Stopping words subscription");
+      wordsSubscription.unsubscribe?.();
+      setWordsSubscription(null);
+
+      // Clear words from Redux when unauthenticated
+      dispatch(setWords([]));
+      dispatch(setSynced(false));
+    }
+  };
+
+  const handleSuccessfulAuth = async (user: any) => {
+    try {
+      console.log("🔐 Setting user as authenticated");
+      setIsAuthenticated(true);
+
+      // Start words subscription now that user is authenticated
+      startWordsSubscription();
+
+      // Fetch user info and store in Redux
+      const resultAction = await dispatch(fetchUserInfo());
+
+      if (fetchUserInfo.fulfilled.match(resultAction)) {
+        // Check if user has setup profile
+        const userHasProfile = await checkUserProfile(
+          resultAction.payload.userId
+        );
+
+        if (userHasProfile) {
+          router.replace("/(home)");
+        } else {
+          router.replace("/(auth)");
+        }
+      } else {
+        handleAuthFailure();
+      }
+    } catch (error) {
+      console.error("Error handling successful auth:", error);
+      handleAuthFailure();
+    }
+  };
+
+  const handleAuthFailure = () => {
+    setIsAuthenticated(false);
+    stopWordsSubscription();
+    dispatch(clearUser());
+    dispatch(clearProfile());
+    router.replace("/(auth)/sign-in");
+  };
+
+  useEffect(() => {
+    dispatch(setLoading(true));
+
+    // Subscribe to Auth status changes
     const authListener = Hub.listen("auth", async (data) => {
       const { event } = data.payload;
 
@@ -160,13 +198,13 @@ function AppContent() {
             await handleSuccessfulAuth(user);
           } catch (error) {
             console.error("❌ Failed after redirect:", error);
-            router.replace("/(auth)/sign-in");
+            handleAuthFailure();
           }
           break;
 
         case "signInWithRedirect_failure":
           console.log("❌ Sign in with redirect failed");
-          router.replace("/(auth)/sign-in");
+          handleAuthFailure();
           break;
 
         case "signedIn":
@@ -176,29 +214,26 @@ function AppContent() {
             await handleSuccessfulAuth(user);
           } catch (error) {
             console.error("❌ Failed after email sign in:", error);
-            router.replace("/(auth)/sign-in");
+            handleAuthFailure();
           }
           break;
 
         case "signedOut":
           console.log("🚪 User signed out");
-          dispatch(clearUser());
-          dispatch(clearProfile());
-          router.replace("/(auth)/sign-in");
+          handleAuthFailure();
           break;
 
         case "tokenRefresh_failure":
           console.log("❌ Session invalid");
-          dispatch(clearUser());
-          dispatch(clearProfile());
-          router.replace("/(auth)/sign-in");
+          handleAuthFailure();
           break;
+
         default:
           break;
       }
     });
 
-    // 3. Initial auth check (only once on app start)
+    // Initial auth check (only once on app start)
     const checkInitialAuth = async () => {
       try {
         const user = await getCurrentUser();
@@ -206,6 +241,7 @@ function AppContent() {
         await handleSuccessfulAuth(user);
       } catch (error) {
         console.log("❌ Initial auth check - user not authenticated");
+        setIsAuthenticated(false);
         router.replace("/(auth)/sign-in");
       }
     };
@@ -214,9 +250,10 @@ function AppContent() {
     const authCheckTimer = setTimeout(checkInitialAuth, 2500);
 
     return () => {
-      wordsSub.unsubscribe?.();
       authListener();
       clearTimeout(authCheckTimer);
+      // Clean up words subscription on component unmount
+      stopWordsSubscription();
     };
   }, [dispatch]);
 
