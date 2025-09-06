@@ -10,10 +10,11 @@ import {
 } from "react-native";
 import { useTheme } from "../../theme/ThemeContext";
 import { router, useLocalSearchParams } from "expo-router";
-import { Bookmark, ChevronLeft, Phone } from "lucide-react-native";
+import { Bookmark, ChevronLeft, Phone, Images } from "lucide-react-native"; // Added Images icon
 import { useAppSelector } from "../../store/hooks";
 import { Phonetics, Word } from "../../types/common/Word";
 import PhoneticAudio from "../../components/common/PhoneticAudio";
+import ImageZoomModal from "../../components/common/ImageZoomModal";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -218,8 +219,11 @@ export default function DefinitionPage() {
 
   const [wordInfo, setWordInfo] = useState<Word | undefined>(undefined);
   const [saveStatus, setSaveStatus] = useState("saving");
-  const [viewMode, setViewMode] = useState("definition"); // definition view mode or conversation view mode
+  const [viewMode, setViewMode] = useState("definition");
   const [isLoadingDefinition, setIsLoadingDefinition] = useState(false);
+
+  // Add state for image zoom modal
+  const [isImageZoomed, setIsImageZoomed] = useState(false);
 
   const [phonetics, setPhonetics] = useState<Phonetics | undefined>(undefined);
   const [isUsingAI, setIsUsingAI] = useState(false);
@@ -365,10 +369,10 @@ export default function DefinitionPage() {
     }
     return null;
   };
+
+  const definitionSectionHeight = Dimensions.get("window").height * 0.7;
   // Animated values
-  const definitionHeight = useSharedValue(
-    Dimensions.get("window").height - 257
-  );
+  const definitionHeight = useSharedValue(definitionSectionHeight);
   const conversationHeight = useSharedValue(0);
 
   const handleUpdateWordStatus = () => {
@@ -407,7 +411,7 @@ export default function DefinitionPage() {
         mass: 0.8,
       });
       conversationHeight.value = withSpring(
-        Dimensions.get("window").height - 257 - 230 - 18,
+        definitionSectionHeight - 230 - 18,
         {
           damping: 15,
           stiffness: 120,
@@ -415,14 +419,11 @@ export default function DefinitionPage() {
         }
       );
     } else {
-      definitionHeight.value = withSpring(
-        Dimensions.get("window").height - 257,
-        {
-          damping: 15,
-          stiffness: 120,
-          mass: 0.8,
-        }
-      );
+      definitionHeight.value = withSpring(definitionSectionHeight, {
+        damping: 15,
+        stiffness: 120,
+        mass: 0.8,
+      });
       conversationHeight.value = withSpring(0, {
         damping: 15,
         stiffness: 120,
@@ -451,6 +452,27 @@ export default function DefinitionPage() {
   const { width, height } = Dimensions.get("window");
   const BORDER_RADIUS = Math.min(width, height) * 0.06;
 
+  // Function to handle image zoom
+  const handleImagePress = () => {
+    if (wordInfo?.imgUrl) {
+      setIsImageZoomed(true);
+    }
+  };
+
+  const handleCloseImageZoom = () => {
+    setIsImageZoomed(false);
+  };
+
+  // Function to navigate to gallery with current word
+  const navigateToGallery = () => {
+    router.push({
+      pathname: "/(gallery)",
+      params: {
+        word: wordInfo?.word || (params.word as string),
+      },
+    });
+  };
+
   return (
     <View
       style={{
@@ -458,6 +480,16 @@ export default function DefinitionPage() {
       }}
       className=" flex w-full  h-full flex-col justify-start "
     >
+      {/* Image Zoom Modal */}
+      <ImageZoomModal
+        visible={isImageZoomed}
+        imageUri={wordInfo?.imgUrl || ""}
+        onClose={handleCloseImageZoom}
+        showCloseHint={true}
+        backgroundColor="rgba(0, 0, 0, 0.95)"
+        overlayOpacity={0.9}
+      />
+
       {/* Definition View with Animated Height */}
       <Animated.View
         style={[
@@ -479,20 +511,40 @@ export default function DefinitionPage() {
             <ChevronLeft color={"#fff"} />
           </TouchableOpacity>
 
-          {/* Toggle Button */}
-          <TouchableOpacity
-            onPress={toggleViewMode}
-            style={{
-              backgroundColor: "#323335",
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              borderRadius: 16,
-            }}
-          >
-            <Text style={{ color: "#fff", fontSize: 12 }}>
-              {viewMode === "definition" ? "Conversation" : "Definition"}
-            </Text>
-          </TouchableOpacity>
+          {/* Header buttons container */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            {/* Gallery Button - Updated with word parameter */}
+            <TouchableOpacity
+              onPress={navigateToGallery}
+              style={{
+                backgroundColor: "#323335",
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                borderRadius: 16,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <Images size={16} color="#fff" />
+              <Text style={{ color: "#fff", fontSize: 12 }}>Gallery</Text>
+            </TouchableOpacity>
+
+            {/* Toggle Button */}
+            <TouchableOpacity
+              onPress={toggleViewMode}
+              style={{
+                backgroundColor: "#323335",
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 16,
+              }}
+            >
+              <Text style={{ color: "#fff", fontSize: 12 }}>
+                {viewMode === "definition" ? "Conversation" : "Definition"}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View className="mt-3 px-2 flex-1   flex flex-col">
@@ -529,6 +581,7 @@ export default function DefinitionPage() {
 
           <AIStatusIndicator />
           <LoadingStateIndicator />
+
           {/* Part of Speech Tags - Skeleton or Real */}
           <View className=" mt-4 flex flex-row gap-3">
             {isLoadingDefinition ? (
@@ -570,27 +623,47 @@ export default function DefinitionPage() {
 
           {viewMode === "definition" && (
             <View className=" w-full flex-1  flex flex-col">
-              <ImageBackground
-                source={require("../../assets/images/imagePreview.png")}
-                style={{
-                  height: 145,
-                  borderRadius: 10,
-                  overflow: "hidden",
-                }}
-                className=" w-full mt-4 flex justify-center items-center"
-                resizeMode="cover"
-              >
+              {wordInfo?.imgUrl && (
                 <TouchableOpacity
-                  style={{
-                    backgroundColor: "#E44814",
-                  }}
-                  className=" p-2  px-4 rounded-full "
+                  onPress={handleImagePress}
+                  activeOpacity={0.8}
                 >
-                  <Text className=" text-white font-semibold">
-                    Select a Picture
-                  </Text>
+                  <ImageBackground
+                    source={{ uri: wordInfo.imgUrl }}
+                    style={{
+                      height: 145,
+                      borderRadius: 10,
+                      overflow: "hidden",
+                      position: "relative",
+                    }}
+                    className=" w-full mt-4 flex justify-center items-center"
+                    resizeMode="cover"
+                  >
+                    {/* Zoom hint overlay */}
+                    <View
+                      style={{
+                        position: "absolute",
+                        top: 8,
+                        right: 8,
+                        backgroundColor: "rgba(0, 0, 0, 0.6)",
+                        borderRadius: 12,
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: "#ffffff",
+                          fontSize: 12,
+                          opacity: 0.9,
+                        }}
+                      >
+                        Tap to zoom
+                      </Text>
+                    </View>
+                  </ImageBackground>
                 </TouchableOpacity>
-              </ImageBackground>
+              )}
 
               <ScrollView className=" w-full py-4 flex-1">
                 <View className=" text-white  opacity-70">
