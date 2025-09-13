@@ -29,24 +29,76 @@ const initialState: WordsListState = {
 
 // Helper function to parse word data
 const parseWordData = (word: any): Word => {
-  console.log("parseWordData, word:", word);
   try {
-    const parsedData = JSON.parse(word.data);
+    let parsedData;
+
+    // Handle cases where word.data might be a string that needs parsing
+    if (typeof word.data === "string") {
+      try {
+        parsedData = JSON.parse(word.data);
+      } catch (parseError) {
+        console.warn("Failed to parse word.data as JSON:", parseError);
+        parsedData = {};
+      }
+    } else {
+      parsedData = word.data || {};
+    }
+
+    // Safely extract phonetics data
+    const getPhonetics = () => {
+      const parsedPhonetics = parsedData.phonetics;
+      const originalPhonetics = word.phonetics;
+
+      // If we have parsed phonetics data
+      if (parsedPhonetics && typeof parsedPhonetics === "object") {
+        return {
+          text: parsedPhonetics.text || "",
+          audioUrl: parsedPhonetics.audioUrl || undefined,
+        };
+      }
+
+      // If we have original phonetics data
+      if (originalPhonetics && typeof originalPhonetics === "object") {
+        return {
+          text: originalPhonetics.text || "",
+          audioUrl: originalPhonetics.audioUrl || undefined,
+        };
+      }
+
+      // Default fallback
+      return {
+        text: "",
+        audioUrl: undefined,
+      };
+    };
+
     return {
       id: word.id,
-      word: parsedData.word || word.word,
-      imgUrl: parsedData.imgUrl || word.imgUrl,
-      status: parsedData.status || word.status,
-      meanings: parsedData.meanings || word.meanings,
-      phonetics: {
-        text: parsedData.phonetics?.text || word.phonetics.text,
-        audioUrl: parsedData.phonetics?.audioUrl || word.phonetics.audioUrl,
-      },
-      timeStamp: parsedData.timeStamp || word.timeStamp,
+      word: parsedData.word || word.word || "",
+      imgUrl: parsedData.imgUrl || word.imgUrl || null,
+      status: parsedData.status || word.status || "COLLECTED",
+      meanings: parsedData.meanings || word.meanings || [],
+      phonetics: getPhonetics(),
+      timeStamp:
+        parsedData.timeStamp || word.timeStamp || new Date().toISOString(),
     };
   } catch (error) {
     console.error("Error parsing word data:", error);
-    return word;
+    console.error("Problematic word object:", word);
+
+    // Return a safe fallback object
+    return {
+      id: word.id || crypto.randomUUID(),
+      word: word.word || "Unknown Word",
+      imgUrl: word.imgUrl || null,
+      status: word.status || "COLLECTED",
+      meanings: word.meanings || [],
+      phonetics: {
+        text: "",
+        audioUrl: undefined,
+      },
+      timeStamp: word.timeStamp || new Date().toISOString(),
+    };
   }
 };
 

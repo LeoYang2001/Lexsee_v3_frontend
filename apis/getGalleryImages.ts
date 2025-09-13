@@ -48,15 +48,13 @@ export const searchGalleryImages = async (
 
     // Build the URL with proper parameters
     const searchParams = new URLSearchParams({
-      q: `${cleanWord} illustration`,
+      q: `the illustration of ${cleanWord}`,
       cx: cx,
       key: apiKey,
       searchType: "image",
       start: startIndex.toString(),
       num: limitedResultsPerPage.toString(),
       safe: "active",
-      imgType: "photo",
-      imgSize: "medium",
     });
 
     const url = `https://www.googleapis.com/customsearch/v1?${searchParams.toString()}`;

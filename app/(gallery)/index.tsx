@@ -18,7 +18,7 @@ export default function GalleryPage() {
   const theme = useTheme();
   const params = useLocalSearchParams();
 
-  // Replace image zoom states with selection modal states
+  // Simplified modal states
   const [selectedImage, setSelectedImage] = useState<string>("");
   const [isSelectionModalVisible, setIsSelectionModalVisible] = useState(false);
 
@@ -109,8 +109,9 @@ export default function GalleryPage() {
     }
   }, [hasMoreImages, isLoadingImages, currentWord, currentPage]);
 
-  // Updated to show selection modal instead of zoom
+  // Simplified image press handler
   const handleImagePress = (imageUri: string) => {
+    console.log("Image pressed:", imageUri); // Debug log
     setSelectedImage(imageUri);
     setIsSelectionModalVisible(true);
   };
@@ -118,18 +119,25 @@ export default function GalleryPage() {
   // Handle image selection confirmation
   const handleConfirmSelection = (imageUri: string) => {
     console.log(`Selected image: ${imageUri} for word: ${currentWord}`);
-    // Here you can add logic to save the selected image for the word
-    // For example, dispatch to Redux store or call an API
 
     setIsSelectionModalVisible(false);
     setSelectedImage("");
 
-    // Navigate back to definition with the selected image
+    // Navigate back to definition page with the selected image URL
     router.back();
+
+    // Use router.setParams to pass the image URL back
+    setTimeout(() => {
+      router.setParams({
+        selectedImageUrl: imageUri,
+        fromGallery: "true",
+      });
+    }, 100);
   };
 
   // Handle modal cancellation
   const handleCancelSelection = () => {
+    console.log("Modal cancelled"); // Debug log
     setIsSelectionModalVisible(false);
     setSelectedImage("");
   };
@@ -144,7 +152,13 @@ export default function GalleryPage() {
   }: {
     item: GalleryImageResult;
     index: number;
-  }) => <ImageItem item={item} index={index} onPress={handleImagePress} />;
+  }) => (
+    <ImageItem
+      item={item}
+      index={index}
+      onPress={handleImagePress} // Simplified - just passes imageUri
+    />
+  );
 
   const renderFooter = () => (
     <LoadingIndicator
@@ -168,11 +182,11 @@ export default function GalleryPage() {
         backgroundColor: "#191D24",
       }}
     >
-      {/* Image Selection Modal */}
+      {/* Simplified Image Selection Modal */}
       <ImageSelectionModal
         visible={isSelectionModalVisible}
         imageUri={selectedImage}
-        currentWord={currentWord}
+        currentWord={currentWord || "Unknown"}
         onConfirm={handleConfirmSelection}
         onCancel={handleCancelSelection}
       />

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,13 @@ import {
   Dimensions,
   Pressable,
 } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  runOnJS,
+} from "react-native-reanimated";
 import ImageZoomModal from "../common/ImageZoomModal";
 
 interface ImageSelectionModalProps {
@@ -26,7 +33,50 @@ export default function ImageSelectionModal({
   onCancel,
 }: ImageSelectionModalProps) {
   const [isImageZoomed, setIsImageZoomed] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const { width, height } = Dimensions.get("window");
+
+  // Animation values
+  const backdropOpacity = useSharedValue(0);
+  const modalScale = useSharedValue(0.8);
+  const modalOpacity = useSharedValue(0);
+  const imageScale = useSharedValue(0.8);
+
+  useEffect(() => {
+    if (visible) {
+      setShowModal(true);
+
+      // Animate in
+      backdropOpacity.value = withTiming(1, { duration: 300 });
+      modalScale.value = withSpring(1, { damping: 15, stiffness: 150 });
+      modalOpacity.value = withTiming(1, { duration: 300 });
+      imageScale.value = withSpring(1, {
+        damping: 15,
+        stiffness: 150,
+      });
+    } else {
+      // Animate out
+      backdropOpacity.value = withTiming(0, { duration: 200 });
+      modalScale.value = withTiming(0.8, { duration: 200 });
+      modalOpacity.value = withTiming(0, { duration: 200 });
+      imageScale.value = withTiming(0.8, { duration: 200 }, () => {
+        runOnJS(setShowModal)(false);
+      });
+    }
+  }, [visible]);
+
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: backdropOpacity.value,
+  }));
+
+  const modalStyle = useAnimatedStyle(() => ({
+    opacity: modalOpacity.value,
+    transform: [{ scale: modalScale.value }],
+  }));
+
+  const imageStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: imageScale.value }],
+  }));
 
   const handleImagePress = () => {
     setIsImageZoomed(true);
@@ -37,6 +87,7 @@ export default function ImageSelectionModal({
   };
 
   const handleConfirm = () => {
+    console.log("confirm function triggered");
     onConfirm(imageUri);
   };
 
@@ -44,73 +95,81 @@ export default function ImageSelectionModal({
     onCancel();
   };
 
+  if (!showModal) return null;
+
   return (
     <>
       <Modal
-        visible={visible}
+        visible={showModal}
         transparent={true}
-        animationType="fade"
+        animationType="none" // We handle animations manually
         statusBarTranslucent={true}
       >
-        {/* Black backdrop with opacity */}
-        <Pressable
-          style={{
-            flex: 1,
-            backgroundColor: "rgba(0, 0, 0, 0.7)",
-            justifyContent: "center",
-            alignItems: "center",
-            padding: 20,
-          }}
-          onPress={handleBackdropPress}
-        >
-          {/* Modal Content */}
-          <Pressable
-            style={{
-              backgroundColor: "#1F2937",
-              borderRadius: 16,
-              padding: 20,
-              width: "100%",
-              maxWidth: 400,
+        {/* Animated backdrop */}
+        <Animated.View
+          style={[
+            {
+              flex: 1,
+              backgroundColor: "rgba(0, 0, 0, 0.8)",
+              justifyContent: "center",
               alignItems: "center",
-            }}
-            onPress={() => {}} // Prevent backdrop press when touching modal content
-          >
-            {/* Word Title */}
-            <Text
-              style={{
-                color: "#F59E0B",
-                fontSize: 18,
-                fontWeight: "600",
-                marginBottom: 16,
-                textAlign: "center",
-              }}
-            >
-              {currentWord}
-            </Text>
+              padding: 20,
+            },
+            backdropStyle,
+          ]}
+        >
+          <Pressable
+            style={{ flex: 1, width: "100%" }}
+            onPress={handleBackdropPress}
+            className="absolute w-full h-full bg-transparent"
+          />
 
-            {/* Image Container */}
-            <TouchableOpacity
-              onPress={handleImagePress}
-              style={{
+          {/* Modal Content */}
+          <Animated.View
+            style={[
+              {
+                backgroundColor: "#191D24",
+                borderRadius: 20,
+                padding: 20,
                 width: "100%",
-                aspectRatio: 16 / 9,
-                borderRadius: 12,
-                overflow: "hidden",
-                marginBottom: 20,
-                borderWidth: 2,
-                borderColor: "#3B82F6",
-              }}
-              activeOpacity={0.9}
+                maxWidth: 400,
+                alignItems: "center",
+                position: "absolute",
+              },
+              modalStyle,
+            ]}
+          >
+            {/* Animated Image Container */}
+            <Animated.View
+              style={[
+                {
+                  width: "100%",
+                  aspectRatio: 16 / 9,
+                  borderRadius: 20,
+                  overflow: "hidden",
+                  marginBottom: 20,
+                },
+                imageStyle,
+              ]}
             >
-              <Image
-                source={{ uri: imageUri }}
+              <TouchableOpacity
+                onPress={handleImagePress}
                 style={{
                   width: "100%",
                   height: "100%",
                 }}
-                resizeMode="cover"
-              />
-            </TouchableOpacity>
+                activeOpacity={0.9}
+              >
+                <Image
+                  source={{ uri: imageUri }}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                  }}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            </Animated.View>
 
             {/* Title */}
             <Text
@@ -176,7 +235,7 @@ export default function ImageSelectionModal({
                 onPress={handleConfirm}
                 style={{
                   flex: 1,
-                  backgroundColor: "#E44814",
+                  backgroundColor: "#E44C21",
                   paddingVertical: 12,
                   paddingHorizontal: 20,
                   borderRadius: 8,
@@ -195,8 +254,13 @@ export default function ImageSelectionModal({
                 </Text>
               </TouchableOpacity>
             </View>
-          </Pressable>
-        </Pressable>
+          </Animated.View>
+
+          {/* <Pressable
+            style={{ flex: 1, width: "100%", backgroundColor: "green" }}
+            // onPress={handleBackdropPress}
+          /> */}
+        </Animated.View>
       </Modal>
 
       {/* Image Zoom Modal */}

@@ -9,9 +9,15 @@ import {
   ScrollView,
 } from "react-native";
 import { useTheme } from "../../theme/ThemeContext";
-import { router, useLocalSearchParams } from "expo-router";
-import { Bookmark, ChevronLeft, Phone, Images } from "lucide-react-native"; // Added Images icon
-import { useAppSelector } from "../../store/hooks";
+import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
+import {
+  Bookmark,
+  ChevronLeft,
+  Phone,
+  Images,
+  ImageUp,
+} from "lucide-react-native";
+import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { Phonetics, Word } from "../../types/common/Word";
 import PhoneticAudio from "../../components/common/PhoneticAudio";
 import ImageZoomModal from "../../components/common/ImageZoomModal";
@@ -24,6 +30,8 @@ import Animated, {
 } from "react-native-reanimated";
 import { fetchDefinition } from "../../apis/fetchDefinition";
 import { fetchAudioUrl } from "../../apis/fetchPhonetics";
+import { addWord } from "../../store/slices/wordsListSlice";
+import { client } from "../client";
 
 function CollectBtn({ saveStatus }: { saveStatus: string }) {
   const scale = useSharedValue(1);
@@ -212,31 +220,110 @@ function SkeletonBox({
 export default function DefinitionPage() {
   const theme = useTheme();
   const params = useLocalSearchParams();
-
-  const { words, isLoading, isSynced, error } = useAppSelector(
-    (state) => state.wordsList
-  );
+  const { words } = useAppSelector((state) => state.wordsList);
+  const { profile } = useAppSelector((state) => state.profile);
 
   const [wordInfo, setWordInfo] = useState<Word | undefined>(undefined);
   const [saveStatus, setSaveStatus] = useState("saving");
   const [viewMode, setViewMode] = useState("definition");
   const [isLoadingDefinition, setIsLoadingDefinition] = useState(false);
-
-  // Add state for image zoom modal
   const [isImageZoomed, setIsImageZoomed] = useState(false);
 
+  // Separate phonetics state with persistence
   const [phonetics, setPhonetics] = useState<Phonetics | undefined>(undefined);
+  const [phoneticsCached, setPhoneticsCached] = useState<{
+    [key: string]: Phonetics;
+  }>({});
+
   const [isUsingAI, setIsUsingAI] = useState(false);
   const [definitionSource, setDefinitionSource] = useState<
     "dictionary" | "ai" | null
   >(null);
 
+  // Get current word consistently
+  const currentWord = (params.word as string) || "";
+
+  // FIXED: Handle gallery return with selected image - simplified dependencies
+  useFocusEffect(
+    React.useCallback(() => {
+      const selectedImageUrl = params.selectedImageUrl;
+      const fromGallery = params.fromGallery;
+
+      // Only process if we have both gallery flag and image URL and current wordInfo
+      if (fromGallery === "true" && selectedImageUrl && wordInfo) {
+        console.log("Updating word with selected image:", selectedImageUrl);
+
+        // Update wordInfo with new image
+        const imageUrl = Array.isArray(selectedImageUrl)
+          ? selectedImageUrl[0]
+          : selectedImageUrl;
+        const updatedWordInfo = {
+          ...wordInfo,
+          imgUrl: imageUrl,
+        };
+
+        setWordInfo(updatedWordInfo);
+        handleSaveWord(updatedWordInfo);
+
+        // Clear the gallery params to prevent re-processing
+        router.setParams({
+          fromGallery: undefined,
+          selectedImageUrl: undefined,
+        });
+      }
+    }, [params.fromGallery, params.selectedImageUrl, wordInfo?.word]) // Only depend on word, not entire wordInfo object
+  );
+
+  useEffect(() => {
+    const fetchPhonectics = async () => {
+      if (wordInfo) {
+        // If audio is missing, fetch it
+        if (!wordInfo.phonetics?.audioUrl) {
+          const audioUrl = await fetchAudioUrl(wordInfo.word);
+          // Ensure text is always a string to satisfy Phonetics type (fallback to empty string)
+          const existing = wordInfo.phonetics || { text: "" };
+          const safePhonetics = {
+            ...existing,
+            text: existing.text ?? "",
+            audioUrl,
+          };
+          // Use the safe phonetics object
+          setPhonetics(safePhonetics);
+          console.log(`get audioUrl for word ${wordInfo.word}: `, audioUrl);
+        } else {
+          // Ensure phonetics state reflects wordInfo if already present
+          // also ensure text is a string
+          const existing = wordInfo.phonetics;
+          if (existing) {
+            setPhonetics({ ...existing, text: existing.text ?? "" });
+          } else {
+            setPhonetics(undefined);
+          }
+        }
+      }
+    };
+
+    // call the async function
+    fetchPhonectics();
+  }, [wordInfo]);
+
+  // FIXED: Cache phonetics without causing re-renders
+  useEffect(() => {
+    if (phonetics && currentWord && !phoneticsCached[currentWord]) {
+      console.log("Caching phonetics for word:", currentWord);
+      setPhoneticsCached((prev) => ({
+        ...prev,
+        [currentWord]: phonetics,
+      }));
+    }
+  }, [phonetics, currentWord]); // Removed phoneticsCached dependency
+
+  // Add this state to track if we've already fetched the definition for this word
+  const [fetchedWords, setFetchedWords] = useState<Set<string>>(new Set());
+
+  // FIXED: Main definition fetching effect - prevent re-fetch on navigation back
   useEffect(() => {
     const getDefinition = async () => {
-      setIsLoadingDefinition(true);
-      setIsUsingAI(false);
-      setDefinitionSource(null);
-
       const searchWord = params.word as string;
 
       if (!searchWord) {
@@ -244,15 +331,40 @@ export default function DefinitionPage() {
         return alert("No word provided");
       }
 
+      // Check if we've already fetched this word in this session
+      if (fetchedWords.has(searchWord)) {
+        console.log("Definition already fetched for:", searchWord);
+        return;
+      }
+
+      setIsLoadingDefinition(true);
+      setIsUsingAI(false);
+      setDefinitionSource(null);
+
       // First, try to find the word in existing words list
       const existingWord = words.find((word) => word.word === searchWord);
 
       if (existingWord) {
         setWordInfo(existingWord);
         setSaveStatus("saved");
-        setDefinitionSource("dictionary"); // Assuming stored words came from dictionary
+        setDefinitionSource("dictionary");
         setIsLoadingDefinition(false);
+
+        // Set phonetics from existing word
+        if (existingWord.phonetics) {
+          setPhonetics(existingWord.phonetics);
+        }
+
+        // Mark as fetched
+        setFetchedWords((prev) => new Set(prev).add(searchWord));
       } else {
+        // Check cached phonetics for new words
+        const cachedPhonetics = phoneticsCached[searchWord];
+        if (cachedPhonetics) {
+          console.log("Found cached phonetics for:", searchWord);
+          setPhonetics(cachedPhonetics);
+        }
+
         // Define callbacks for fetchDefinition
         const callbacks = {
           onAIStart: () => {
@@ -275,6 +387,14 @@ export default function DefinitionPage() {
         if (fetchedWord) {
           setWordInfo(fetchedWord);
           setSaveStatus("unsaved");
+
+          // Only set phonetics if we don't have cached ones
+          if (!cachedPhonetics && fetchedWord.phonetics) {
+            setPhonetics(fetchedWord.phonetics);
+          }
+
+          // Mark as fetched
+          setFetchedWords((prev) => new Set(prev).add(searchWord));
         } else {
           alert("Failed to fetch definition for the word: " + searchWord);
         }
@@ -284,27 +404,30 @@ export default function DefinitionPage() {
     };
 
     getDefinition();
-  }, [params.word, words]);
+  }, [params.word]); // Remove 'words' dependency to prevent re-fetch on Redux updates
 
+  // FIXED: Separate effect to update save status when words list changes
   useEffect(() => {
-    const fetchPhonectics = async () => {
-      if (wordInfo) {
-        // If audio is missing, fetch it
-        if (!wordInfo.phonetics.audioUrl) {
-          const audioUrl = await fetchAudioUrl(wordInfo.word);
-          // Use the phonetics object from wordInfo to preserve required properties (like text)
-          setPhonetics({ ...wordInfo.phonetics, audioUrl });
-          console.log(`get audioUrl for word ${wordInfo.word}: `, audioUrl);
-        } else {
-          // Ensure phonetics state reflects wordInfo if already present
-          setPhonetics(wordInfo.phonetics);
+    if (wordInfo) {
+      const existingWord = words.find((word) => word.word === wordInfo.word);
+      if (existingWord) {
+        setSaveStatus("saved");
+        // Update wordInfo with latest data from Redux if needed
+        if (JSON.stringify(existingWord) !== JSON.stringify(wordInfo)) {
+          setWordInfo(existingWord);
         }
+      } else {
+        setSaveStatus("unsaved");
       }
-    };
+    }
+  }, [words]); // Only update save status when words change
 
-    // call the async function
-    fetchPhonectics();
-  }, [wordInfo]);
+  // Clear fetched words cache when component unmounts
+  useEffect(() => {
+    return () => {
+      setFetchedWords(new Set());
+    };
+  }, []);
 
   // AI Status Component
   const AIStatusIndicator = () => {
@@ -375,34 +498,84 @@ export default function DefinitionPage() {
   const definitionHeight = useSharedValue(definitionSectionHeight);
   const conversationHeight = useSharedValue(0);
 
-  const handleUpdateWordStatus = () => {
-    console.log(
-      "handleUpdateWordStatus called, current saveStatus:",
-      saveStatus
-    );
-    if (saveStatus === "unsaved") {
-      setSaveStatus("saving");
-      // Simulate saving process
-      setTimeout(() => {
-        setSaveStatus("saved");
-      }, 1000);
-    } else if (saveStatus === "saved") {
-      setSaveStatus("saving");
-      // Simulate saving process
-      setTimeout(() => {
-        setSaveStatus("unsaved");
-      }, 1000);
+  const handleSaveOrUnsave = async () => {
+    if (saveStatus === "saved") {
+      if (wordInfo) {
+        await handleUnsaveWord(wordInfo);
+      }
+    } else {
+      if (wordInfo) {
+        //navigate to gallery
+        router.push({
+          pathname: "/(gallery)",
+          params: {
+            word: wordInfo.word,
+          },
+        });
+      }
     }
   };
 
-  // Toggle view mode function
+  const handleUnsaveWord = async (wordInfo: Word) => {
+    setSaveStatus("saving");
+    try {
+      console.log("unsave wordInfo:", wordInfo);
+      console.log("unsave wordInfo:", wordInfo.id);
+      if (wordInfo.id) {
+        const deleteData = {
+          id: wordInfo.id,
+        };
+        const res = await (client.models as any).Word.delete(deleteData);
+
+        console.log(res);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+    setSaveStatus("unsaved");
+  };
+
+  const handleSaveWord = async (wordInfo: Word) => {
+    const wordInfoToSave = { ...wordInfo, phonetics: phonetics || undefined };
+    setSaveStatus("saving");
+    try {
+      //step1: check if the word exist
+      const existingWord = words.find(
+        (word) => word.word === wordInfoToSave.word
+      );
+      if (existingWord) {
+        const updateData = {
+          id: existingWord.id,
+          data: JSON.stringify(wordInfoToSave),
+        };
+        // If exists, update it, use client function, do not directly update redux as its already listening the updates
+        // The generated client may have empty model typings in some environments; cast to any to avoid the TS error.
+        const res = await (client.models as any).Word.update(updateData);
+      } else {
+        // If not exists, create new word entry
+
+        const createData = {
+          data: JSON.stringify({
+            ...wordInfoToSave,
+            timeStamp: new Date().toISOString(),
+            status: "COLLECTED",
+          }),
+          wordsListId: profile?.wordsListId,
+        };
+        const res = await (client.models as any).Word.create(createData);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+    setSaveStatus("saved");
+  };
+
   const toggleViewMode = () => {
     setViewMode((prev) =>
       prev === "definition" ? "conversation" : "definition"
     );
   };
 
-  // Animate heights based on view mode
   useEffect(() => {
     if (viewMode === "conversation") {
       definitionHeight.value = withSpring(230, {
@@ -432,7 +605,6 @@ export default function DefinitionPage() {
     }
   }, [viewMode]);
 
-  // Animated styles
   const animatedDefinitionStyle = useAnimatedStyle(() => {
     return {
       height: definitionHeight.value,
@@ -452,7 +624,6 @@ export default function DefinitionPage() {
   const { width, height } = Dimensions.get("window");
   const BORDER_RADIUS = Math.min(width, height) * 0.06;
 
-  // Function to handle image zoom
   const handleImagePress = () => {
     if (wordInfo?.imgUrl) {
       setIsImageZoomed(true);
@@ -463,14 +634,65 @@ export default function DefinitionPage() {
     setIsImageZoomed(false);
   };
 
-  // Function to navigate to gallery with current word
+  const clearOldCacheEntries = (maxEntries: number = 20) => {
+    const cacheKeys = Object.keys(phoneticsCached);
+    if (cacheKeys.length > maxEntries) {
+      // Keep only the most recent entries (last used)
+      const recentKeys = cacheKeys.slice(-maxEntries);
+      const cleanedCache: { [key: string]: Phonetics } = {};
+
+      recentKeys.forEach((key) => {
+        cleanedCache[key] = phoneticsCached[key];
+      });
+
+      setPhoneticsCached(cleanedCache);
+    }
+  };
+
+  const getCacheInfo = () => {
+    const cacheKeys = Object.keys(phoneticsCached);
+    return {
+      totalEntries: cacheKeys.length,
+      words: cacheKeys,
+      hasCache: (word: string) => !!phoneticsCached[word],
+    };
+  };
+
+  // ADDED: Auto cleanup when cache gets too large
+  useEffect(() => {
+    const cacheKeys = Object.keys(phoneticsCached);
+    if (cacheKeys.length > 25) {
+      // Auto cleanup when over 25 entries
+      clearOldCacheEntries(15); // Keep only 15 most recent
+    }
+  }, [phoneticsCached]);
+
+  // ADDED: Cleanup cache on component unmount (optional)
+  useEffect(() => {
+    return () => {
+      // Uncomment if you want to clear cache when leaving definition page
+      // clearPhoneticsCache();
+    };
+  }, []);
+
+  // ADDED: Manual cache management in header
   const navigateToGallery = () => {
     router.push({
       pathname: "/(gallery)",
       params: {
-        word: wordInfo?.word || (params.word as string),
+        word: currentWord,
       },
     });
+  };
+
+  // ADDED: Debug function to log cache status
+  const logCacheStatus = () => {
+    const info = getCacheInfo();
+    console.log("=== PHONETICS CACHE STATUS ===");
+    console.log(`Total entries: ${info.totalEntries}`);
+    console.log(`Cached words: ${info.words.join(", ")}`);
+    console.log(`Current word cached: ${info.hasCache(currentWord)}`);
+    console.log("===============================");
   };
 
   return (
@@ -478,7 +700,7 @@ export default function DefinitionPage() {
       style={{
         backgroundColor: theme.background,
       }}
-      className=" flex w-full  h-full flex-col justify-start "
+      className="flex w-full h-full flex-col justify-start"
     >
       {/* Image Zoom Modal */}
       <ImageZoomModal
@@ -500,9 +722,9 @@ export default function DefinitionPage() {
           },
           animatedDefinitionStyle,
         ]}
-        className=" px-3  overflow-hidden"
+        className="px-3 overflow-hidden"
       >
-        <View className=" mt-16 w-full  justify-between flex-row items-center  ">
+        <View className="mt-16 w-full justify-between flex-row items-center">
           <TouchableOpacity
             onPress={() => {
               router.back();
@@ -513,22 +735,22 @@ export default function DefinitionPage() {
 
           {/* Header buttons container */}
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            {/* Gallery Button - Updated with word parameter */}
-            <TouchableOpacity
-              onPress={navigateToGallery}
-              style={{
-                backgroundColor: "#323335",
-                paddingHorizontal: 10,
-                paddingVertical: 6,
-                borderRadius: 16,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-              }}
-            >
-              <Images size={16} color="#fff" />
-              <Text style={{ color: "#fff", fontSize: 12 }}>Gallery</Text>
-            </TouchableOpacity>
+            {/* ADDED: Cache Debug Button (for development) */}
+            {/* {__DEV__ && (
+              <TouchableOpacity
+                onPress={logCacheStatus}
+                style={{
+                  backgroundColor: "#1F2937",
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  borderRadius: 12,
+                }}
+              >
+                <Text style={{ color: "#9CA3AF", fontSize: 10 }}>
+                  Cache ({Object.keys(phoneticsCached).length})
+                </Text>
+              </TouchableOpacity>
+            )} */}
 
             {/* Toggle Button */}
             <TouchableOpacity
@@ -547,36 +769,80 @@ export default function DefinitionPage() {
           </View>
         </View>
 
-        <View className="mt-3 px-2 flex-1   flex flex-col">
-          <View className=" flex flex-row justify-between items-center">
-            <View className=" flex flex-col gap-1">
+        <View className="mt-3 px-2 flex-1 flex flex-col">
+          <View className="flex flex-row justify-between items-center">
+            <View className="flex flex-col gap-1">
               {/* Word Title - Skeleton or Real */}
               {isLoadingDefinition ? (
                 <SkeletonBox width={200} height={36} />
               ) : (
-                <Text
-                  style={{
-                    fontSize: 30,
-                  }}
-                  className=" text-white "
+                <View
+                  style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
                 >
-                  {wordInfo?.word}
-                </Text>
+                  <Text
+                    style={{
+                      fontSize: 30,
+                    }}
+                    className="text-white"
+                  >
+                    {wordInfo?.word}
+                  </Text>
+
+                  {/* ADDED: Cache indicator for current word */}
+                  {/* {__DEV__ && phoneticsCached[currentWord] && (
+                    <View
+                      style={{
+                        backgroundColor: "#059669",
+                        borderRadius: 4,
+                        paddingHorizontal: 4,
+                        paddingVertical: 2,
+                      }}
+                    >
+                      <Text style={{ color: "#fff", fontSize: 8 }}>CACHED</Text>
+                    </View>
+                  )} */}
+                </View>
               )}
 
               {/* Phonetics - Skeleton or Real */}
               {isLoadingDefinition || !phonetics ? (
                 <SkeletonBox width={150} height={24} style={{ marginTop: 4 }} />
               ) : (
-                phonetics && <PhoneticAudio size={20} phonetics={phonetics} />
+                phonetics && (
+                  <PhoneticAudio
+                    size={20}
+                    phonetics={phonetics}
+                    key={`${currentWord}-${phonetics.audioUrl}`}
+                  />
+                )
               )}
             </View>
-            <TouchableOpacity
-              disabled={saveStatus === "saving"}
-              onPress={handleUpdateWordStatus}
+
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
             >
-              <CollectBtn saveStatus={saveStatus} />
-            </TouchableOpacity>
+              {/* ADDED: Clear cache button for current word (dev only) */}
+              {/* {__DEV__ && phoneticsCached[currentWord] && (
+                <TouchableOpacity
+                  onPress={() => clearSpecificPhoneticCache(currentWord)}
+                  style={{
+                    backgroundColor: "#DC2626",
+                    borderRadius: 6,
+                    paddingHorizontal: 6,
+                    paddingVertical: 4,
+                  }}
+                >
+                  <Text style={{ color: "#fff", fontSize: 10 }}>Clear</Text>
+                </TouchableOpacity>
+              )} */}
+
+              <TouchableOpacity
+                onPress={handleSaveOrUnsave}
+                disabled={saveStatus === "saving"}
+              >
+                <CollectBtn saveStatus={saveStatus} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <AIStatusIndicator />
@@ -622,12 +888,29 @@ export default function DefinitionPage() {
           </View>
 
           {viewMode === "definition" && (
-            <View className=" w-full flex-1  flex flex-col">
+            <View className=" w-full flex-1  flex flex-col ">
               {wordInfo?.imgUrl && (
                 <TouchableOpacity
                   onPress={handleImagePress}
                   activeOpacity={0.8}
+                  className=" relative"
                 >
+                  <TouchableOpacity
+                    onPress={() => {
+                      //navigate to gallery
+                      navigateToGallery();
+                    }}
+                    style={{
+                      backgroundColor: "#00000050",
+                      borderBottomRightRadius: 10,
+                      borderTopLeftRadius: 10,
+                      width: 40,
+                      height: 34,
+                    }}
+                    className=" absolute bottom-0 right-0  bg-opacity-30 flex flex-row items-center justify-center  z-10"
+                  >
+                    <ImageUp size={18} color="#fff" />
+                  </TouchableOpacity>
                   <ImageBackground
                     source={{ uri: wordInfo.imgUrl }}
                     style={{

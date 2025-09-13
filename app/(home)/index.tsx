@@ -38,7 +38,7 @@ export default function HomeScreen() {
   const [ifShowHeader, setIfShowHeader] = useState(true);
   const screenHeight = Dimensions.get("window").height;
   const translateY = useSharedValue(0);
-  const [activeCardId, setActiveCardId] = useState<String | null>(null);
+  const [activeCardId, setActiveCardId] = useState<string | null>(null);
 
   const { words, isLoading, isSynced, error } = useAppSelector(
     (state) => state.wordsList
@@ -48,7 +48,16 @@ export default function HomeScreen() {
   // Filter words for crrent user
 
   // Filter by status
-  const collectedWords = words.filter((word) => word.status === "COLLECTED");
+  const collectedWords = words
+    .filter((word) => word.status === "COLLECTED")
+    .sort((a, b) => {
+      // Handle cases where timeStamp might be undefined
+      const timeA = a.timeStamp ? new Date(a.timeStamp).getTime() : 0;
+      const timeB = b.timeStamp ? new Date(b.timeStamp).getTime() : 0;
+
+      // Sort in descending order (newest first)
+      return timeB - timeA;
+    });
   // const learnedWords = userWords.filter(word => word.status === "LEARNED");
 
   const theme = useTheme();
@@ -165,7 +174,7 @@ export default function HomeScreen() {
                     if (activeCardId === word.id) {
                       setActiveCardId(null);
                     } else {
-                      setActiveCardId(word.id);
+                      setActiveCardId(word.id ?? null);
                     }
                   }}
                   key={word.id || idx}
