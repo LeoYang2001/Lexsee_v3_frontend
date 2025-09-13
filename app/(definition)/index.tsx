@@ -28,10 +28,15 @@ import Animated, {
   withTiming,
   interpolateColor,
 } from "react-native-reanimated";
-import { fetchDefinition } from "../../apis/fetchDefinition";
+import {
+  fetchCasualConversation,
+  fetchDefinition,
+} from "../../apis/AIFeatures";
+import type { ConversationResponse } from "../../apis/AIFeatures";
 import { fetchAudioUrl } from "../../apis/fetchPhonetics";
-import { addWord } from "../../store/slices/wordsListSlice";
+
 import { client } from "../client";
+import ConversationView from "../../components/definition/conversation/ConversationView";
 
 function CollectBtn({ saveStatus }: { saveStatus: string }) {
   const scale = useSharedValue(1);
@@ -234,11 +239,38 @@ export default function DefinitionPage() {
   const [phoneticsCached, setPhoneticsCached] = useState<{
     [key: string]: Phonetics;
   }>({});
-
   const [isUsingAI, setIsUsingAI] = useState(false);
   const [definitionSource, setDefinitionSource] = useState<
     "dictionary" | "ai" | null
   >(null);
+
+  // Conversation state
+  const [conversationData, setConversationData] =
+    useState<ConversationResponse | null>(null);
+  const [isLoadingConversation, setIsLoadingConversation] = useState(false);
+  const [isConversationLoaded, setIsConversationLoaded] = useState(false);
+
+  // Function to fetch conversation
+  const fetchConversationExample = async () => {
+    if (!wordInfo?.word) return;
+
+    setViewMode("conversation");
+
+    setIsLoadingConversation(true);
+    setIsConversationLoaded(false);
+
+    try {
+      const conversation = await fetchCasualConversation(wordInfo.word);
+      if (conversation) {
+        setConversationData(conversation);
+        setIsConversationLoaded(true);
+      }
+    } catch (error) {
+      console.error("Error fetching conversation:", error);
+    } finally {
+      setIsLoadingConversation(false);
+    }
+  };
 
   // Get current word consistently
   const currentWord = (params.word as string) || "";
@@ -570,12 +602,6 @@ export default function DefinitionPage() {
     setSaveStatus("saved");
   };
 
-  const toggleViewMode = () => {
-    setViewMode((prev) =>
-      prev === "definition" ? "conversation" : "definition"
-    );
-  };
-
   useEffect(() => {
     if (viewMode === "conversation") {
       definitionHeight.value = withSpring(230, {
@@ -685,16 +711,6 @@ export default function DefinitionPage() {
     });
   };
 
-  // ADDED: Debug function to log cache status
-  const logCacheStatus = () => {
-    const info = getCacheInfo();
-    console.log("=== PHONETICS CACHE STATUS ===");
-    console.log(`Total entries: ${info.totalEntries}`);
-    console.log(`Cached words: ${info.words.join(", ")}`);
-    console.log(`Current word cached: ${info.hasCache(currentWord)}`);
-    console.log("===============================");
-  };
-
   return (
     <View
       style={{
@@ -732,41 +748,6 @@ export default function DefinitionPage() {
           >
             <ChevronLeft color={"#fff"} />
           </TouchableOpacity>
-
-          {/* Header buttons container */}
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            {/* ADDED: Cache Debug Button (for development) */}
-            {/* {__DEV__ && (
-              <TouchableOpacity
-                onPress={logCacheStatus}
-                style={{
-                  backgroundColor: "#1F2937",
-                  paddingHorizontal: 8,
-                  paddingVertical: 4,
-                  borderRadius: 12,
-                }}
-              >
-                <Text style={{ color: "#9CA3AF", fontSize: 10 }}>
-                  Cache ({Object.keys(phoneticsCached).length})
-                </Text>
-              </TouchableOpacity>
-            )} */}
-
-            {/* Toggle Button */}
-            <TouchableOpacity
-              onPress={toggleViewMode}
-              style={{
-                backgroundColor: "#323335",
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 16,
-              }}
-            >
-              <Text style={{ color: "#fff", fontSize: 12 }}>
-                {viewMode === "definition" ? "Conversation" : "Definition"}
-              </Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
         <View className="mt-3 px-2 flex-1 flex flex-col">
@@ -787,20 +768,6 @@ export default function DefinitionPage() {
                   >
                     {wordInfo?.word}
                   </Text>
-
-                  {/* ADDED: Cache indicator for current word */}
-                  {/* {__DEV__ && phoneticsCached[currentWord] && (
-                    <View
-                      style={{
-                        backgroundColor: "#059669",
-                        borderRadius: 4,
-                        paddingHorizontal: 4,
-                        paddingVertical: 2,
-                      }}
-                    >
-                      <Text style={{ color: "#fff", fontSize: 8 }}>CACHED</Text>
-                    </View>
-                  )} */}
                 </View>
               )}
 
@@ -821,21 +788,6 @@ export default function DefinitionPage() {
             <View
               style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
             >
-              {/* ADDED: Clear cache button for current word (dev only) */}
-              {/* {__DEV__ && phoneticsCached[currentWord] && (
-                <TouchableOpacity
-                  onPress={() => clearSpecificPhoneticCache(currentWord)}
-                  style={{
-                    backgroundColor: "#DC2626",
-                    borderRadius: 6,
-                    paddingHorizontal: 6,
-                    paddingVertical: 4,
-                  }}
-                >
-                  <Text style={{ color: "#fff", fontSize: 10 }}>Clear</Text>
-                </TouchableOpacity>
-              )} */}
-
               <TouchableOpacity
                 onPress={handleSaveOrUnsave}
                 disabled={saveStatus === "saving"}
@@ -1003,19 +955,45 @@ export default function DefinitionPage() {
         ]}
         className=" px-3 py-4"
       >
-        <Text style={{ color: "#fff", fontSize: 18, textAlign: "center" }}>
-          Conversation Mode
-        </Text>
-        <Text
-          style={{
-            color: "#666",
-            fontSize: 14,
-            textAlign: "center",
-            marginTop: 8,
-          }}
-        >
-          AI conversation content will appear here
-        </Text>
+        <View className=" flex flex-row items-center">
+          <Text style={{ color: "#fff", fontSize: 18, textAlign: "center" }}>
+            Conversation Mode
+          </Text>
+          {/* Toggle Button */}
+          <TouchableOpacity
+            onPress={fetchConversationExample}
+            style={{
+              backgroundColor: "#323335",
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 16,
+            }}
+          >
+            <Text style={{ color: "#fff", fontSize: 12 }}>
+              {viewMode === "definition" ? "Conversation" : "Definition"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView className=" flex-1 mt-3  border border-red-500 ">
+          {viewMode === "conversation" ? (
+            <ConversationView
+              conversation={
+                (conversationData as any)?.conversation ??
+                (conversationData as any)?.lines ??
+                (conversationData as any)?.messages ??
+                []
+              }
+              isLoading={isLoadingConversation}
+              isLoaded={isConversationLoaded}
+              highlightWord={currentWord}
+            />
+          ) : (
+            <Text>
+              Switch to conversation mode to see casual dialogues using the word
+            </Text>
+          )}
+        </ScrollView>
       </View>
     </View>
   );

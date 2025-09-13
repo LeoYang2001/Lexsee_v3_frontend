@@ -325,3 +325,253 @@ export const generateDefinition = async (
     return null;
   }
 };
+
+// Add these interfaces after the existing WordDefinition interface
+interface ConversationItem {
+  speaker: string;
+  message: string;
+  tokens: string[];
+}
+
+export interface ConversationResponse {
+  word: string;
+  conversation: ConversationItem[];
+  context: string;
+  difficulty: "beginner" | "intermediate" | "advanced";
+  scenario?: string;
+  vocabulary_focus?: string[];
+}
+
+// Add conversation format validation function
+const checkConversationFormat = (data: any): data is ConversationResponse => {
+  try {
+    if (!data || typeof data !== "object") {
+      console.warn(
+        "❌ Conversation format check failed: data is not an object"
+      );
+      return false;
+    }
+
+    if (typeof data.word !== "string" || !data.word.trim()) {
+      console.warn(
+        "❌ Conversation format check failed: missing or invalid 'word' property"
+      );
+      return false;
+    }
+
+    if (!Array.isArray(data.conversation) || data.conversation.length === 0) {
+      console.warn(
+        "❌ Conversation format check failed: 'conversation' must be a non-empty array"
+      );
+      return false;
+    }
+
+    if (typeof data.context !== "string" || !data.context.trim()) {
+      console.warn(
+        "❌ Conversation format check failed: missing or invalid 'context' property"
+      );
+      return false;
+    }
+
+    if (!["beginner", "intermediate", "advanced"].includes(data.difficulty)) {
+      console.warn(
+        "❌ Conversation format check failed: invalid 'difficulty' value"
+      );
+      return false;
+    }
+
+    // Validate each conversation item
+    for (let i = 0; i < data.conversation.length; i++) {
+      const item = data.conversation[i];
+
+      if (typeof item.speaker !== "string" || !item.speaker.trim()) {
+        console.warn(
+          `❌ Conversation format check failed: conversation[${i}].speaker is missing or invalid`
+        );
+        return false;
+      }
+
+      if (typeof item.message !== "string" || !item.message.trim()) {
+        console.warn(
+          `❌ Conversation format check failed: conversation[${i}].message is missing or invalid`
+        );
+        return false;
+      }
+
+      if (!Array.isArray(item.tokens)) {
+        console.warn(
+          `❌ Conversation format check failed: conversation[${i}].tokens must be an array`
+        );
+        return false;
+      }
+
+      if (!item.tokens.every((token: any) => typeof token === "string")) {
+        console.warn(
+          `❌ Conversation format check failed: conversation[${i}].tokens must contain only strings`
+        );
+        return false;
+      }
+    }
+
+    console.log("✅ Conversation format check passed");
+    return true;
+  } catch (error) {
+    console.warn("❌ Conversation format check failed with error:", error);
+    return false;
+  }
+};
+
+// Tokenization function
+function tokenizeText(text: string): string[] {
+  if (!text) return [];
+  return text.match(/<[^>]+>|[\w'-]+|[.,\s]/g) || [];
+}
+
+// Main conversation fetching function
+export const fetchConversation = async (
+  word: string,
+  context: string = "general conversation",
+  difficulty: "beginner" | "intermediate" | "advanced" = "intermediate"
+): Promise<ConversationResponse | null> => {
+  if (!DEEPSEEK_API_KEY) {
+    console.warn(
+      "❌ DEEPSEEK_API_KEY not available for conversation generation"
+    );
+    return null;
+  }
+
+  if (!word) {
+    console.warn("❌ No word provided for conversation generation");
+    return null;
+  }
+
+  try {
+    console.log(
+      `📱 Generating conversation for word: "${word}" with context: "${context}"`
+    );
+
+    const systemPrompt = `
+      You are a language teacher creating educational conversation examples.
+      The user will provide a word and context, and you must return a natural conversation strictly in JSON format.
+      Follow this schema exactly:
+
+      {
+        "word": "<the word>",
+        "conversation": [
+          {
+            "speaker": "Person A",
+            "message": "<natural sentence using the word>",
+            "tokens": ["<tokenized>", "version", "of", "the", "message"]
+          },
+          {
+            "speaker": "Person B", 
+            "message": "<natural response>",
+            "tokens": ["<tokenized>", "version", "of", "the", "response"]
+          }
+        ],
+        "context": "<description of the conversation setting>",
+        "difficulty": "beginner|intermediate|advanced",
+        "scenario": "<optional: specific scenario description>",
+        "vocabulary_focus": ["<optional>", "related", "vocabulary"]
+      }
+
+      Rules:
+      - Create 3-4 natural conversation exchanges
+      - Use the target word at least twice in different contexts
+      - Make the conversation realistic and educational
+      - Tokenize messages by splitting on words, punctuation, and spaces
+      - Include context-appropriate vocabulary
+      - Match the requested difficulty level
+      - Respond with **only JSON**, no extra text
+    `;
+
+    const userPrompt = `
+      Create a conversation using the word "${word}" in the context of "${context}" at ${difficulty} level.
+      Make it natural and educational, showing different uses of the word.
+    `;
+
+    const response = await client.chat.completions.create({
+      model: "deepseek-chat",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      response_format: {
+        type: "json_object",
+      },
+    });
+
+    const raw = response.choices?.[0]?.message?.content;
+    if (!raw) {
+      console.error("❌ AI conversation response content is null or empty");
+      return null;
+    }
+
+    const data = JSON.parse(raw);
+
+    // Post-process to ensure tokens are properly generated if missing
+    if (data && data.conversation) {
+      data.conversation = data.conversation.map((item: any) => ({
+        ...item,
+        tokens:
+          item.tokens && item.tokens.length > 0
+            ? item.tokens
+            : tokenizeText(item.message),
+      }));
+    }
+
+    // Validate AI response format
+    if (checkConversationFormat(data)) {
+      console.log("✅ AI generated conversation format is valid");
+      return data;
+    } else {
+      console.error("❌ AI generated conversation has invalid format");
+      return null;
+    }
+  } catch (error) {
+    console.error("❌ Error generating conversation with AI:", error);
+    return null;
+  }
+};
+
+// Specialized conversation functions
+export const fetchCasualConversation = async (
+  word: string
+): Promise<ConversationResponse | null> => {
+  return fetchConversation(word, "casual daily conversation", "intermediate");
+};
+
+export const fetchBusinessConversation = async (
+  word: string
+): Promise<ConversationResponse | null> => {
+  return fetchConversation(word, "business meeting", "advanced");
+};
+
+export const fetchAcademicConversation = async (
+  word: string
+): Promise<ConversationResponse | null> => {
+  return fetchConversation(word, "academic discussion", "advanced");
+};
+
+export const fetchSocialConversation = async (
+  word: string
+): Promise<ConversationResponse | null> => {
+  return fetchConversation(word, "social gathering", "intermediate");
+};
+
+// Batch conversation generation
+export const fetchMultipleConversations = async (
+  word: string,
+  contexts: string[] = ["casual", "business", "academic"]
+): Promise<ConversationResponse[]> => {
+  const results = await Promise.allSettled(
+    contexts.map((context) => fetchConversation(word, context))
+  );
+
+  return results
+    .filter(
+      (result): result is PromiseFulfilledResult<ConversationResponse> =>
+        result.status === "fulfilled" && result.value !== null
+    )
+    .map((result) => result.value);
+};
