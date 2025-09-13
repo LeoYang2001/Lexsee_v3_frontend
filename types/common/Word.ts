@@ -9,7 +9,7 @@ export type Word = {
     synonyms: string[];
     antonyms: string[];
   }[];
-  phonetics: Phonetics;
+  phonetics: Phonetics | undefined;
   timeStamp?: string;
 };
 

@@ -31,6 +31,7 @@ const PhoneticAudio = ({ phonetics, size = 14 }: PhoneticAudioProps) => {
         if (audioPlayer) {
           audioPlayer.currentTime = 0; // Reset to the beginning
           audioPlayer.play();
+          console.log("play phonetics audio:", phonetics);
         } else {
           console.warn("Audio player is not initialized.");
         }
