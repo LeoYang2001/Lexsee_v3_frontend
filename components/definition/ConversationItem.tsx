@@ -53,9 +53,10 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
       return (
         <Text
           style={{
-            color: "#F9FAFB",
-            fontSize: 15,
+            color: "#fff",
+            fontSize: 14,
             lineHeight: 22,
+            opacity: isTyping ? 0.7 : 1,
           }}
         >
           {line.message}
@@ -70,8 +71,8 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
     return (
       <Text
         style={{
-          color: "#F9FAFB",
-          fontSize: 15,
+          color: "#fff",
+          fontSize: 14,
           lineHeight: 22,
         }}
       >
@@ -82,8 +83,8 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
             <Text
               key={index}
               style={{
-                backgroundColor: isHighlighted ? "#FEF3C7" : "transparent",
-                color: isHighlighted ? "#92400E" : "#F9FAFB",
+                backgroundColor: isHighlighted ? "#56362d" : "transparent",
+                color: isHighlighted ? "#ea511d" : "#F9FAFB",
                 fontWeight: isHighlighted ? "600" : "normal",
                 borderRadius: isHighlighted ? 4 : 0,
                 paddingHorizontal: isHighlighted ? 4 : 0,
@@ -110,7 +111,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
         <View
           style={{
             maxWidth: "80%",
-            backgroundColor: isPersonA ? "#374151" : "#1E40AF",
+            backgroundColor: isPersonA ? "#2d2e31" : "#332b31",
             borderRadius: 16,
             paddingHorizontal: 16,
             paddingVertical: 12,
@@ -119,7 +120,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
           }}
         >
           {/* Speaker name */}
-          <Text
+          {/* <Text
             style={{
               color: isPersonA ? "#9CA3AF" : "#BFDBFE",
               fontSize: 12,
@@ -128,7 +129,7 @@ const ConversationItem: React.FC<ConversationItemProps> = ({
             }}
           >
             {line.speaker}
-          </Text>
+          </Text> */}
 
           {/* Message content or typing indicator */}
           {isTyping ? <TypingIndicator /> : renderMessage()}

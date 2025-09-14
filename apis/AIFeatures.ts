@@ -431,7 +431,9 @@ function tokenizeText(text: string): string[] {
 export const fetchConversation = async (
   word: string,
   context: string = "general conversation",
-  difficulty: "beginner" | "intermediate" | "advanced" = "intermediate"
+  difficulty: "beginner" | "intermediate" | "advanced" = "intermediate",
+  definition?: string,
+  partOfSpeech?: string
 ): Promise<ConversationResponse | null> => {
   if (!DEEPSEEK_API_KEY) {
     console.warn(
@@ -447,8 +449,23 @@ export const fetchConversation = async (
 
   try {
     console.log(
-      `📱 Generating conversation for word: "${word}" with context: "${context}"`
+      `📱 Generating conversation for word: "${word}" with context: "${context}"${
+        definition ? `, definition: "${definition}"` : ""
+      }${partOfSpeech ? `, part of speech: "${partOfSpeech}"` : ""}`
     );
+
+    // Build contextual information for the prompt
+    const wordContext = [];
+    if (definition) {
+      wordContext.push(`Definition: ${definition}`);
+    }
+    if (partOfSpeech) {
+      wordContext.push(`Part of speech: ${partOfSpeech}`);
+    }
+    const wordContextString =
+      wordContext.length > 0
+        ? `\n\nWord context:\n${wordContext.join("\n")}`
+        : "";
 
     const systemPrompt = `
       You are a language teacher creating educational conversation examples.
@@ -476,8 +493,9 @@ export const fetchConversation = async (
       }
 
       Rules:
-      - Create 3-4 natural conversation exchanges
+      - Create 4-6 natural conversation exchanges
       - Use the target word at least twice in different contexts
+      - If definition and/or part of speech are provided, ensure the word usage matches exactly
       - Make the conversation realistic and educational
       - Tokenize messages by splitting on words, punctuation, and spaces
       - Include context-appropriate vocabulary
@@ -487,7 +505,17 @@ export const fetchConversation = async (
 
     const userPrompt = `
       Create a conversation using the word "${word}" in the context of "${context}" at ${difficulty} level.
-      Make it natural and educational, showing different uses of the word.
+      Make it natural and educational, showing different uses of the word.${wordContextString}
+      
+      ${
+        definition && partOfSpeech
+          ? `Important: Use "${word}" specifically as a ${partOfSpeech} with the meaning: ${definition}`
+          : definition
+            ? `Important: Use "${word}" with the meaning: ${definition}`
+            : partOfSpeech
+              ? `Important: Use "${word}" as a ${partOfSpeech}`
+              : ""
+      }
     `;
 
     const response = await client.chat.completions.create({
@@ -536,36 +564,204 @@ export const fetchConversation = async (
 
 // Specialized conversation functions
 export const fetchCasualConversation = async (
-  word: string
+  word: string,
+  definition?: string,
+  partOfSpeech?: string
 ): Promise<ConversationResponse | null> => {
-  return fetchConversation(word, "casual daily conversation", "intermediate");
+  return fetchConversation(
+    word,
+    "casual daily conversation",
+    "intermediate",
+    definition,
+    partOfSpeech
+  );
 };
 
 export const fetchBusinessConversation = async (
-  word: string
+  word: string,
+  definition?: string,
+  partOfSpeech?: string
 ): Promise<ConversationResponse | null> => {
-  return fetchConversation(word, "business meeting", "advanced");
+  return fetchConversation(
+    word,
+    "business meeting",
+    "advanced",
+    definition,
+    partOfSpeech
+  );
 };
 
 export const fetchAcademicConversation = async (
-  word: string
+  word: string,
+  definition?: string,
+  partOfSpeech?: string
 ): Promise<ConversationResponse | null> => {
-  return fetchConversation(word, "academic discussion", "advanced");
+  return fetchConversation(
+    word,
+    "academic discussion",
+    "advanced",
+    definition,
+    partOfSpeech
+  );
 };
 
 export const fetchSocialConversation = async (
-  word: string
+  word: string,
+  definition?: string,
+  partOfSpeech?: string
 ): Promise<ConversationResponse | null> => {
-  return fetchConversation(word, "social gathering", "intermediate");
+  return fetchConversation(
+    word,
+    "social gathering",
+    "intermediate",
+    definition,
+    partOfSpeech
+  );
+};
+
+// Quick conversation fetch with simplified prompt
+export const fetchQuickConversation = async (
+  word: string,
+  definition?: string,
+  partOfSpeech?: string
+): Promise<ConversationResponse | null> => {
+  if (!DEEPSEEK_API_KEY) {
+    console.warn(
+      "❌ DEEPSEEK_API_KEY not available for quick conversation generation"
+    );
+    return null;
+  }
+
+  if (!word) {
+    console.warn("❌ No word provided for quick conversation generation");
+    return null;
+  }
+
+  try {
+    console.log(
+      `⚡ Quick generating conversation for word: "${word}"${
+        definition ? `, definition: "${definition}"` : ""
+      }${partOfSpeech ? `, part of speech: "${partOfSpeech}"` : ""}`
+    );
+
+    // Build contextual information for the prompt
+    const wordContext = [];
+    if (definition) {
+      wordContext.push(`Definition: ${definition}`);
+    }
+    if (partOfSpeech) {
+      wordContext.push(`Part of speech: ${partOfSpeech}`);
+    }
+    const wordContextString =
+      wordContext.length > 0
+        ? `\n\nWord context:\n${wordContext.join("\n")}`
+        : "";
+
+    const systemPrompt = `
+      Create a simple conversation example using a specific word.
+      Return only JSON in this exact format:
+
+      {
+        "word": "<the word>",
+        "conversation": [
+          {
+            "speaker": "Person A",
+            "message": "<sentence with the word>",
+            "tokens": ["split", "message", "into", "tokens"]
+          },
+          {
+            "speaker": "Person B",
+            "message": "<response sentence>", 
+            "tokens": ["split", "response", "into", "tokens"]
+          },
+          {
+            "speaker": "Person A",
+            "message": "<another sentence with the word>",
+            "tokens": ["split", "sentence", "into", "tokens"]
+          }
+        ],
+        "context": "everyday conversation",
+        "difficulty": "intermediate"
+      }
+
+      Rules:
+      - Make 4-6 natural exchanges
+      - Use the target word at least twice
+      - If definition and/or part of speech are provided, ensure the word usage matches exactly
+      - Keep it simple and clear
+      - Split each message into word/punctuation tokens
+      - Only return JSON, no extra text
+    `;
+
+    const userPrompt = `Create a simple conversation using the word "${word}"${wordContextString}
+    
+    ${
+      definition && partOfSpeech
+        ? `Important: Use "${word}" specifically as a ${partOfSpeech} with the meaning: ${definition}`
+        : definition
+          ? `Important: Use "${word}" with the meaning: ${definition}`
+          : partOfSpeech
+            ? `Important: Use "${word}" as a ${partOfSpeech}`
+            : ""
+    }`;
+
+    const response = await client.chat.completions.create({
+      model: "deepseek-chat",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      response_format: {
+        type: "json_object",
+      },
+    });
+
+    const raw = response.choices?.[0]?.message?.content;
+    if (!raw) {
+      console.error(
+        "❌ AI quick conversation response content is null or empty"
+      );
+      return null;
+    }
+
+    const data = JSON.parse(raw);
+
+    // Ensure tokens are properly generated if missing
+    if (data && data.conversation) {
+      data.conversation = data.conversation.map((item: any) => ({
+        ...item,
+        tokens:
+          item.tokens && item.tokens.length > 0
+            ? item.tokens
+            : tokenizeText(item.message),
+      }));
+    }
+
+    // Validate format
+    if (checkConversationFormat(data)) {
+      console.log("✅ Quick conversation format is valid");
+      return data;
+    } else {
+      console.error("❌ Quick conversation has invalid format");
+      return null;
+    }
+  } catch (error) {
+    console.error("❌ Error generating quick conversation:", error);
+    return null;
+  }
 };
 
 // Batch conversation generation
 export const fetchMultipleConversations = async (
   word: string,
-  contexts: string[] = ["casual", "business", "academic"]
+  contexts: string[] = ["casual", "business", "academic"],
+  definition?: string,
+  partOfSpeech?: string
 ): Promise<ConversationResponse[]> => {
   const results = await Promise.allSettled(
-    contexts.map((context) => fetchConversation(word, context))
+    contexts.map((context) =>
+      fetchConversation(word, context, "intermediate", definition, partOfSpeech)
+    )
   );
 
   return results

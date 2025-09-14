@@ -7,16 +7,11 @@ import {
   ImageBackground,
   Dimensions,
   ScrollView,
+  Pressable,
 } from "react-native";
 import { useTheme } from "../../theme/ThemeContext";
 import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
-import {
-  Bookmark,
-  ChevronLeft,
-  Phone,
-  Images,
-  ImageUp,
-} from "lucide-react-native";
+import { Bookmark, ChevronLeft, ImageUp } from "lucide-react-native";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { Phonetics, Word } from "../../types/common/Word";
 import PhoneticAudio from "../../components/common/PhoneticAudio";
@@ -31,12 +26,13 @@ import Animated, {
 import {
   fetchCasualConversation,
   fetchDefinition,
+  fetchQuickConversation,
 } from "../../apis/AIFeatures";
 import type { ConversationResponse } from "../../apis/AIFeatures";
 import { fetchAudioUrl } from "../../apis/fetchPhonetics";
 
 import { client } from "../client";
-import ConversationView from "../../components/definition/conversation/ConversationView";
+import ConversationView from "../../components/definition/ConversationView";
 
 function CollectBtn({ saveStatus }: { saveStatus: string }) {
   const scale = useSharedValue(1);
@@ -249,24 +245,42 @@ export default function DefinitionPage() {
     useState<ConversationResponse | null>(null);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const [isConversationLoaded, setIsConversationLoaded] = useState(false);
+  const [showConversationView, setShowConversationView] = useState(false);
 
   // Function to fetch conversation
-  const fetchConversationExample = async () => {
+  //optionally receive two parameters: partOfSpeech and definition
+  const fetchConversationExample = async (
+    partOfSpeech?: string,
+    definition?: string
+  ) => {
     if (!wordInfo?.word) return;
 
     setViewMode("conversation");
-
     setIsLoadingConversation(true);
     setIsConversationLoaded(false);
+    setShowConversationView(true); // Show the conversation view when starting to fetch
 
     try {
-      const conversation = await fetchCasualConversation(wordInfo.word);
+      //set a timer to test how fast the conversation loads
+      const startTime = performance.now();
+      const conversation = await fetchQuickConversation(
+        wordInfo.word,
+        partOfSpeech,
+        definition
+      );
+      const endTime = performance.now();
+      console.log(`🕒 Conversation loaded in ${endTime - startTime} ms`);
+
       if (conversation) {
         setConversationData(conversation);
         setIsConversationLoaded(true);
+      } else {
+        // If failed to fetch, hide the conversation view
+        setShowConversationView(false);
       }
     } catch (error) {
       console.error("Error fetching conversation:", error);
+      setShowConversationView(false); // Hide on error
     } finally {
       setIsLoadingConversation(false);
     }
@@ -675,15 +689,6 @@ export default function DefinitionPage() {
     }
   };
 
-  const getCacheInfo = () => {
-    const cacheKeys = Object.keys(phoneticsCached);
-    return {
-      totalEntries: cacheKeys.length,
-      words: cacheKeys,
-      hasCache: (word: string) => !!phoneticsCached[word],
-    };
-  };
-
   // ADDED: Auto cleanup when cache gets too large
   useEffect(() => {
     const cacheKeys = Object.keys(phoneticsCached);
@@ -728,273 +733,378 @@ export default function DefinitionPage() {
         overlayOpacity={0.9}
       />
 
-      {/* Definition View with Animated Height */}
-      <Animated.View
-        style={[
-          {
-            backgroundColor: "#1b1c1f",
-            margin: 6,
-            borderRadius: BORDER_RADIUS * 2,
-          },
-          animatedDefinitionStyle,
-        ]}
-        className="px-3 overflow-hidden"
+      <Pressable
+        onPress={() => {
+          setViewMode("definition");
+        }}
       >
-        <View className="mt-16 w-full justify-between flex-row items-center">
-          <TouchableOpacity
-            onPress={() => {
-              router.back();
-            }}
-          >
-            <ChevronLeft color={"#fff"} />
-          </TouchableOpacity>
-        </View>
-
-        <View className="mt-3 px-2 flex-1 flex flex-col">
-          <View className="flex flex-row justify-between items-center">
-            <View className="flex flex-col gap-1">
-              {/* Word Title - Skeleton or Real */}
-              {isLoadingDefinition ? (
-                <SkeletonBox width={200} height={36} />
-              ) : (
-                <View
-                  style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-                >
-                  <Text
-                    style={{
-                      fontSize: 30,
-                    }}
-                    className="text-white"
-                  >
-                    {wordInfo?.word}
-                  </Text>
-                </View>
-              )}
-
-              {/* Phonetics - Skeleton or Real */}
-              {isLoadingDefinition || !phonetics ? (
-                <SkeletonBox width={150} height={24} style={{ marginTop: 4 }} />
-              ) : (
-                phonetics && (
-                  <PhoneticAudio
-                    size={20}
-                    phonetics={phonetics}
-                    key={`${currentWord}-${phonetics.audioUrl}`}
-                  />
-                )
-              )}
-            </View>
-
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+        {/* Definition View with Animated Height */}
+        <Animated.View
+          style={[
+            {
+              backgroundColor: "#1b1c1f",
+              margin: 6,
+              borderRadius: BORDER_RADIUS * 2,
+            },
+            animatedDefinitionStyle,
+          ]}
+          className="px-3 overflow-hidden"
+        >
+          <View className="mt-16 w-full justify-between flex-row items-center">
+            <TouchableOpacity
+              onPress={() => {
+                router.back();
+              }}
             >
-              <TouchableOpacity
-                onPress={handleSaveOrUnsave}
-                disabled={saveStatus === "saving"}
-              >
-                <CollectBtn saveStatus={saveStatus} />
-              </TouchableOpacity>
-            </View>
+              <ChevronLeft color={"#fff"} />
+            </TouchableOpacity>
           </View>
 
-          <AIStatusIndicator />
-          <LoadingStateIndicator />
-
-          {/* Part of Speech Tags - Skeleton or Real */}
-          <View className=" mt-4 flex flex-row gap-3">
-            {isLoadingDefinition ? (
-              // Skeleton tags
-              <>
-                <SkeletonBox
-                  width={50}
-                  height={28}
-                  style={{ borderRadius: 2 }}
-                />
-                <SkeletonBox
-                  width={70}
-                  height={28}
-                  style={{ borderRadius: 2 }}
-                />
-              </>
-            ) : (
-              wordInfo?.meanings.map((meaning, index) => (
-                <View
-                  style={{
-                    borderRadius: 2,
-                    backgroundColor: "#323335",
-                  }}
-                  className="p-1"
-                  key={index}
-                >
-                  <Text
+          <View className="mt-3 px-2 flex-1 flex flex-col">
+            <View className="flex flex-row justify-between items-center">
+              <View className="flex flex-col gap-1">
+                {/* Word Title - Skeleton or Real */}
+                {isLoadingDefinition ? (
+                  <SkeletonBox width={200} height={36} />
+                ) : (
+                  <View
                     style={{
-                      fontSize: 14,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
                     }}
-                    className="text-white opacity-70"
                   >
-                    {meaning.partOfSpeech}
-                  </Text>
-                </View>
-              ))
+                    <Text
+                      style={{
+                        fontSize: 30,
+                      }}
+                      className="text-white"
+                    >
+                      {wordInfo?.word}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Phonetics - Skeleton or Real */}
+                {isLoadingDefinition || !phonetics ? (
+                  <SkeletonBox
+                    width={150}
+                    height={24}
+                    style={{ marginTop: 4 }}
+                  />
+                ) : (
+                  phonetics && (
+                    <PhoneticAudio
+                      size={20}
+                      phonetics={phonetics}
+                      key={`${currentWord}-${phonetics.audioUrl}`}
+                    />
+                  )
+                )}
+              </View>
+
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+              >
+                <TouchableOpacity
+                  onPress={handleSaveOrUnsave}
+                  disabled={saveStatus === "saving"}
+                >
+                  <CollectBtn saveStatus={saveStatus} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <AIStatusIndicator />
+            <LoadingStateIndicator />
+
+            {/* Part of Speech Tags - Skeleton or Real */}
+            <View className=" mt-4 flex flex-row gap-3">
+              {isLoadingDefinition ? (
+                // Skeleton tags
+                <>
+                  <SkeletonBox
+                    width={50}
+                    height={28}
+                    style={{ borderRadius: 2 }}
+                  />
+                  <SkeletonBox
+                    width={70}
+                    height={28}
+                    style={{ borderRadius: 2 }}
+                  />
+                </>
+              ) : (
+                wordInfo?.meanings.map((meaning, index) => (
+                  <View
+                    style={{
+                      borderRadius: 2,
+                      backgroundColor: "#323335",
+                    }}
+                    className="p-1"
+                    key={index}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 14,
+                      }}
+                      className="text-white opacity-70"
+                    >
+                      {meaning.partOfSpeech}
+                    </Text>
+                  </View>
+                ))
+              )}
+            </View>
+
+            {viewMode === "definition" && (
+              <View className=" w-full flex-1  flex flex-col ">
+                {wordInfo?.imgUrl && (
+                  <TouchableOpacity
+                    onPress={handleImagePress}
+                    activeOpacity={0.8}
+                    className=" relative"
+                  >
+                    <TouchableOpacity
+                      onPress={() => {
+                        //navigate to gallery
+                        navigateToGallery();
+                      }}
+                      style={{
+                        backgroundColor: "#00000050",
+                        borderBottomRightRadius: 10,
+                        borderTopLeftRadius: 10,
+                        width: 40,
+                        height: 34,
+                      }}
+                      className=" absolute bottom-0 right-0  bg-opacity-30 flex flex-row items-center justify-center  z-10"
+                    >
+                      <ImageUp size={18} color="#fff" />
+                    </TouchableOpacity>
+                    <ImageBackground
+                      source={{ uri: wordInfo.imgUrl }}
+                      style={{
+                        height: 145,
+                        borderRadius: 10,
+                        overflow: "hidden",
+                        position: "relative",
+                      }}
+                      className=" w-full mt-4 flex justify-center items-center"
+                      resizeMode="cover"
+                    >
+                      {/* Zoom hint overlay */}
+                      <View
+                        style={{
+                          position: "absolute",
+                          top: 8,
+                          right: 8,
+                          backgroundColor: "rgba(0, 0, 0, 0.6)",
+                          borderRadius: 12,
+                          paddingHorizontal: 8,
+                          paddingVertical: 4,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: "#ffffff",
+                            fontSize: 12,
+                            opacity: 0.9,
+                          }}
+                        >
+                          Tap to zoom
+                        </Text>
+                      </View>
+                    </ImageBackground>
+                  </TouchableOpacity>
+                )}
+
+                <ScrollView className=" w-full py-4 flex-1">
+                  <View className=" text-white  opacity-70">
+                    {isLoadingDefinition ? (
+                      // Skeleton definitions
+                      <>
+                        <View className=" mb-4 flex flex-col gap-2">
+                          <SkeletonBox width={80} height={20} />
+                          <SkeletonBox width="100%" height={16} />
+                          <SkeletonBox width="90%" height={16} />
+                          <SkeletonBox width="95%" height={16} />
+                        </View>
+                      </>
+                    ) : (
+                      wordInfo?.meanings.map((meaning, index) => (
+                        <TouchableOpacity
+                          key={index}
+                          className=" mb-4 flex flex-col gap-2"
+                          onPress={() => {
+                            fetchConversationExample(
+                              meaning.partOfSpeech,
+                              meaning.definition
+                            );
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 16,
+                            }}
+                            className="text-white opacity-70 font-bold"
+                          >
+                            {meaning.partOfSpeech}
+                          </Text>
+                          <Text
+                            style={{
+                              fontSize: 14,
+                            }}
+                            className="text-white opacity-90"
+                          >
+                            {meaning.definition}
+                          </Text>
+                        </TouchableOpacity>
+                      ))
+                    )}
+                  </View>
+                </ScrollView>
+              </View>
+            )}
+          </View>
+        </Animated.View>
+      </Pressable>
+
+      <Pressable
+        onPress={() => {
+          setViewMode("conversation");
+        }}
+        className=" flex-1"
+      >
+        {/* Conversation View with Animated Height */}
+        <View
+          style={[
+            {
+              flex: 1,
+              backgroundColor: "#1b1c1f",
+              margin: 6,
+              marginTop: 0,
+              borderRadius: BORDER_RADIUS * 2,
+            },
+            animatedConversationStyle,
+          ]}
+          className="px-3 py-4"
+        >
+          <View className="flex  pt-6 px-3 flex-row items-center justify-between">
+            <Text style={{ color: "#fff", fontSize: 28 }}>Conversation</Text>
+
+            {/* Conditional Generate/Regenerate Button */}
+            {(!showConversationView ||
+              (showConversationView && isConversationLoaded)) && (
+              <ImageBackground
+                source={require("../../assets/images/convoButton.png")}
+              >
+                <TouchableOpacity
+                  onPress={() => fetchConversationExample("", "")}
+                  disabled={isLoadingConversation}
+                  style={{
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 6,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    opacity: isLoadingConversation ? 0.7 : 1,
+                  }}
+                >
+                  {isLoadingConversation ? (
+                    <>
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                      <Text
+                        style={{
+                          color: "#FEFEFE",
+                          fontSize: 14,
+                          fontWeight: "400",
+                        }}
+                      >
+                        Generating...
+                      </Text>
+                    </>
+                  ) : (
+                    <Text
+                      style={{
+                        color: "#FEFEFE",
+                        fontSize: 14,
+                        fontWeight: "400",
+                      }}
+                    >
+                      {conversationData ? "Regenerate" : "Generate"}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </ImageBackground>
             )}
           </View>
 
-          {viewMode === "definition" && (
-            <View className=" w-full flex-1  flex flex-col ">
-              {wordInfo?.imgUrl && (
-                <TouchableOpacity
-                  onPress={handleImagePress}
-                  activeOpacity={0.8}
-                  className=" relative"
+          <ScrollView className="flex-1 mt-3 px-3 pt-6 pb-12">
+            {/* Show conversation view based on showConversationView state */}
+            {showConversationView ? (
+              <ConversationView
+                conversation={
+                  (conversationData as any)?.conversation ??
+                  (conversationData as any)?.lines ??
+                  (conversationData as any)?.messages ??
+                  []
+                }
+                isLoading={isLoadingConversation}
+                isLoaded={isConversationLoaded}
+                highlightWord={currentWord}
+              />
+            ) : (
+              /* Empty State */
+              <View
+                style={{
+                  flex: 1,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  paddingVertical: 40,
+                }}
+              >
+                <View
+                  style={{
+                    width: 60,
+                    height: 60,
+                    backgroundColor: "#374151",
+                    borderRadius: 30,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginBottom: 16,
+                  }}
                 >
-                  <TouchableOpacity
-                    onPress={() => {
-                      //navigate to gallery
-                      navigateToGallery();
-                    }}
-                    style={{
-                      backgroundColor: "#00000050",
-                      borderBottomRightRadius: 10,
-                      borderTopLeftRadius: 10,
-                      width: 40,
-                      height: 34,
-                    }}
-                    className=" absolute bottom-0 right-0  bg-opacity-30 flex flex-row items-center justify-center  z-10"
-                  >
-                    <ImageUp size={18} color="#fff" />
-                  </TouchableOpacity>
-                  <ImageBackground
-                    source={{ uri: wordInfo.imgUrl }}
-                    style={{
-                      height: 145,
-                      borderRadius: 10,
-                      overflow: "hidden",
-                      position: "relative",
-                    }}
-                    className=" w-full mt-4 flex justify-center items-center"
-                    resizeMode="cover"
-                  >
-                    {/* Zoom hint overlay */}
-                    <View
-                      style={{
-                        position: "absolute",
-                        top: 8,
-                        right: 8,
-                        backgroundColor: "rgba(0, 0, 0, 0.6)",
-                        borderRadius: 12,
-                        paddingHorizontal: 8,
-                        paddingVertical: 4,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: "#ffffff",
-                          fontSize: 12,
-                          opacity: 0.9,
-                        }}
-                      >
-                        Tap to zoom
-                      </Text>
-                    </View>
-                  </ImageBackground>
-                </TouchableOpacity>
-              )}
-
-              <ScrollView className=" w-full py-4 flex-1">
-                <View className=" text-white  opacity-70">
-                  {isLoadingDefinition ? (
-                    // Skeleton definitions
-                    <>
-                      <View className=" mb-4 flex flex-col gap-2">
-                        <SkeletonBox width={80} height={20} />
-                        <SkeletonBox width="100%" height={16} />
-                        <SkeletonBox width="90%" height={16} />
-                        <SkeletonBox width="95%" height={16} />
-                      </View>
-                    </>
-                  ) : (
-                    wordInfo?.meanings.map((meaning, index) => (
-                      <View key={index} className=" mb-4 flex flex-col gap-2">
-                        <Text
-                          style={{
-                            fontSize: 16,
-                          }}
-                          className="text-white opacity-70 font-bold"
-                        >
-                          {meaning.partOfSpeech}
-                        </Text>
-                        <Text
-                          style={{
-                            fontSize: 14,
-                          }}
-                          className="text-white opacity-90"
-                        >
-                          {meaning.definition}
-                        </Text>
-                      </View>
-                    ))
-                  )}
+                  <Text style={{ fontSize: 24 }}>💬</Text>
                 </View>
-              </ScrollView>
-            </View>
-          )}
+                <Text
+                  style={{
+                    color: "#9CA3AF",
+                    fontSize: 16,
+                    textAlign: "center",
+                    marginBottom: 8,
+                    fontWeight: "500",
+                  }}
+                >
+                  See "{wordInfo?.word}" in conversation
+                </Text>
+                <Text
+                  style={{
+                    color: "#6B7280",
+                    fontSize: 14,
+                    textAlign: "center",
+                    lineHeight: 20,
+                    paddingHorizontal: 20,
+                  }}
+                >
+                  Generate a realistic conversation example to see how this word
+                  is used in context
+                </Text>
+              </View>
+            )}
+          </ScrollView>
         </View>
-      </Animated.View>
-
-      {/* Conversation View with Animated Height */}
-      <View
-        style={[
-          {
-            flex: 1,
-            backgroundColor: "#1b1c1f",
-            margin: 6,
-            marginTop: 0,
-            borderRadius: BORDER_RADIUS * 2,
-          },
-          animatedConversationStyle,
-        ]}
-        className=" px-3 py-4"
-      >
-        <View className=" flex flex-row items-center">
-          <Text style={{ color: "#fff", fontSize: 18, textAlign: "center" }}>
-            Conversation Mode
-          </Text>
-          {/* Toggle Button */}
-          <TouchableOpacity
-            onPress={fetchConversationExample}
-            style={{
-              backgroundColor: "#323335",
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              borderRadius: 16,
-            }}
-          >
-            <Text style={{ color: "#fff", fontSize: 12 }}>
-              {viewMode === "definition" ? "Conversation" : "Definition"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView className=" flex-1 mt-3  border border-red-500 ">
-          {viewMode === "conversation" ? (
-            <ConversationView
-              conversation={
-                (conversationData as any)?.conversation ??
-                (conversationData as any)?.lines ??
-                (conversationData as any)?.messages ??
-                []
-              }
-              isLoading={isLoadingConversation}
-              isLoaded={isConversationLoaded}
-              highlightWord={currentWord}
-            />
-          ) : (
-            <Text>
-              Switch to conversation mode to see casual dialogues using the word
-            </Text>
-          )}
-        </ScrollView>
-      </View>
+      </Pressable>
     </View>
   );
 }
