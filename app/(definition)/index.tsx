@@ -247,6 +247,46 @@ export default function DefinitionPage() {
   const [isConversationLoaded, setIsConversationLoaded] = useState(false);
   const [showConversationView, setShowConversationView] = useState(false);
 
+  const handleSaveWord = async (wordInfo: Word) => {
+    const wordInfoToSave = {
+      ...wordInfo,
+      phonetics: phonetics || undefined,
+      exampleSentences: JSON.stringify(conversationData),
+    };
+    setSaveStatus("saving");
+    console.log("saving/updating word:", wordInfoToSave);
+    try {
+      //step1: check if the word exist
+      const existingWord = words.find(
+        (word) => word.word === wordInfoToSave.word
+      );
+      if (existingWord) {
+        const updateData = {
+          id: existingWord.id,
+          data: JSON.stringify(wordInfoToSave),
+        };
+        // If exists, update it, use client function, do not directly update redux as its already listening the updates
+        // The generated client may have empty model typings in some environments; cast to any to avoid the TS error.
+        const res = await (client.models as any).Word.update(updateData);
+      } else {
+        // If not exists, create new word entry
+
+        const createData = {
+          data: JSON.stringify({
+            ...wordInfoToSave,
+            timeStamp: new Date().toISOString(),
+          }),
+          wordsListId: profile?.wordsListId,
+          status: "COLLECTED",
+        };
+        const res = await (client.models as any).Word.create(createData);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+    setSaveStatus("saved");
+  };
+
   // Function to fetch conversation
   //optionally receive two parameters: partOfSpeech and definition
   const fetchConversationExample = async (
@@ -283,6 +323,19 @@ export default function DefinitionPage() {
       setShowConversationView(false); // Hide on error
     } finally {
       setIsLoadingConversation(false);
+    }
+
+    //this step should not block displaying loaded definition
+    //save or update definition to the wordInfo
+
+    if (wordInfo && saveStatus !== "saving") {
+      console.log("saving convo");
+      try {
+        await handleSaveWord(wordInfo);
+        console.log("saved convo");
+      } catch (error) {
+        console.error("Error saving word:", error);
+      }
     }
   };
 
@@ -392,6 +445,7 @@ export default function DefinitionPage() {
 
       if (existingWord) {
         setWordInfo(existingWord);
+        console.log("word existed:", existingWord);
         setSaveStatus("saved");
         setDefinitionSource("dictionary");
         setIsLoadingDefinition(false);
@@ -399,6 +453,41 @@ export default function DefinitionPage() {
         // Set phonetics from existing word
         if (existingWord.phonetics) {
           setPhonetics(existingWord.phonetics);
+        }
+
+        // Load existing conversation if available
+        if (existingWord.exampleSentences) {
+          try {
+            console.log("📱 Loading existing conversation for:", searchWord);
+
+            // Parse the conversation data from JSON string
+            const parsedConversation = JSON.parse(
+              existingWord.exampleSentences as string
+            );
+
+            if (parsedConversation && parsedConversation.conversation) {
+              setConversationData(parsedConversation);
+              setIsConversationLoaded(true);
+              // Don't auto-show conversation view, let user choose
+              console.log(
+                "✅ Successfully loaded existing conversation:",
+                parsedConversation
+              );
+            } else {
+              console.warn(
+                "⚠️ Invalid conversation format in exampleSentences"
+              );
+            }
+          } catch (error) {
+            console.error("❌ Error parsing existing conversation:", error);
+            // Clear invalid conversation data
+            setConversationData(null);
+            setIsConversationLoaded(false);
+          }
+        } else {
+          // No existing conversation
+          setConversationData(null);
+          setIsConversationLoaded(false);
         }
 
         // Mark as fetched
@@ -410,6 +499,11 @@ export default function DefinitionPage() {
           console.log("Found cached phonetics for:", searchWord);
           setPhonetics(cachedPhonetics);
         }
+
+        // Reset conversation state for new words
+        setConversationData(null);
+        setIsConversationLoaded(false);
+        setShowConversationView(false);
 
         // Define callbacks for fetchDefinition
         const callbacks = {
@@ -579,41 +673,6 @@ export default function DefinitionPage() {
       console.log(error);
     }
     setSaveStatus("unsaved");
-  };
-
-  const handleSaveWord = async (wordInfo: Word) => {
-    const wordInfoToSave = { ...wordInfo, phonetics: phonetics || undefined };
-    setSaveStatus("saving");
-    try {
-      //step1: check if the word exist
-      const existingWord = words.find(
-        (word) => word.word === wordInfoToSave.word
-      );
-      if (existingWord) {
-        const updateData = {
-          id: existingWord.id,
-          data: JSON.stringify(wordInfoToSave),
-        };
-        // If exists, update it, use client function, do not directly update redux as its already listening the updates
-        // The generated client may have empty model typings in some environments; cast to any to avoid the TS error.
-        const res = await (client.models as any).Word.update(updateData);
-      } else {
-        // If not exists, create new word entry
-
-        const createData = {
-          data: JSON.stringify({
-            ...wordInfoToSave,
-            timeStamp: new Date().toISOString(),
-            status: "COLLECTED",
-          }),
-          wordsListId: profile?.wordsListId,
-        };
-        const res = await (client.models as any).Word.create(createData);
-      }
-    } catch (error) {
-      console.log(error);
-    }
-    setSaveStatus("saved");
   };
 
   useEffect(() => {
@@ -1042,7 +1101,7 @@ export default function DefinitionPage() {
 
           <ScrollView className="flex-1 mt-3 px-3 pt-6 pb-12">
             {/* Show conversation view based on showConversationView state */}
-            {showConversationView ? (
+            {showConversationView || conversationData ? (
               <ConversationView
                 conversation={
                   (conversationData as any)?.conversation ??

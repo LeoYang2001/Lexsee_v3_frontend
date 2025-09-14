@@ -79,6 +79,7 @@ const parseWordData = (word: any): Word => {
       status: parsedData.status || word.status || "COLLECTED",
       meanings: parsedData.meanings || word.meanings || [],
       phonetics: getPhonetics(),
+      exampleSentences: parsedData.exampleSentences,
       timeStamp:
         parsedData.timeStamp || word.timeStamp || new Date().toISOString(),
     };
@@ -97,6 +98,7 @@ const parseWordData = (word: any): Word => {
         text: "",
         audioUrl: undefined,
       },
+      exampleSentences: word.exampleSentences || null,
       timeStamp: word.timeStamp || new Date().toISOString(),
     };
   }
