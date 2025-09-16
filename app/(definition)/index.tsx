@@ -7,16 +7,11 @@ import {
   ImageBackground,
   Dimensions,
   ScrollView,
+  Pressable,
 } from "react-native";
 import { useTheme } from "../../theme/ThemeContext";
 import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
-import {
-  Bookmark,
-  ChevronLeft,
-  Phone,
-  Images,
-  ImageUp,
-} from "lucide-react-native";
+import { Bookmark, ChevronLeft, ImageUp } from "lucide-react-native";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { Phonetics, Word } from "../../types/common/Word";
 import PhoneticAudio from "../../components/common/PhoneticAudio";
@@ -28,10 +23,16 @@ import Animated, {
   withTiming,
   interpolateColor,
 } from "react-native-reanimated";
-import { fetchDefinition } from "../../apis/fetchDefinition";
+import {
+  fetchCasualConversation,
+  fetchDefinition,
+  fetchQuickConversation,
+} from "../../apis/AIFeatures";
+import type { ConversationResponse } from "../../apis/AIFeatures";
 import { fetchAudioUrl } from "../../apis/fetchPhonetics";
-import { addWord } from "../../store/slices/wordsListSlice";
+
 import { client } from "../client";
+import ConversationView from "../../components/definition/ConversationView";
 
 function CollectBtn({ saveStatus }: { saveStatus: string }) {
   const scale = useSharedValue(1);
@@ -234,11 +235,113 @@ export default function DefinitionPage() {
   const [phoneticsCached, setPhoneticsCached] = useState<{
     [key: string]: Phonetics;
   }>({});
-
   const [isUsingAI, setIsUsingAI] = useState(false);
   const [definitionSource, setDefinitionSource] = useState<
     "dictionary" | "ai" | null
   >(null);
+
+  // Conversation state
+  const [conversationData, setConversationData] =
+    useState<ConversationResponse | null>(null);
+  const [isLoadingConversation, setIsLoadingConversation] = useState(false);
+  const [isConversationLoaded, setIsConversationLoaded] = useState(false);
+  const [showConversationView, setShowConversationView] = useState(false);
+  const [playMessageAnimation, setPlayMessageAnimation] = useState(false); // New state for animation
+
+  const handleSaveWord = async (wordInfo: Word) => {
+    const wordInfoToSave = {
+      ...wordInfo,
+      phonetics: phonetics || undefined,
+      exampleSentences: JSON.stringify(conversationData),
+    };
+    setSaveStatus("saving");
+    console.log("saving/updating word:", wordInfoToSave);
+    try {
+      //step1: check if the word exist
+      const existingWord = words.find(
+        (word) => word.word === wordInfoToSave.word
+      );
+      if (existingWord) {
+        const updateData = {
+          id: existingWord.id,
+          data: JSON.stringify(wordInfoToSave),
+        };
+        // If exists, update it, use client function, do not directly update redux as its already listening the updates
+        // The generated client may have empty model typings in some environments; cast to any to avoid the TS error.
+        const res = await (client.models as any).Word.update(updateData);
+      } else {
+        // If not exists, create new word entry
+
+        const createData = {
+          data: JSON.stringify({
+            ...wordInfoToSave,
+            timeStamp: new Date().toISOString(),
+          }),
+          wordsListId: profile?.wordsListId,
+          status: "COLLECTED",
+        };
+        const res = await (client.models as any).Word.create(createData);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+    setSaveStatus("saved");
+  };
+
+  // Function to fetch conversation
+  //optionally receive two parameters: partOfSpeech and definition
+  const fetchConversationExample = async (
+    partOfSpeech?: string,
+    definition?: string
+  ) => {
+    if (!wordInfo?.word) return;
+
+    setViewMode("conversation");
+    setIsLoadingConversation(true);
+    setIsConversationLoaded(false);
+    setShowConversationView(true); // Show the conversation view when starting to fetch
+    setPlayMessageAnimation(true); // Enable animation for newly generated conversations
+
+    try {
+      //set a timer to test how fast the conversation loads
+      const startTime = performance.now();
+      const conversation = await fetchQuickConversation(
+        wordInfo.word,
+        partOfSpeech,
+        definition
+      );
+      const endTime = performance.now();
+      console.log(`🕒 Conversation loaded in ${endTime - startTime} ms`);
+
+      if (conversation) {
+        setConversationData(conversation);
+        setIsConversationLoaded(true);
+        console.log("✅ New conversation generated (with animation)");
+      } else {
+        setShowConversationView(false);
+        setPlayMessageAnimation(false);
+      }
+    } catch (error) {
+      console.error("Error fetching conversation:", error);
+      setShowConversationView(false);
+      setPlayMessageAnimation(false);
+    } finally {
+      setIsLoadingConversation(false);
+    }
+
+    //this step should not block displaying loaded definition
+    //save or update definition to the wordInfo
+
+    if (wordInfo && saveStatus !== "saving") {
+      console.log("saving convo");
+      try {
+        await handleSaveWord(wordInfo);
+        console.log("saved convo");
+      } catch (error) {
+        console.error("Error saving word:", error);
+      }
+    }
+  };
 
   // Get current word consistently
   const currentWord = (params.word as string) || "";
@@ -346,6 +449,7 @@ export default function DefinitionPage() {
 
       if (existingWord) {
         setWordInfo(existingWord);
+        console.log("word existed:", existingWord);
         setSaveStatus("saved");
         setDefinitionSource("dictionary");
         setIsLoadingDefinition(false);
@@ -353,6 +457,44 @@ export default function DefinitionPage() {
         // Set phonetics from existing word
         if (existingWord.phonetics) {
           setPhonetics(existingWord.phonetics);
+        }
+
+        // Load existing conversation if available
+        if (existingWord.exampleSentences) {
+          try {
+            console.log("📱 Loading existing conversation for:", searchWord);
+
+            // Parse the conversation data from JSON string
+            const parsedConversation = JSON.parse(
+              existingWord.exampleSentences as string
+            );
+
+            // If exampleSentences exist, do not play the animation again
+            if (parsedConversation && parsedConversation.conversation) {
+              setConversationData(parsedConversation);
+              setIsConversationLoaded(true);
+              setPlayMessageAnimation(false); // Don't play animation for existing conversations
+              console.log(
+                "✅ Successfully loaded existing conversation (no animation):",
+                parsedConversation
+              );
+            } else {
+              console.warn(
+                "⚠️ Invalid conversation format in exampleSentences"
+              );
+            }
+          } catch (error) {
+            console.error("❌ Error parsing existing conversation:", error);
+            // Clear invalid conversation data
+            setConversationData(null);
+            setIsConversationLoaded(false);
+            setPlayMessageAnimation(false);
+          }
+        } else {
+          // No existing conversation
+          setConversationData(null);
+          setIsConversationLoaded(false);
+          setPlayMessageAnimation(false);
         }
 
         // Mark as fetched
@@ -364,6 +506,12 @@ export default function DefinitionPage() {
           console.log("Found cached phonetics for:", searchWord);
           setPhonetics(cachedPhonetics);
         }
+
+        // Reset conversation state for new words
+        setConversationData(null);
+        setIsConversationLoaded(false);
+        setShowConversationView(false);
+        setPlayMessageAnimation(false); // Reset animation state for new words
 
         // Define callbacks for fetchDefinition
         const callbacks = {
@@ -535,47 +683,6 @@ export default function DefinitionPage() {
     setSaveStatus("unsaved");
   };
 
-  const handleSaveWord = async (wordInfo: Word) => {
-    const wordInfoToSave = { ...wordInfo, phonetics: phonetics || undefined };
-    setSaveStatus("saving");
-    try {
-      //step1: check if the word exist
-      const existingWord = words.find(
-        (word) => word.word === wordInfoToSave.word
-      );
-      if (existingWord) {
-        const updateData = {
-          id: existingWord.id,
-          data: JSON.stringify(wordInfoToSave),
-        };
-        // If exists, update it, use client function, do not directly update redux as its already listening the updates
-        // The generated client may have empty model typings in some environments; cast to any to avoid the TS error.
-        const res = await (client.models as any).Word.update(updateData);
-      } else {
-        // If not exists, create new word entry
-
-        const createData = {
-          data: JSON.stringify({
-            ...wordInfoToSave,
-            timeStamp: new Date().toISOString(),
-            status: "COLLECTED",
-          }),
-          wordsListId: profile?.wordsListId,
-        };
-        const res = await (client.models as any).Word.create(createData);
-      }
-    } catch (error) {
-      console.log(error);
-    }
-    setSaveStatus("saved");
-  };
-
-  const toggleViewMode = () => {
-    setViewMode((prev) =>
-      prev === "definition" ? "conversation" : "definition"
-    );
-  };
-
   useEffect(() => {
     if (viewMode === "conversation") {
       definitionHeight.value = withSpring(230, {
@@ -649,15 +756,6 @@ export default function DefinitionPage() {
     }
   };
 
-  const getCacheInfo = () => {
-    const cacheKeys = Object.keys(phoneticsCached);
-    return {
-      totalEntries: cacheKeys.length,
-      words: cacheKeys,
-      hasCache: (word: string) => !!phoneticsCached[word],
-    };
-  };
-
   // ADDED: Auto cleanup when cache gets too large
   useEffect(() => {
     const cacheKeys = Object.keys(phoneticsCached);
@@ -685,16 +783,6 @@ export default function DefinitionPage() {
     });
   };
 
-  // ADDED: Debug function to log cache status
-  const logCacheStatus = () => {
-    const info = getCacheInfo();
-    console.log("=== PHONETICS CACHE STATUS ===");
-    console.log(`Total entries: ${info.totalEntries}`);
-    console.log(`Cached words: ${info.words.join(", ")}`);
-    console.log(`Current word cached: ${info.hasCache(currentWord)}`);
-    console.log("===============================");
-  };
-
   return (
     <View
       style={{
@@ -712,311 +800,383 @@ export default function DefinitionPage() {
         overlayOpacity={0.9}
       />
 
-      {/* Definition View with Animated Height */}
-      <Animated.View
-        style={[
-          {
-            backgroundColor: "#1b1c1f",
-            margin: 6,
-            borderRadius: BORDER_RADIUS * 2,
-          },
-          animatedDefinitionStyle,
-        ]}
-        className="px-3 overflow-hidden"
+      <Pressable
+        onPress={() => {
+          setViewMode("definition");
+        }}
       >
-        <View className="mt-16 w-full justify-between flex-row items-center">
-          <TouchableOpacity
-            onPress={() => {
-              router.back();
-            }}
-          >
-            <ChevronLeft color={"#fff"} />
-          </TouchableOpacity>
-
-          {/* Header buttons container */}
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            {/* ADDED: Cache Debug Button (for development) */}
-            {/* {__DEV__ && (
-              <TouchableOpacity
-                onPress={logCacheStatus}
-                style={{
-                  backgroundColor: "#1F2937",
-                  paddingHorizontal: 8,
-                  paddingVertical: 4,
-                  borderRadius: 12,
-                }}
-              >
-                <Text style={{ color: "#9CA3AF", fontSize: 10 }}>
-                  Cache ({Object.keys(phoneticsCached).length})
-                </Text>
-              </TouchableOpacity>
-            )} */}
-
-            {/* Toggle Button */}
+        {/* Definition View with Animated Height */}
+        <Animated.View
+          style={[
+            {
+              backgroundColor: "#1b1c1f",
+              margin: 6,
+              borderRadius: BORDER_RADIUS * 2,
+            },
+            animatedDefinitionStyle,
+          ]}
+          className="px-3 overflow-hidden"
+        >
+          <View className="mt-16 w-full justify-between flex-row items-center">
             <TouchableOpacity
-              onPress={toggleViewMode}
-              style={{
-                backgroundColor: "#323335",
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 16,
+              onPress={() => {
+                router.back();
               }}
             >
-              <Text style={{ color: "#fff", fontSize: 12 }}>
-                {viewMode === "definition" ? "Conversation" : "Definition"}
-              </Text>
+              <ChevronLeft color={"#fff"} />
             </TouchableOpacity>
           </View>
-        </View>
 
-        <View className="mt-3 px-2 flex-1 flex flex-col">
-          <View className="flex flex-row justify-between items-center">
-            <View className="flex flex-col gap-1">
-              {/* Word Title - Skeleton or Real */}
-              {isLoadingDefinition ? (
-                <SkeletonBox width={200} height={36} />
-              ) : (
-                <View
-                  style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-                >
-                  <Text
+          <View className="mt-3 px-2 flex-1 flex flex-col">
+            <View className="flex flex-row justify-between items-center">
+              <View className="flex flex-col gap-1">
+                {/* Word Title - Skeleton or Real */}
+                {isLoadingDefinition ? (
+                  <SkeletonBox width={200} height={36} />
+                ) : (
+                  <View
                     style={{
-                      fontSize: 30,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
                     }}
-                    className="text-white"
                   >
-                    {wordInfo?.word}
-                  </Text>
-
-                  {/* ADDED: Cache indicator for current word */}
-                  {/* {__DEV__ && phoneticsCached[currentWord] && (
-                    <View
+                    <Text
                       style={{
-                        backgroundColor: "#059669",
-                        borderRadius: 4,
-                        paddingHorizontal: 4,
-                        paddingVertical: 2,
+                        fontSize: 30,
+                      }}
+                      className="text-white"
+                    >
+                      {wordInfo?.word}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Phonetics - Skeleton or Real */}
+                {isLoadingDefinition || !phonetics ? (
+                  <SkeletonBox
+                    width={150}
+                    height={24}
+                    style={{ marginTop: 4 }}
+                  />
+                ) : (
+                  phonetics && (
+                    <PhoneticAudio
+                      size={20}
+                      phonetics={phonetics}
+                      key={`${currentWord}-${phonetics.audioUrl}`}
+                    />
+                  )
+                )}
+              </View>
+
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+              >
+                <TouchableOpacity
+                  onPress={handleSaveOrUnsave}
+                  disabled={saveStatus === "saving"}
+                >
+                  <CollectBtn saveStatus={saveStatus} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <AIStatusIndicator />
+            <LoadingStateIndicator />
+
+            {/* Part of Speech Tags - Skeleton or Real */}
+            <View className=" mt-4 flex flex-row gap-3">
+              {isLoadingDefinition ? (
+                // Skeleton tags
+                <>
+                  <SkeletonBox
+                    width={50}
+                    height={28}
+                    style={{ borderRadius: 2 }}
+                  />
+                  <SkeletonBox
+                    width={70}
+                    height={28}
+                    style={{ borderRadius: 2 }}
+                  />
+                </>
+              ) : (
+                wordInfo?.meanings.map((meaning, index) => (
+                  <View
+                    style={{
+                      borderRadius: 2,
+                      backgroundColor: "#323335",
+                    }}
+                    className="p-1"
+                    key={index}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 14,
+                      }}
+                      className="text-white opacity-70"
+                    >
+                      {meaning.partOfSpeech}
+                    </Text>
+                  </View>
+                ))
+              )}
+            </View>
+
+            {viewMode === "definition" && (
+              <View className=" w-full flex-1  flex flex-col ">
+                {wordInfo?.imgUrl && (
+                  <TouchableOpacity
+                    onPress={handleImagePress}
+                    activeOpacity={0.8}
+                    className=" relative"
+                  >
+                    <TouchableOpacity
+                      onPress={() => {
+                        //navigate to gallery
+                        navigateToGallery();
+                      }}
+                      style={{
+                        backgroundColor: "#00000050",
+                        borderBottomRightRadius: 10,
+                        borderTopLeftRadius: 10,
+                        width: 40,
+                        height: 34,
+                      }}
+                      className=" absolute bottom-0 right-0  bg-opacity-30 flex flex-row items-center justify-center  z-10"
+                    >
+                      <ImageUp size={18} color="#fff" />
+                    </TouchableOpacity>
+                    <ImageBackground
+                      source={{ uri: wordInfo.imgUrl }}
+                      style={{
+                        height: 145,
+                        borderRadius: 10,
+                        overflow: "hidden",
+                        position: "relative",
+                      }}
+                      className=" w-full mt-4 flex justify-center items-center"
+                      resizeMode="cover"
+                    >
+                      {/* Zoom hint overlay */}
+                      <View
+                        style={{
+                          position: "absolute",
+                          top: 8,
+                          right: 8,
+                          backgroundColor: "rgba(0, 0, 0, 0.6)",
+                          borderRadius: 12,
+                          paddingHorizontal: 8,
+                          paddingVertical: 4,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: "#ffffff",
+                            fontSize: 12,
+                            opacity: 0.9,
+                          }}
+                        >
+                          Tap to zoom
+                        </Text>
+                      </View>
+                    </ImageBackground>
+                  </TouchableOpacity>
+                )}
+
+                <ScrollView className=" w-full py-4 flex-1">
+                  <View className=" text-white  opacity-70">
+                    {isLoadingDefinition ? (
+                      // Skeleton definitions
+                      <>
+                        <View className=" mb-4 flex flex-col gap-2">
+                          <SkeletonBox width={80} height={20} />
+                          <SkeletonBox width="100%" height={16} />
+                          <SkeletonBox width="90%" height={16} />
+                          <SkeletonBox width="95%" height={16} />
+                        </View>
+                      </>
+                    ) : (
+                      wordInfo?.meanings.map((meaning, index) => (
+                        <TouchableOpacity
+                          key={index}
+                          className=" mb-4 flex flex-col gap-2"
+                          onPress={() => {
+                            fetchConversationExample(
+                              meaning.partOfSpeech,
+                              meaning.definition
+                            );
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 16,
+                            }}
+                            className="text-white opacity-70 font-bold"
+                          >
+                            {meaning.partOfSpeech}
+                          </Text>
+                          <Text
+                            style={{
+                              fontSize: 14,
+                            }}
+                            className="text-white opacity-90"
+                          >
+                            {meaning.definition}
+                          </Text>
+                        </TouchableOpacity>
+                      ))
+                    )}
+                  </View>
+                </ScrollView>
+              </View>
+            )}
+          </View>
+        </Animated.View>
+      </Pressable>
+
+      <Pressable
+        onPress={() => {
+          setViewMode("conversation");
+        }}
+        className=" flex-1"
+      >
+        {/* Conversation View with Animated Height */}
+        <View
+          style={[
+            {
+              flex: 1,
+              backgroundColor: "#1b1c1f",
+              margin: 6,
+              marginTop: 0,
+              borderRadius: BORDER_RADIUS * 2,
+            },
+            animatedConversationStyle,
+          ]}
+          className="px-3 py-4"
+        >
+          <View className="flex  pt-6 px-3 flex-row items-center justify-between">
+            <Text style={{ color: "#fff", fontSize: 28 }}>Conversation</Text>
+
+            {/* Conditional Generate/Regenerate Button */}
+            {(!showConversationView ||
+              (showConversationView && isConversationLoaded)) && (
+              <ImageBackground
+                source={require("../../assets/images/convoButton.png")}
+              >
+                <TouchableOpacity
+                  onPress={() => fetchConversationExample("", "")}
+                  disabled={isLoadingConversation}
+                  style={{
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 6,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    opacity: isLoadingConversation ? 0.7 : 1,
+                  }}
+                >
+                  {isLoadingConversation ? (
+                    <>
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                      <Text
+                        style={{
+                          color: "#FEFEFE",
+                          fontSize: 14,
+                          fontWeight: "400",
+                        }}
+                      >
+                        Generating...
+                      </Text>
+                    </>
+                  ) : (
+                    <Text
+                      style={{
+                        color: "#FEFEFE",
+                        fontSize: 14,
+                        fontWeight: "400",
                       }}
                     >
-                      <Text style={{ color: "#fff", fontSize: 8 }}>CACHED</Text>
-                    </View>
-                  )} */}
-                </View>
-              )}
-
-              {/* Phonetics - Skeleton or Real */}
-              {isLoadingDefinition || !phonetics ? (
-                <SkeletonBox width={150} height={24} style={{ marginTop: 4 }} />
-              ) : (
-                phonetics && (
-                  <PhoneticAudio
-                    size={20}
-                    phonetics={phonetics}
-                    key={`${currentWord}-${phonetics.audioUrl}`}
-                  />
-                )
-              )}
-            </View>
-
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-            >
-              {/* ADDED: Clear cache button for current word (dev only) */}
-              {/* {__DEV__ && phoneticsCached[currentWord] && (
-                <TouchableOpacity
-                  onPress={() => clearSpecificPhoneticCache(currentWord)}
-                  style={{
-                    backgroundColor: "#DC2626",
-                    borderRadius: 6,
-                    paddingHorizontal: 6,
-                    paddingVertical: 4,
-                  }}
-                >
-                  <Text style={{ color: "#fff", fontSize: 10 }}>Clear</Text>
+                      {conversationData
+                        ? "Regenerate"
+                        : wordInfo?.exampleSentences
+                          ? "View Conversation"
+                          : "Generate"}
+                    </Text>
+                  )}
                 </TouchableOpacity>
-              )} */}
-
-              <TouchableOpacity
-                onPress={handleSaveOrUnsave}
-                disabled={saveStatus === "saving"}
-              >
-                <CollectBtn saveStatus={saveStatus} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <AIStatusIndicator />
-          <LoadingStateIndicator />
-
-          {/* Part of Speech Tags - Skeleton or Real */}
-          <View className=" mt-4 flex flex-row gap-3">
-            {isLoadingDefinition ? (
-              // Skeleton tags
-              <>
-                <SkeletonBox
-                  width={50}
-                  height={28}
-                  style={{ borderRadius: 2 }}
-                />
-                <SkeletonBox
-                  width={70}
-                  height={28}
-                  style={{ borderRadius: 2 }}
-                />
-              </>
-            ) : (
-              wordInfo?.meanings.map((meaning, index) => (
-                <View
-                  style={{
-                    borderRadius: 2,
-                    backgroundColor: "#323335",
-                  }}
-                  className="p-1"
-                  key={index}
-                >
-                  <Text
-                    style={{
-                      fontSize: 14,
-                    }}
-                    className="text-white opacity-70"
-                  >
-                    {meaning.partOfSpeech}
-                  </Text>
-                </View>
-              ))
+              </ImageBackground>
             )}
           </View>
 
-          {viewMode === "definition" && (
-            <View className=" w-full flex-1  flex flex-col ">
-              {wordInfo?.imgUrl && (
-                <TouchableOpacity
-                  onPress={handleImagePress}
-                  activeOpacity={0.8}
-                  className=" relative"
+          <ScrollView className="flex-1 mt-3 px-3 pt-6 pb-12">
+            {/* Show conversation view based on showConversationView state */}
+            {showConversationView || conversationData ? (
+              <ConversationView
+                conversation={
+                  (conversationData as any)?.conversation ??
+                  (conversationData as any)?.lines ??
+                  (conversationData as any)?.messages ??
+                  []
+                }
+                isLoading={isLoadingConversation}
+                isLoaded={isConversationLoaded}
+                highlightWord={currentWord}
+                playAnimation={playMessageAnimation} // Pass animation control
+              />
+            ) : (
+              /* Empty State */
+              <View
+                style={{
+                  flex: 1,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  paddingVertical: 40,
+                }}
+              >
+                <View
+                  style={{
+                    width: 60,
+                    height: 60,
+                    backgroundColor: "#374151",
+                    borderRadius: 30,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginBottom: 16,
+                  }}
                 >
-                  <TouchableOpacity
-                    onPress={() => {
-                      //navigate to gallery
-                      navigateToGallery();
-                    }}
-                    style={{
-                      backgroundColor: "#00000050",
-                      borderBottomRightRadius: 10,
-                      borderTopLeftRadius: 10,
-                      width: 40,
-                      height: 34,
-                    }}
-                    className=" absolute bottom-0 right-0  bg-opacity-30 flex flex-row items-center justify-center  z-10"
-                  >
-                    <ImageUp size={18} color="#fff" />
-                  </TouchableOpacity>
-                  <ImageBackground
-                    source={{ uri: wordInfo.imgUrl }}
-                    style={{
-                      height: 145,
-                      borderRadius: 10,
-                      overflow: "hidden",
-                      position: "relative",
-                    }}
-                    className=" w-full mt-4 flex justify-center items-center"
-                    resizeMode="cover"
-                  >
-                    {/* Zoom hint overlay */}
-                    <View
-                      style={{
-                        position: "absolute",
-                        top: 8,
-                        right: 8,
-                        backgroundColor: "rgba(0, 0, 0, 0.6)",
-                        borderRadius: 12,
-                        paddingHorizontal: 8,
-                        paddingVertical: 4,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: "#ffffff",
-                          fontSize: 12,
-                          opacity: 0.9,
-                        }}
-                      >
-                        Tap to zoom
-                      </Text>
-                    </View>
-                  </ImageBackground>
-                </TouchableOpacity>
-              )}
-
-              <ScrollView className=" w-full py-4 flex-1">
-                <View className=" text-white  opacity-70">
-                  {isLoadingDefinition ? (
-                    // Skeleton definitions
-                    <>
-                      <View className=" mb-4 flex flex-col gap-2">
-                        <SkeletonBox width={80} height={20} />
-                        <SkeletonBox width="100%" height={16} />
-                        <SkeletonBox width="90%" height={16} />
-                        <SkeletonBox width="95%" height={16} />
-                      </View>
-                    </>
-                  ) : (
-                    wordInfo?.meanings.map((meaning, index) => (
-                      <View key={index} className=" mb-4 flex flex-col gap-2">
-                        <Text
-                          style={{
-                            fontSize: 16,
-                          }}
-                          className="text-white opacity-70 font-bold"
-                        >
-                          {meaning.partOfSpeech}
-                        </Text>
-                        <Text
-                          style={{
-                            fontSize: 14,
-                          }}
-                          className="text-white opacity-90"
-                        >
-                          {meaning.definition}
-                        </Text>
-                      </View>
-                    ))
-                  )}
+                  <Text style={{ fontSize: 24 }}>💬</Text>
                 </View>
-              </ScrollView>
-            </View>
-          )}
+                <Text
+                  style={{
+                    color: "#9CA3AF",
+                    fontSize: 16,
+                    textAlign: "center",
+                    marginBottom: 8,
+                    fontWeight: "500",
+                  }}
+                >
+                  See "{wordInfo?.word}" in conversation
+                </Text>
+                <Text
+                  style={{
+                    color: "#6B7280",
+                    fontSize: 14,
+                    textAlign: "center",
+                    lineHeight: 20,
+                    paddingHorizontal: 20,
+                  }}
+                >
+                  Generate a realistic conversation example to see how this word
+                  is used in context
+                </Text>
+              </View>
+            )}
+          </ScrollView>
         </View>
-      </Animated.View>
-
-      {/* Conversation View with Animated Height */}
-      <View
-        style={[
-          {
-            flex: 1,
-            backgroundColor: "#1b1c1f",
-            margin: 6,
-            marginTop: 0,
-            borderRadius: BORDER_RADIUS * 2,
-          },
-          animatedConversationStyle,
-        ]}
-        className=" px-3 py-4"
-      >
-        <Text style={{ color: "#fff", fontSize: 18, textAlign: "center" }}>
-          Conversation Mode
-        </Text>
-        <Text
-          style={{
-            color: "#666",
-            fontSize: 14,
-            textAlign: "center",
-            marginTop: 8,
-          }}
-        >
-          AI conversation content will appear here
-        </Text>
-      </View>
+      </Pressable>
     </View>
   );
 }

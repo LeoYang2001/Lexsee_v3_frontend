@@ -10,6 +10,7 @@ export type Word = {
     antonyms: string[];
   }[];
   phonetics: Phonetics | undefined;
+  exampleSentences?: string;
   timeStamp?: string;
 };
 
