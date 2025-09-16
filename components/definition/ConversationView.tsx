@@ -13,7 +13,8 @@ interface ConversationViewProps {
   isLoading: boolean;
   isLoaded: boolean;
   highlightWord?: string;
-  animationDelay?: number; // Delay between messages in ms
+  animationDelay?: number;
+  playAnimation?: boolean; // ✅ New prop to control animation
 }
 
 const ConversationView: React.FC<ConversationViewProps> = ({
@@ -21,9 +22,10 @@ const ConversationView: React.FC<ConversationViewProps> = ({
   isLoading,
   isLoaded,
   highlightWord,
-  animationDelay = 500, // Increased from 800ms to 1500ms
+  animationDelay = 400,
+  playAnimation = true, // ✅ Default to true for backward compatibility
 }) => {
-  const TYPING_SPEED = 1000;
+  const TYPING_SPEED = 500;
   const [displayedConversation, setDisplayedConversation] = useState<
     ConversationLine[]
   >([]);
@@ -37,12 +39,18 @@ const ConversationView: React.FC<ConversationViewProps> = ({
       setDisplayedConversation([]);
       setCurrentTypingIndex(null);
 
-      // Start animation sequence
-      setTimeout(() => {
-        animateMessages();
-      }, 300); // Small delay before starting
+      if (playAnimation) {
+        // ✅ Only play animation if enabled
+        setTimeout(() => {
+          animateMessages();
+        }, 300);
+      } else {
+        // ✅ Show all messages immediately for existing conversations
+        setDisplayedConversation(conversation);
+        console.log("📱 Displaying existing conversation without animation");
+      }
     }
-  }, [conversation, isLoaded]);
+  }, [conversation, isLoaded, playAnimation]); // ✅ Add playAnimation to dependencies
 
   // Even cleaner approach using async/await:
   const animateMessages = async () => {

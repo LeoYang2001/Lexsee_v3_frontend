@@ -246,6 +246,7 @@ export default function DefinitionPage() {
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const [isConversationLoaded, setIsConversationLoaded] = useState(false);
   const [showConversationView, setShowConversationView] = useState(false);
+  const [playMessageAnimation, setPlayMessageAnimation] = useState(false); // New state for animation
 
   const handleSaveWord = async (wordInfo: Word) => {
     const wordInfoToSave = {
@@ -299,6 +300,7 @@ export default function DefinitionPage() {
     setIsLoadingConversation(true);
     setIsConversationLoaded(false);
     setShowConversationView(true); // Show the conversation view when starting to fetch
+    setPlayMessageAnimation(true); // Enable animation for newly generated conversations
 
     try {
       //set a timer to test how fast the conversation loads
@@ -314,13 +316,15 @@ export default function DefinitionPage() {
       if (conversation) {
         setConversationData(conversation);
         setIsConversationLoaded(true);
+        console.log("✅ New conversation generated (with animation)");
       } else {
-        // If failed to fetch, hide the conversation view
         setShowConversationView(false);
+        setPlayMessageAnimation(false);
       }
     } catch (error) {
       console.error("Error fetching conversation:", error);
-      setShowConversationView(false); // Hide on error
+      setShowConversationView(false);
+      setPlayMessageAnimation(false);
     } finally {
       setIsLoadingConversation(false);
     }
@@ -465,12 +469,13 @@ export default function DefinitionPage() {
               existingWord.exampleSentences as string
             );
 
+            // If exampleSentences exist, do not play the animation again
             if (parsedConversation && parsedConversation.conversation) {
               setConversationData(parsedConversation);
               setIsConversationLoaded(true);
-              // Don't auto-show conversation view, let user choose
+              setPlayMessageAnimation(false); // Don't play animation for existing conversations
               console.log(
-                "✅ Successfully loaded existing conversation:",
+                "✅ Successfully loaded existing conversation (no animation):",
                 parsedConversation
               );
             } else {
@@ -483,11 +488,13 @@ export default function DefinitionPage() {
             // Clear invalid conversation data
             setConversationData(null);
             setIsConversationLoaded(false);
+            setPlayMessageAnimation(false);
           }
         } else {
           // No existing conversation
           setConversationData(null);
           setIsConversationLoaded(false);
+          setPlayMessageAnimation(false);
         }
 
         // Mark as fetched
@@ -504,6 +511,7 @@ export default function DefinitionPage() {
         setConversationData(null);
         setIsConversationLoaded(false);
         setShowConversationView(false);
+        setPlayMessageAnimation(false); // Reset animation state for new words
 
         // Define callbacks for fetchDefinition
         const callbacks = {
@@ -1091,7 +1099,11 @@ export default function DefinitionPage() {
                         fontWeight: "400",
                       }}
                     >
-                      {conversationData ? "Regenerate" : "Generate"}
+                      {conversationData
+                        ? "Regenerate"
+                        : wordInfo?.exampleSentences
+                          ? "View Conversation"
+                          : "Generate"}
                     </Text>
                   )}
                 </TouchableOpacity>
@@ -1112,6 +1124,7 @@ export default function DefinitionPage() {
                 isLoading={isLoadingConversation}
                 isLoaded={isConversationLoaded}
                 highlightWord={currentWord}
+                playAnimation={playMessageAnimation} // Pass animation control
               />
             ) : (
               /* Empty State */
