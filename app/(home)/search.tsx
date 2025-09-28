@@ -81,10 +81,6 @@ export default function SearchPage() {
           >
             <ChevronLeft color={"#fff"} />
           </TouchableOpacity>
-          <TouchableOpacity className=" my-4 flex flex-row items-center gap-2">
-            <Text className=" text-white">English</Text>
-            <AntDesign name="caretdown" size={12} color="#ccc" />
-          </TouchableOpacity>
         </View>
         <View className=" w-full mt-3">
           <View style={{ position: "relative", width: "100%", height: 49 }}>
