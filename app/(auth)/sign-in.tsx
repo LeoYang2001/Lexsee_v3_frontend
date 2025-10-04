@@ -124,7 +124,6 @@ export default function SignInScreen() {
                   Sign in to your account
                 </Text>
               </View>
-
               {/* Form */}
               <View className="space-y-6">
                 <View>
