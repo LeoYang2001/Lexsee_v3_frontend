@@ -23,13 +23,56 @@ import {
   setProfileError,
   setProfileLoading,
 } from "../store/slices/profileSlice";
+import * as Notifications from "expo-notifications";
 
 Amplify.configure(outputs);
+
+Notifications.scheduleNotificationAsync({
+  content: {
+    title: "Time's up!",
+    body: "Change sides!",
+  },
+  trigger: {
+    type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+    seconds: 60,
+  },
+});
 
 function AppContent() {
   const dispatch = useAppDispatch();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [wordsSubscription, setWordsSubscription] = useState<any>(null);
+
+  async function requestNotificationPermissions() {
+    const { status } = await Notifications.requestPermissionsAsync();
+    if (status !== "granted") {
+      alert("Permission not granted for notifications!");
+      return false;
+    }
+
+    // Schedule the test notification AFTER permissions are granted
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "LexSee Notification Test",
+          body: "Notifications are working! 🎉",
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds: 3, // Test with 3 seconds
+        },
+      });
+      console.log("✅ Test notification scheduled");
+    } catch (error) {
+      console.error("❌ Error scheduling notification:", error);
+    }
+
+    return true;
+  }
+
+  useEffect(() => {
+    requestNotificationPermissions();
+  }, []);
 
   // Move your profile helper functions here
   const serializeProfile = async (profile: any) => {
