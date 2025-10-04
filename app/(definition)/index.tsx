@@ -29,6 +29,7 @@ import { fetchAudioUrl } from "../../apis/fetchPhonetics";
 
 import { client } from "../client";
 import ConversationView from "../../components/definition/ConversationView";
+import { setSchedule } from "../../apis/setSchedule";
 
 function CollectBtn({ saveStatus }: { saveStatus: string }) {
   const scale = useSharedValue(1);
@@ -253,7 +254,6 @@ export default function DefinitionPage() {
     };
 
     setSaveStatus("saving");
-    console.log("saving/updating word:", wordInfoToSave);
     try {
       //step1: check if the word exist
       const existingWord = words.find(
@@ -302,14 +302,11 @@ export default function DefinitionPage() {
     let conversation = null;
     try {
       //set a timer to test how fast the conversation loads
-      const startTime = performance.now();
       conversation = await fetchQuickConversation(
         wordInfo.word,
         partOfSpeech,
         definition
       );
-      const endTime = performance.now();
-      console.log(`🕒 Conversation loaded in ${endTime - startTime} ms`);
 
       if (conversation) {
         setConversationData(conversation);
@@ -338,7 +335,6 @@ export default function DefinitionPage() {
           exampleSentences: JSON.stringify(conversation),
         };
         await handleSaveWord(wordInfoToSave);
-        console.log("saved convo");
       } catch (error) {
         console.error("Error saving word:", error);
       }
@@ -768,14 +764,6 @@ export default function DefinitionPage() {
     }
   }, [phoneticsCached]);
 
-  // ADDED: Cleanup cache on component unmount (optional)
-  useEffect(() => {
-    return () => {
-      // Uncomment if you want to clear cache when leaving definition page
-      // clearPhoneticsCache();
-    };
-  }, []);
-
   // ADDED: Manual cache management in header
   const navigateToGallery = () => {
     router.push({
@@ -927,6 +915,12 @@ export default function DefinitionPage() {
               )}
             </View>
 
+            <TouchableOpacity
+              className=" border border-red-50 my-2"
+              onPress={() => setSchedule("dempo")}
+            >
+              <Text>Test Schedule function</Text>
+            </TouchableOpacity>
             {viewMode === "definition" && (
               <View className=" w-full flex-1  flex flex-col ">
                 {wordInfo?.imgUrl && (

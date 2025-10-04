@@ -23,7 +23,6 @@ const DashCard = () => {
 
   // Calculate statistics
   const totalWords = words.length;
-  const wordsWithImages = words.filter((word) => word.imgUrl).length;
   const wordsWithConversations = words.filter(
     (word) => word.exampleSentences
   ).length;
