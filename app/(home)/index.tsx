@@ -4,8 +4,6 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
   Dimensions,
   TouchableWithoutFeedback,
 } from "react-native";
@@ -43,7 +41,6 @@ export default function HomeScreen() {
   const { words, isLoading, isSynced, error } = useAppSelector(
     (state) => state.wordsList
   );
-  // const { profile } = useAppSelector((state) => state.profile);
 
   // Filter words for crrent user
 
@@ -71,7 +68,10 @@ export default function HomeScreen() {
 
   // Dynamically update anchor positions while scrolling
   const handleScroll = () => {
-    if (collectedWords.length < 3) return; // Avoid measuring if not enough words)
+    if (collectedWords.length < 3) {
+      setIfShowHeader(true);
+      return;
+    } // Avoid measuring if not enough words)
     let anchor1Y = 0;
     let anchor2Y = 0;
     anchor1Ref.current?.measure((x, y, width, height, pageX, pageY) => {
@@ -183,7 +183,7 @@ export default function HomeScreen() {
                     <FlexCard
                       word={word}
                       ifDetail={activeCardId === word.id}
-                      ifGraphic={false}
+                      ifGraphic={true}
                     />
                     {idx === 1 && (
                       <View className=" absolute" ref={anchor2Ref}></View>

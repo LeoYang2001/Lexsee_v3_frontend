@@ -41,7 +41,6 @@ export default function Header({
       <View
         style={{
           backgroundColor: theme.background,
-          borderBottomColor: theme.border,
         }}
         className=" shadow-sm mt-16 "
       >
@@ -50,10 +49,7 @@ export default function Header({
           <View className="flex-row items-center">
             <Logo size={logoSize} />
           </View>
-          <TouchableOpacity className=" ml-auto mr-4 flex flex-row items-center gap-2">
-            <Text className=" text-white">English</Text>
-            <AntDesign name="caretdown" size={12} color="#ccc" />
-          </TouchableOpacity>
+
           {/* Drawer toggle on the right */}
           <TouchableOpacity
             onPress={handleDrawerToggle}

@@ -43,7 +43,6 @@ const parseWordData = (word: any): Word => {
     } else {
       parsedData = word.data || {};
     }
-
     // Safely extract phonetics data
     const getPhonetics = () => {
       const parsedPhonetics = parsedData.phonetics;
@@ -79,7 +78,8 @@ const parseWordData = (word: any): Word => {
       status: parsedData.status || word.status || "COLLECTED",
       meanings: parsedData.meanings || word.meanings || [],
       phonetics: getPhonetics(),
-      exampleSentences: parsedData.exampleSentences,
+      exampleSentences:
+        word.exampleSentences || parsedData.exampleSentences || null,
       timeStamp:
         parsedData.timeStamp || word.timeStamp || new Date().toISOString(),
     };

@@ -23,11 +23,7 @@ import Animated, {
   withTiming,
   interpolateColor,
 } from "react-native-reanimated";
-import {
-  fetchCasualConversation,
-  fetchDefinition,
-  fetchQuickConversation,
-} from "../../apis/AIFeatures";
+import { fetchDefinition, fetchQuickConversation } from "../../apis/AIFeatures";
 import type { ConversationResponse } from "../../apis/AIFeatures";
 import { fetchAudioUrl } from "../../apis/fetchPhonetics";
 
@@ -225,6 +221,7 @@ export default function DefinitionPage() {
   const { profile } = useAppSelector((state) => state.profile);
 
   const [wordInfo, setWordInfo] = useState<Word | undefined>(undefined);
+
   const [saveStatus, setSaveStatus] = useState("saving");
   const [viewMode, setViewMode] = useState("definition");
   const [isLoadingDefinition, setIsLoadingDefinition] = useState(false);
@@ -252,8 +249,9 @@ export default function DefinitionPage() {
     const wordInfoToSave = {
       ...wordInfo,
       phonetics: phonetics || undefined,
-      exampleSentences: JSON.stringify(conversationData),
+      exampleSentences: wordInfo.exampleSentences || null,
     };
+
     setSaveStatus("saving");
     console.log("saving/updating word:", wordInfoToSave);
     try {
@@ -301,11 +299,11 @@ export default function DefinitionPage() {
     setIsConversationLoaded(false);
     setShowConversationView(true); // Show the conversation view when starting to fetch
     setPlayMessageAnimation(true); // Enable animation for newly generated conversations
-
+    let conversation = null;
     try {
       //set a timer to test how fast the conversation loads
       const startTime = performance.now();
-      const conversation = await fetchQuickConversation(
+      conversation = await fetchQuickConversation(
         wordInfo.word,
         partOfSpeech,
         definition
@@ -335,7 +333,11 @@ export default function DefinitionPage() {
     if (wordInfo && saveStatus !== "saving") {
       console.log("saving convo");
       try {
-        await handleSaveWord(wordInfo);
+        let wordInfoToSave = {
+          ...wordInfo,
+          exampleSentences: JSON.stringify(conversation),
+        };
+        await handleSaveWord(wordInfoToSave);
         console.log("saved convo");
       } catch (error) {
         console.error("Error saving word:", error);
@@ -448,8 +450,8 @@ export default function DefinitionPage() {
       const existingWord = words.find((word) => word.word === searchWord);
 
       if (existingWord) {
+        console.log(existingWord);
         setWordInfo(existingWord);
-        console.log("word existed:", existingWord);
         setSaveStatus("saved");
         setDefinitionSource("dictionary");
         setIsLoadingDefinition(false);
@@ -463,11 +465,12 @@ export default function DefinitionPage() {
         if (existingWord.exampleSentences) {
           try {
             console.log("📱 Loading existing conversation for:", searchWord);
-
             // Parse the conversation data from JSON string
             const parsedConversation = JSON.parse(
               existingWord.exampleSentences as string
             );
+
+            console.log("parsedConversation", parsedConversation);
 
             // If exampleSentences exist, do not play the animation again
             if (parsedConversation && parsedConversation.conversation) {

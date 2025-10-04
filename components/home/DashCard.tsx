@@ -6,11 +6,30 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
+import { useSelector } from "react-redux";
+import { RootState } from "../../store";
+import { ChevronRight } from "lucide-react-native";
+import { useRouter } from "expo-router";
 
 const DashCard = () => {
   const [ifReviewCard, setIfReviewCard] = useState(true);
   const height = useSharedValue(104);
   const reviewOpacity = useSharedValue(0);
+
+  const router = useRouter();
+
+  // Get words data from Redux
+  const words = useSelector((state: RootState) => state.wordsList.words);
+
+  // Calculate statistics
+  const totalWords = words.length;
+  const wordsWithImages = words.filter((word) => word.imgUrl).length;
+  const wordsWithConversations = words.filter(
+    (word) => word.exampleSentences
+  ).length;
+  const savedWords = words.filter(
+    (word) => word.status === "COLLECTED" || word.status === "saved"
+  ).length;
 
   const duration = 200;
 
@@ -41,6 +60,7 @@ const DashCard = () => {
         }}
       >
         <View className="w-full h-full flex flex-row justify-between items-center">
+          {/* Total Words */}
           <TouchableOpacity
             className="flex-1 h-full flex flex-col items-start justify-center px-6"
             onPress={() => setIfReviewCard(!ifReviewCard)}
@@ -49,15 +69,16 @@ const DashCard = () => {
               className="font-semibold"
               style={{ fontSize: 28, color: "white" }}
             >
-              3
+              {totalWords}
             </Text>
             <Text
               className="text-white opacity-80 mt-2"
               style={{ fontSize: 12 }}
             >
-              Word
+              {totalWords === 1 ? "Word" : "Words"}
             </Text>
           </TouchableOpacity>
+
           <View
             style={{
               width: 1,
@@ -67,26 +88,21 @@ const DashCard = () => {
               borderRadius: 1,
             }}
           />
+
+          {/* Words with Images */}
           <TouchableOpacity
-            className="flex-1 h-full flex flex-col items-start justify-center px-6"
-            onPress={() => setIfReviewCard(!ifReviewCard)}
+            className="flex-1 h-full flex flex-row justify-center items-center "
+            onPress={() => {
+              //go to wordsList page, which i will create in a sec
+              router.push("/(inventory)");
+            }}
           >
-            <Text
-              className="font-semibold"
-              style={{ fontSize: 28, color: "white" }}
-            >
-              3
-            </Text>
-            <Text
-              className="text-white opacity-80 mt-2"
-              style={{ fontSize: 12 }}
-            >
-              Word
-            </Text>
+            <ChevronRight color={"#fff"} size={32} />
           </TouchableOpacity>
         </View>
       </LinearGradient>
-      {/* ReviewCard */}
+
+      {/* ReviewCard - Additional Stats */}
       <Animated.View
         style={[
           {
@@ -108,36 +124,60 @@ const DashCard = () => {
             alignItems: "center",
           }}
         >
-          <View className=" flex flex-row items-center justify-between w-full px-8">
-            <View className="  flex flex-col h-full justify-center ">
-              <Text>
-                <Text
-                  style={{
-                    fontSize: 24,
-                    opacity: 1,
-                    color: "white",
-                  }}
-                >
-                  15
-                </Text>{" "}
-                <Text
-                  style={{
-                    fontSize: 12,
-                    color: "white",
-                    opacity: 0.7,
-                  }}
-                >
-                  /17
-                </Text>
+          <View className="flex flex-row items-center justify-between w-full px-8">
+            {/* Words with Conversations */}
+            <View className="flex flex-col h-full justify-center flex-1">
+              <Text
+                style={{
+                  fontSize: 24,
+                  color: "white",
+                  fontWeight: "600",
+                }}
+              >
+                {wordsWithConversations}
               </Text>
               <Text
                 style={{
-                  fontSize: 12,
+                  fontSize: 10,
                   color: "white",
                   opacity: 0.7,
+                  marginTop: 2,
                 }}
               >
-                to review today
+                With Conversations
+              </Text>
+            </View>
+
+            <View
+              style={{
+                width: 1,
+                height: 12,
+                backgroundColor: "#fff",
+                opacity: 0.2,
+                borderRadius: 1,
+              }}
+            />
+
+            {/* Saved Words */}
+            <View className="flex flex-col h-full justify-center flex-1">
+              <Text
+                style={{
+                  fontSize: 24,
+                  color: "white",
+                  fontWeight: "600",
+                }}
+              >
+                {savedWords}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 10,
+                  color: "white",
+                  opacity: 0.7,
+                  marginTop: 2,
+                }}
+              >
+                Saved
               </Text>
             </View>
           </View>
