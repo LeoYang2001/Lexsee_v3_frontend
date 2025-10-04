@@ -18,7 +18,6 @@ import {
   ArrowDownWideNarrow,
   ArrowUpNarrowWide,
   ChevronLeft,
-  Search,
 } from "lucide-react-native";
 import FlexCard from "../../components/common/FlexCard";
 import GraphicToggleBtn from "../../components/inventory/GraphicToggleBtn";
@@ -39,10 +38,6 @@ const InventoryScreen = () => {
   const [ifGraphic, setIfGraphic] = useState(false);
   const [ifDetail, setIfDetail] = useState<string | null>(null);
   const [ifInputComp, setIfInputComp] = useState<boolean>(false);
-
-  useEffect(() => {
-    setSearchQuery("");
-  }, [ifInputComp]);
 
   // Filter words based on search query
   const filteredWords = useMemo(() => {
@@ -121,7 +116,7 @@ const InventoryScreen = () => {
       style={{ flex: 1 }}
       onPress={() => {
         setIfDetail(null);
-        setIfInputComp(false);
+        if (!searchQuery) setIfInputComp(false);
       }}
     >
       <View
