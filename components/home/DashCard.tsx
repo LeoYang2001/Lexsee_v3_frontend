@@ -9,11 +9,14 @@ import Animated, {
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
 import { ChevronRight } from "lucide-react-native";
+import { useRouter } from "expo-router";
 
 const DashCard = () => {
   const [ifReviewCard, setIfReviewCard] = useState(true);
   const height = useSharedValue(104);
   const reviewOpacity = useSharedValue(0);
+
+  const router = useRouter();
 
   // Get words data from Redux
   const words = useSelector((state: RootState) => state.wordsList.words);
@@ -91,6 +94,7 @@ const DashCard = () => {
             className="flex-1 h-full flex flex-row justify-center items-center "
             onPress={() => {
               //go to wordsList page, which i will create in a sec
+              router.push("/(inventory)");
             }}
           >
             <ChevronRight color={"#fff"} size={32} />

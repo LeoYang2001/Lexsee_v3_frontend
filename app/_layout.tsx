@@ -280,6 +280,10 @@ function AppContent() {
         name="(gallery)"
         options={{ headerShown: false, animation: "slide_from_right" }}
       />
+      <Stack.Screen
+        name="(inventory)"
+        options={{ headerShown: false, animation: "slide_from_right" }}
+      />
       <Stack.Screen name="+not-found" options={{ title: "Not Found" }} />
     </Stack>
   );
