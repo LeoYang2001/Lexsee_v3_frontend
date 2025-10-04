@@ -48,7 +48,7 @@ export function getNextReview(input: ReviewInput): ReviewOutput {
   const newNextDue = new Date();
   newNextDue.setDate(newNextDue.getDate() + newInterval);
 
-  console.log("algorithm result: ", review_interval, ease_factor);
+  // console.log removed for production
   return {
     next_due: newNextDue,
     review_interval: newInterval,
