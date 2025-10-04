@@ -59,9 +59,6 @@ export const searchGalleryImages = async (
 
     const url = `https://www.googleapis.com/customsearch/v1?${searchParams.toString()}`;
 
-    console.log("Fetching images for:", cleanWord, "Page:", page);
-    console.log("API URL:", url);
-
     const response = await fetch(url, {
       method: "GET",
       headers: {
@@ -69,8 +66,6 @@ export const searchGalleryImages = async (
         "Content-Type": "application/json",
       },
     });
-
-    console.log("Response status:", response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -91,13 +86,11 @@ export const searchGalleryImages = async (
     }
 
     const data = await response.json();
-    console.log("API Response:", data);
 
     if (data.error) {
       throw new Error(data.error.message || "API Error");
     }
 
-    // Filter valid images (must have valid HTTP/HTTPS URLs)
     const validImages = data.items
       ? data.items.filter((item: any) => {
           if (!item.link) return false;
@@ -116,10 +109,6 @@ export const searchGalleryImages = async (
           );
         })
       : [];
-
-    console.log(
-      `Found ${validImages.length} valid images out of ${data.items?.length || 0} total`
-    );
 
     return {
       items: validImages,
@@ -151,7 +140,6 @@ export const searchGalleryImages = async (
 export const testImageSearch = async (word: string): Promise<boolean> => {
   try {
     const result = await searchGalleryImages(word, 1, 1);
-    console.log("Test search result:", result);
     return result.items.length > 0 || !result.error;
   } catch (error) {
     console.error("Test search failed:", error);
