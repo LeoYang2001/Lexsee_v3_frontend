@@ -7,10 +7,11 @@ export interface UserProfile {
   createdAt: string;
   updatedAt: string;
   owner: string;
-  wordsListId?: string; // Store the ID of the related WordsList instead of the function
+  wordsListId?: string;
+  schedule?: string | null;
 }
 
-interface ProfileState {
+export interface ProfileState {
   profile: UserProfile | null;
   isLoading: boolean;
   error: string | null;

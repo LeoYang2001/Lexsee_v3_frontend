@@ -52,15 +52,12 @@ export default function GalleryPage() {
     setErrorMessage("");
 
     try {
-      console.log(`Fetching images for "${word}", page ${page}`);
-
       const result = await searchGalleryImages(word, page, 15);
 
       if (result.error) {
         setErrorMessage(result.error);
 
         // Fallback to mock data for development
-        console.log("Using mock data due to API error");
         const mockResult = getMockImages(word, 15);
 
         if (reset) {
@@ -84,8 +81,6 @@ export default function GalleryPage() {
 
       setHasMoreImages(result.hasMore);
       setCurrentPage(page);
-
-      console.log(`Successfully loaded ${result.items.length} images`);
     } catch (error) {
       console.error("Error fetching images:", error);
       setErrorMessage(
@@ -111,15 +106,12 @@ export default function GalleryPage() {
 
   // Simplified image press handler
   const handleImagePress = (imageUri: string) => {
-    console.log("Image pressed:", imageUri); // Debug log
     setSelectedImage(imageUri);
     setIsSelectionModalVisible(true);
   };
 
   // Handle image selection confirmation
   const handleConfirmSelection = (imageUri: string) => {
-    console.log(`Selected image: ${imageUri} for word: ${currentWord}`);
-
     setIsSelectionModalVisible(false);
     setSelectedImage("");
 
@@ -137,7 +129,6 @@ export default function GalleryPage() {
 
   // Handle modal cancellation
   const handleCancelSelection = () => {
-    console.log("Modal cancelled"); // Debug log
     setIsSelectionModalVisible(false);
     setSelectedImage("");
   };

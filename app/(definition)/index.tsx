@@ -12,7 +12,7 @@ import {
 import { useTheme } from "../../theme/ThemeContext";
 import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { Bookmark, ChevronLeft, ImageUp } from "lucide-react-native";
-import { useAppSelector, useAppDispatch } from "../../store/hooks";
+import { useAppSelector } from "../../store/hooks";
 import { Phonetics, Word } from "../../types/common/Word";
 import PhoneticAudio from "../../components/common/PhoneticAudio";
 import ImageZoomModal from "../../components/common/ImageZoomModal";
@@ -29,7 +29,9 @@ import { fetchAudioUrl } from "../../apis/fetchPhonetics";
 
 import { client } from "../client";
 import ConversationView from "../../components/definition/ConversationView";
-import { setSchedule } from "../../apis/setSchedule";
+import { handleScheduleNotification } from "../../apis/setSchedule";
+import { useDispatch } from "react-redux";
+import { setProfile, UserProfile } from "../../store/slices/profileSlice";
 
 function CollectBtn({ saveStatus }: { saveStatus: string }) {
   const scale = useSharedValue(1);
@@ -220,6 +222,7 @@ export default function DefinitionPage() {
   const params = useLocalSearchParams();
   const { words } = useAppSelector((state) => state.wordsList);
   const { profile } = useAppSelector((state) => state.profile);
+  const dispatch = useDispatch();
 
   const [wordInfo, setWordInfo] = useState<Word | undefined>(undefined);
 
@@ -246,8 +249,10 @@ export default function DefinitionPage() {
   const [showConversationView, setShowConversationView] = useState(false);
   const [playMessageAnimation, setPlayMessageAnimation] = useState(false); // New state for animation
 
+  const userProfile = useAppSelector((state) => state.profile);
+
   const handleSaveWord = async (wordInfo: Word) => {
-    const wordInfoToSave = {
+    let wordInfoToSave = {
       ...wordInfo,
       phonetics: phonetics || undefined,
       exampleSentences: wordInfo.exampleSentences || null,
@@ -267,6 +272,7 @@ export default function DefinitionPage() {
         // If exists, update it, use client function, do not directly update redux as its already listening the updates
         // The generated client may have empty model typings in some environments; cast to any to avoid the TS error.
         const res = await (client.models as any).Word.update(updateData);
+        wordInfoToSave.id = res.data.id;
       } else {
         // If not exists, create new word entry
 
@@ -279,9 +285,23 @@ export default function DefinitionPage() {
           status: "COLLECTED",
         };
         const res = await (client.models as any).Word.create(createData);
+        wordInfoToSave.id = res.data.id;
       }
     } catch (error) {
       console.log(error);
+    }
+    console.log("wordInfo.id after save/create:", wordInfoToSave);
+
+    const updatedProfile: UserProfile | false =
+      await handleScheduleNotification(userProfile, wordInfoToSave.id);
+    // after update profile, we should reload redux profile state to make sure it's the latest
+    console.log("updatedProfile:", updatedProfile);
+    if (updatedProfile) {
+      // Update Redux store with new profile
+      dispatch(setProfile(updatedProfile));
+      console.log("✅ Redux store updated");
+    } else {
+      console.error("❌ Failed to update profile, schedule not saved");
     }
     setSaveStatus("saved");
   };
@@ -352,8 +372,6 @@ export default function DefinitionPage() {
 
       // Only process if we have both gallery flag and image URL and current wordInfo
       if (fromGallery === "true" && selectedImageUrl && wordInfo) {
-        console.log("Updating word with selected image:", selectedImageUrl);
-
         // Update wordInfo with new image
         const imageUrl = Array.isArray(selectedImageUrl)
           ? selectedImageUrl[0]
@@ -473,10 +491,6 @@ export default function DefinitionPage() {
               setConversationData(parsedConversation);
               setIsConversationLoaded(true);
               setPlayMessageAnimation(false); // Don't play animation for existing conversations
-              console.log(
-                "✅ Successfully loaded existing conversation (no animation):",
-                parsedConversation
-              );
             } else {
               console.warn(
                 "⚠️ Invalid conversation format in exampleSentences"
@@ -666,15 +680,11 @@ export default function DefinitionPage() {
   const handleUnsaveWord = async (wordInfo: Word) => {
     setSaveStatus("saving");
     try {
-      console.log("unsave wordInfo:", wordInfo);
-      console.log("unsave wordInfo:", wordInfo.id);
       if (wordInfo.id) {
         const deleteData = {
           id: wordInfo.id,
         };
         const res = await (client.models as any).Word.delete(deleteData);
-
-        console.log(res);
       }
     } catch (error) {
       console.log(error);
@@ -915,12 +925,6 @@ export default function DefinitionPage() {
               )}
             </View>
 
-            <TouchableOpacity
-              className=" border border-red-50 my-2"
-              onPress={() => setSchedule("dempo")}
-            >
-              <Text>Test Schedule function</Text>
-            </TouchableOpacity>
             {viewMode === "definition" && (
               <View className=" w-full flex-1  flex flex-col ">
                 {wordInfo?.imgUrl && (
