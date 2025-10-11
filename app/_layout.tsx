@@ -27,15 +27,15 @@ import * as Notifications from "expo-notifications";
 
 Amplify.configure(outputs);
 
-Notifications.scheduleNotificationAsync({
-  content: {
-    title: "Time's up!",
-    body: "Change sides!",
-  },
-  trigger: {
-    type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-    seconds: 60,
-  },
+//notification settings
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
 });
 
 function AppContent() {
@@ -48,23 +48,6 @@ function AppContent() {
     if (status !== "granted") {
       alert("Permission not granted for notifications!");
       return false;
-    }
-
-    // Schedule the test notification AFTER permissions are granted
-    try {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: "LexSee Notification Test",
-          body: "Notifications are working! 🎉",
-        },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-          seconds: 3, // Test with 3 seconds
-        },
-      });
-      console.log("✅ Test notification scheduled");
-    } catch (error) {
-      console.error("❌ Error scheduling notification:", error);
     }
 
     return true;
@@ -105,21 +88,24 @@ function AppContent() {
 
       if (profileResult.data.length > 0) {
         const profile = profileResult.data[0];
-        console.log("Profile found:", profile);
 
         const serializedProfile = await serializeProfile(profile);
         dispatch(setProfile(serializedProfile));
         return true;
       } else {
         console.log("No profile found, creating new profile...");
-
-        const newProfileResult = await (
-          client as any
-        ).models.UserProfile.create({
-          userId: userId,
-          username: "user",
-        });
-
+        let newProfileResult;
+        try {
+          newProfileResult = await (client as any).models.UserProfile.create({
+            userId: userId,
+            username: "user",
+            //initialize schedule to default values
+            schedule: JSON.stringify({}),
+          });
+          console.log("created new profile", newProfileResult);
+        } catch (error) {
+          console.error("Error creating new profile:", error);
+        }
         if (newProfileResult.data) {
           const wordsListResult = await (client as any).models.WordsList.create(
             {
@@ -155,7 +141,6 @@ function AppContent() {
 
     const sub = (client.models as any).Word.observeQuery().subscribe({
       next: ({ items, isSynced }: any) => {
-        console.log("Words received:", [...items], "Synced:", isSynced);
         const cleanWords = [...items].map((word) => {
           const { wordsList, ...cleanWord } = word;
           return cleanWord;

@@ -93,6 +93,13 @@
                 "targetNames": []
               }
             },
+            "schedule": {
+              "name": "schedule",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": false,
+              "attributes": []
+            },
             "createdAt": {
               "name": "createdAt",
               "isArray": false,
@@ -352,5 +359,5 @@
       "nonModels": {}
     }
   },
-  "version": "1.2"
+  "version": "1.3"
 }

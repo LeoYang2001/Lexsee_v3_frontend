@@ -87,7 +87,6 @@ export default function ImageSelectionModal({
   };
 
   const handleConfirm = () => {
-    console.log("confirm function triggered");
     onConfirm(imageUri);
   };
 
