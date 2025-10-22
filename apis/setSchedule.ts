@@ -89,6 +89,8 @@ export const handleScheduleNotification = async (
   }
 };
 export const setSchedule = async (wordsCount: number) => {
+  //call the algorithmn to determine the time interval based on wordsCount
+  // return {duedate, timeinterval}
   try {
     const identifier = await Notifications.scheduleNotificationAsync({
       content: {

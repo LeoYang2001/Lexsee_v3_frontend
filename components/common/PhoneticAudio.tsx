@@ -6,12 +6,12 @@ import { useEvent } from "expo";
 import { Phonetics } from "../../types/common/Word";
 
 interface PhoneticAudioProps {
-  phonetics: Phonetics;
+  phonetics: Phonetics | undefined;
   size?: number;
 }
 
 const PhoneticAudio = ({ phonetics, size = 14 }: PhoneticAudioProps) => {
-  const videoSource = phonetics.audioUrl;
+  const videoSource = phonetics?.audioUrl;
 
   const [audioPlayer, setAudioPlayer] = useState<VideoPlayer | null>(null);
 
@@ -38,7 +38,7 @@ const PhoneticAudio = ({ phonetics, size = 14 }: PhoneticAudioProps) => {
       }}
     >
       <Text style={{ color: "#fff", opacity: 0.7, fontSize: size }}>
-        {phonetics.text}
+        {phonetics?.text}
       </Text>
       <View className=" flex justify-center items-center">
         <Volume2 size={size + 2} color={"#fff"} opacity={0.7} />

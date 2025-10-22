@@ -408,7 +408,6 @@ export default function DefinitionPage() {
           };
           // Use the safe phonetics object
           setPhonetics(safePhonetics);
-          console.log(`get audioUrl for word ${wordInfo.word}: `, audioUrl);
         } else {
           // Ensure phonetics state reflects wordInfo if already present
           // also ensure text is a string

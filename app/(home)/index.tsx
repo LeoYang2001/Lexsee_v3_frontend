@@ -18,10 +18,7 @@ import { AntDesign, Feather } from "@expo/vector-icons";
 import CustomHeader from "../../components/home/Header";
 import { useTheme } from "../../theme/ThemeContext";
 import DashCard from "../../components/home/DashCard";
-import { mockWordList } from "../../data/wordslist_mock";
 import FlexCard from "../../components/common/FlexCard";
-import { Word } from "../../types/common/Word";
-import { client } from "../client";
 
 export default function HomeScreen() {
   const { user, isAuthenticated } = useAppSelector((state) => state.user);
@@ -136,7 +133,7 @@ export default function HomeScreen() {
                   size={22}
                 />
               </TouchableOpacity>
-
+              {/* Press DashCard to navigate to a new screen ("/home/reviewQueue") */}
               <DashCard />
             </View>
           </View>
