@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, ActivityIndicator } from "react-native";
+import { View, Text, ActivityIndicator, Pressable } from "react-native";
 import ConversationItem from "./ConversationItem";
 
 interface ConversationLine {
@@ -121,7 +121,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({
       }}
     >
       {/* Conversation Messages */}
-      <View style={{ gap: 12 }}>
+      <Pressable style={{ gap: 12 }}>
         {displayedConversation.map((line, index) => (
           <ConversationItem
             key={index}
@@ -141,7 +141,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({
             isTyping={true}
           />
         )}
-      </View>
+      </Pressable>
     </View>
   );
 };

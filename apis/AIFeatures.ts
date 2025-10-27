@@ -1,12 +1,11 @@
 const DICTIONARY_API_URL = "https://api.dictionaryapi.dev/api/v2/entries/en/";
 
 import OpenAI from "openai";
-const DEEPSEEK_API_KEY = process.env.EXPO_PUBLIC_DEEPSEEK_API_KEY;
+// Default provider
+const DEFAULT_AI_PROVIDER: AIProvider = "openai";
 
-const client = new OpenAI({
-  apiKey: DEEPSEEK_API_KEY,
-  baseURL: "https://api.deepseek.com",
-});
+const DEEPSEEK_API_KEY = process.env.EXPO_PUBLIC_DEEPSEEK_API_KEY;
+const OPENAI_API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
 
 interface WordDefinition {
   word: string;
@@ -20,6 +19,38 @@ interface WordDefinition {
     text: string;
   };
 }
+
+// Type for AI provider
+export type AIProvider = "deepseek" | "openai";
+
+const deepseekClient = new OpenAI({
+  apiKey: DEEPSEEK_API_KEY,
+  baseURL: "https://api.deepseek.com",
+});
+
+const openaiClient = new OpenAI({
+  apiKey: OPENAI_API_KEY,
+});
+
+// Helper function to get the appropriate client
+
+// Helper function to get the appropriate client based on provider
+const getAIClient = (provider: AIProvider): OpenAI | null => {
+  if (provider === "deepseek") {
+    return deepseekClient;
+  } else {
+    return openaiClient;
+  }
+};
+// Helper function to get the appropriate model
+const getAIModel = (provider: AIProvider): string => {
+  return provider === "deepseek" ? "deepseek-chat" : "gpt-4.1-2025-04-14";
+};
+
+// Helper function to get API key for provider
+const getAPIKey = (provider: AIProvider): string | undefined => {
+  return provider === "deepseek" ? DEEPSEEK_API_KEY : OPENAI_API_KEY;
+};
 
 // Add callback interface
 interface FetchDefinitionCallbacks {
@@ -124,7 +155,8 @@ const checkFormat = (data: any): data is WordDefinition => {
 
 export async function fetchDefinition(
   word: string,
-  callbacks?: FetchDefinitionCallbacks
+  callbacks?: FetchDefinitionCallbacks,
+  provider: AIProvider = DEFAULT_AI_PROVIDER
 ): Promise<WordDefinition | null> {
   try {
     console.log("fetching definition for:", word);
@@ -150,7 +182,7 @@ export async function fetchDefinition(
         callbacks?.onAIStart?.();
         callbacks?.onSourceChange?.("ai");
 
-        const result = await generateDefinition(word);
+        const result = await generateDefinition(word, provider);
 
         callbacks?.onAIEnd?.();
         return result;
@@ -258,13 +290,17 @@ export async function fetchDefinition(
 }
 
 export const generateDefinition = async (
-  word: string
+  word: string,
+  provider: AIProvider = DEFAULT_AI_PROVIDER
 ): Promise<WordDefinition | null> => {
-  if (!DEEPSEEK_API_KEY) {
-    console.warn("❌ DEEPSEEK_API_KEY not available for AI generation");
+  const apiKey = getAPIKey(provider);
+
+  if (!apiKey) {
+    console.warn(
+      `❌ ${provider.toUpperCase()}_API_KEY not available for AI generation`
+    );
     return null;
   }
-
   try {
     const systemPrompt = `
       You are a dictionary API.  
@@ -293,8 +329,20 @@ export const generateDefinition = async (
       - Respond with **only JSON**, no extra text.
     `;
 
+    const client = getAIClient(provider);
+
+    if (!client) {
+      console.error("❌ AI client is not available. API key is missing.");
+      return null;
+    }
+
+    const model = getAIModel(provider);
+
+    console.log(
+      `🤖 Using ${provider === "deepseek" ? "DeepSeek" : "OpenAI"} for definition generation`
+    );
     const response = await client.chat.completions.create({
-      model: "deepseek-chat",
+      model: model,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: word },
@@ -433,11 +481,14 @@ export const fetchConversation = async (
   context: string = "general conversation",
   difficulty: "beginner" | "intermediate" | "advanced" = "intermediate",
   definition?: string,
-  partOfSpeech?: string
+  partOfSpeech?: string,
+  provider: AIProvider = DEFAULT_AI_PROVIDER
 ): Promise<ConversationResponse | null> => {
-  if (!DEEPSEEK_API_KEY) {
+  const apiKey = getAPIKey(provider);
+
+  if (!apiKey) {
     console.warn(
-      "❌ DEEPSEEK_API_KEY not available for conversation generation"
+      `❌ ${provider.toUpperCase()}_API_KEY not available for conversation generation`
     );
     return null;
   }
@@ -518,8 +569,21 @@ export const fetchConversation = async (
       }
     `;
 
+    const client = getAIClient(provider);
+
+    if (!client) {
+      console.error("❌ AI client is not available. API key is missing.");
+      return null;
+    }
+
+    const model = getAIModel(provider);
+
+    console.log(
+      `🤖 Using ${provider === "deepseek" ? "DeepSeek" : "OpenAI"}: ${model} for conversation generation`
+    );
+
     const response = await client.chat.completions.create({
-      model: "deepseek-chat",
+      model: model,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
@@ -623,11 +687,14 @@ export const fetchSocialConversation = async (
 export const fetchQuickConversation = async (
   word: string,
   definition?: string,
-  partOfSpeech?: string
+  partOfSpeech?: string,
+  provider: AIProvider = DEFAULT_AI_PROVIDER
 ): Promise<ConversationResponse | null> => {
-  if (!DEEPSEEK_API_KEY) {
+  const apiKey = getAPIKey(provider);
+
+  if (!apiKey) {
     console.warn(
-      "❌ DEEPSEEK_API_KEY not available for quick conversation generation"
+      `❌ ${provider.toUpperCase()}_API_KEY not available for quick conversation generation`
     );
     return null;
   }
@@ -705,8 +772,21 @@ export const fetchQuickConversation = async (
             : ""
     }`;
 
+    const client = getAIClient(provider);
+
+    if (!client) {
+      console.error("❌ AI client is not available. API key is missing.");
+      return null;
+    }
+
+    const model = getAIModel(provider);
+
+    console.log(
+      `🤖 Using ${provider === "deepseek" ? "DeepSeek" : "OpenAI"} for quick conversation generation`
+    );
+
     const response = await client.chat.completions.create({
-      model: "deepseek-chat",
+      model: model,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },

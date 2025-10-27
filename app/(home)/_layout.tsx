@@ -10,9 +10,16 @@ import ThemeToggleButton from "../../components/home/ThemeToggleButton";
 import { TouchableOpacity, Text, Alert, View } from "react-native";
 import { useRouter } from "expo-router";
 import { signOut as amplifySignOut } from "aws-amplify/auth";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "../../store";
+import { setIfChina } from "../../store/slices/ifChinaSlice";
 
 export default function HomeLayout() {
   const router = useRouter();
+
+  const dispatch = useDispatch();
+
+  const ifChina = useSelector((state: RootState) => state.ifChina.ifChina);
 
   const handleSignOut = async () => {
     try {
@@ -21,6 +28,15 @@ export default function HomeLayout() {
     } catch (error) {
       Alert.alert("Sign Out Error", (error as Error).message);
     }
+  };
+
+  // Toggle ifChina state for testing
+  const handleToggleIfChina = () => {
+    dispatch(setIfChina(!ifChina));
+    Alert.alert(
+      "Location Status Changed",
+      `Testing mode: User is now ${!ifChina ? "🇨🇳 in China" : "🌍 outside China"}`
+    );
   };
 
   return (
@@ -122,6 +138,60 @@ export default function HomeLayout() {
               </TouchableOpacity>
             </View>
 
+            {/* A toggle button to switch ifChina state for testing purposes. */}
+
+            {/* Location Toggle Button for Testing */}
+            <View
+              style={{
+                paddingHorizontal: 20,
+                marginBottom: 20,
+              }}
+            >
+              <TouchableOpacity
+                style={{
+                  backgroundColor: ifChina ? "#DC2626" : "#059669", // Red if China, green if not
+                  borderRadius: 12,
+                  paddingVertical: 12,
+                  alignItems: "center",
+                  flexDirection: "row",
+                  justifyContent: "center",
+                  shadowColor: ifChina ? "#DC2626" : "#059669",
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 8,
+                  elevation: 4,
+                }}
+                onPress={handleToggleIfChina}
+                activeOpacity={0.8}
+              >
+                <Feather
+                  name={ifChina ? "map-pin" : "globe"}
+                  size={18}
+                  color="white"
+                  style={{ marginRight: 8 }}
+                />
+                <Text
+                  style={{
+                    color: "white",
+                    fontWeight: "600",
+                    fontSize: 14,
+                  }}
+                >
+                  {ifChina ? "🇨🇳 In China (Test)" : "🌍 Outside China (Test)"}
+                </Text>
+              </TouchableOpacity>
+              <Text
+                style={{
+                  color: "#9CA3AF",
+                  fontSize: 11,
+                  marginTop: 8,
+                  opacity: 0.6,
+                  textAlign: "center",
+                }}
+              >
+                Tap to toggle location for testing
+              </Text>
+            </View>
             {/* Footer */}
             <View
               style={{
