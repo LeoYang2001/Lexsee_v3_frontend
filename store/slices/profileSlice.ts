@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
+import { client } from "../../app/client";
 
 export interface UserProfile {
   id: string;
@@ -15,8 +16,8 @@ export interface ProfileState {
   profile: UserProfile | null;
   isLoading: boolean;
   error: string | null;
-  reviewInfo: any | null; // Add review info to state
-  isLoadingReviewInfo: boolean; // Track review info loading
+  reviewInfo: any | null;
+  isLoadingReviewInfo: boolean;
 }
 
 const initialState: ProfileState = {
@@ -35,21 +36,78 @@ export const fetchReviewInfo = createAsyncThunk(
     const profile = state.profile.profile;
 
     if (!profile?.schedule) {
-      console.log("No schedule found in profile");
+      console.log("⚠️ No schedule found in profile");
       return null;
     }
 
     try {
       // Parse the schedule JSON
       const scheduleObject = JSON.parse(profile.schedule);
+      console.log("Parsed scheduleObject:", scheduleObject);
 
-      // You can add more processing here
       const currentDate = new Date().toISOString().split("T")[0];
       const todaysReview = scheduleObject[currentDate];
 
+      if (!todaysReview) {
+        console.log(`📅 No schedule for today (${currentDate})`);
+        return null;
+      }
+
+      // Step 1: Deduplicate IDs using Set
+      const uniqueIds = Array.from(new Set(todaysReview.reviewWordsIds));
+
+      const duplicatesRemoved =
+        todaysReview.reviewWordsIds.length - uniqueIds.length;
+      if (duplicatesRemoved > 0) {
+        console.warn(
+          `⚠️ Removed ${duplicatesRemoved} duplicate(s) from today's review`
+        );
+      }
+
+      // Step 2: Filter to only valid IDs that exist in words database
+      const validIds = uniqueIds.filter((id) =>
+        state.wordsList.words.some((word: any) => word.id === id)
+      );
+
+      const invalidIdsRemoved = uniqueIds.length - validIds.length;
+
+      // Step 3: Update the schedule object with cleaned IDs
+      console.log("validIds:", validIds);
+      const updatedSchedule = {
+        ...scheduleObject,
+        [currentDate]: {
+          ...todaysReview,
+          reviewWordsIds: validIds,
+        },
+      };
+      console.log(
+        "Updated schedule after filtering invalid IDs:",
+        updatedSchedule
+      );
+      // Step 4: Update the schedule in the database
+      try {
+        await (client as any).models.UserProfile.update({
+          id: profile.id,
+          schedule: JSON.stringify(updatedSchedule),
+        });
+
+        console.log(
+          "✅ Schedule updated after filtering invalid IDs:",
+          JSON.stringify(updatedSchedule, null, 2)
+        );
+      } catch (error) {
+        console.error("❌ Error updating profile:", error);
+      }
+
       return {
-        todaysReview,
+        todaysReview: {
+          ...todaysReview,
+          reviewWordsIds: validIds,
+        },
         allScheduledDates: Object.keys(scheduleObject),
+        totalWordsCount: validIds.length,
+        duplicatesFound: duplicatesRemoved,
+        invalidIdsFound: invalidIdsRemoved,
       };
     } catch (error) {
       console.error("❌ Error parsing schedule:", error);
@@ -78,11 +136,9 @@ const profileSlice = createSlice({
       state.profile = null;
       state.isLoading = false;
       state.error = null;
-      state.reviewInfo = null; // Clear review info when profile is cleared
+      state.reviewInfo = null;
     },
-    // Manual trigger for review info fetch
     triggerReviewInfoFetch: (state) => {
-      // This is just a trigger, actual fetching happens in the thunk
       state.isLoadingReviewInfo = true;
     },
   },
@@ -97,7 +153,7 @@ const profileSlice = createSlice({
       })
       .addCase(fetchReviewInfo.rejected, (state, action) => {
         state.isLoadingReviewInfo = false;
-        console.error("Failed to fetch review info:", action.error.message);
+        console.error("❌ Failed to fetch review info:", action.error.message);
       });
   },
 });

@@ -49,8 +49,15 @@ export const handleScheduleNotification = async (
     const currentDate = new Date().toISOString().split("T")[0];
 
     if (schedule[currentDate]) {
-      // Not the first word for today
-      schedule[currentDate].reviewWordsIds.push(wordId);
+      // Check if wordId already exists (prevent duplicates)
+      if (schedule[currentDate].reviewWordsIds.includes(wordId)) {
+        console.warn(
+          `⚠️ Word ID ${wordId} already exists in today's schedule. Skipping duplicate.`
+        );
+      } else {
+        // Not the first word for today
+        schedule[currentDate].reviewWordsIds.push(wordId);
+      }
 
       // Cancel old notification
       if (schedule[currentDate].notificationId) {

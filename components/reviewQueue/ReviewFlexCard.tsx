@@ -193,8 +193,11 @@ const ReviewFlexCard = ({
       <Text style={{ fontSize: 14 }} className="color-white opacity-30">
         Remember the word?
       </Text>
-      <View className="mt-6">
-        <PhoneticAudio size={32} phonetics={word.phonetics} />
+      <Text className=" my-6" style={{ fontSize: 32, color: "white" }}>
+        {word.word}
+      </Text>
+      <View>
+        <PhoneticAudio size={18} phonetics={word.phonetics} />
       </View>
       <View className="mt-4 flex-row flex-wrap gap-2">
         {word?.meanings.map((meaning, index) => (
@@ -266,8 +269,11 @@ const ReviewFlexCard = ({
       <Text style={{ fontSize: 14 }} className="color-white opacity-30">
         Remember the word?
       </Text>
-      <View className="mt-6">
-        <PhoneticAudio size={32} phonetics={word.phonetics} />
+      <Text className=" my-6" style={{ fontSize: 32, color: "white" }}>
+        {word.word}
+      </Text>
+      <View>
+        <PhoneticAudio size={18} phonetics={word.phonetics} />
       </View>
       <View className="mt-4 flex-row flex-wrap gap-2">
         {word?.meanings.map((meaning, index) => (
@@ -356,8 +362,11 @@ const ReviewFlexCard = ({
       <Text style={{ fontSize: 14 }} className="color-white opacity-30">
         Remember the word?
       </Text>
-      <View className="mt-6">
-        <PhoneticAudio size={32} phonetics={word.phonetics} />
+      <Text className=" my-6" style={{ fontSize: 32, color: "white" }}>
+        {word.word}
+      </Text>
+      <View>
+        <PhoneticAudio size={18} phonetics={word.phonetics} />
       </View>
       <View className="mt-4 flex-row flex-wrap gap-2">
         {word?.meanings.map((meaning, index) => (

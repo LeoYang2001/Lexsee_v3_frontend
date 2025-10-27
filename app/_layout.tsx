@@ -24,6 +24,7 @@ import {
   setProfileLoading,
 } from "../store/slices/profileSlice";
 import * as Notifications from "expo-notifications";
+import { useCheckChina } from "../hooks/useCheckChina";
 
 Amplify.configure(outputs);
 
@@ -42,6 +43,7 @@ function AppContent() {
   const dispatch = useAppDispatch();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [wordsSubscription, setWordsSubscription] = useState<any>(null);
+  const { ifChina, isLoading } = useCheckChina();
 
   async function requestNotificationPermissions() {
     const { status } = await Notifications.requestPermissionsAsync();
@@ -52,6 +54,13 @@ function AppContent() {
 
     return true;
   }
+  useEffect(() => {
+    if (!isLoading) {
+      console.log(
+        `📍 Location determined: ${ifChina ? "🇨🇳 China" : "🌍 Outside China"}`
+      );
+    }
+  }, [ifChina, isLoading]);
 
   useEffect(() => {
     requestNotificationPermissions();
@@ -99,7 +108,6 @@ function AppContent() {
           newProfileResult = await (client as any).models.UserProfile.create({
             userId: userId,
             username: "user",
-            //initialize schedule to default values
             schedule: JSON.stringify({}),
           });
           console.log("created new profile", newProfileResult);
@@ -314,7 +322,7 @@ function AppContent() {
       />
       <Stack.Screen
         name="(reviewQueue)"
-        options={{ headerShown: false, animation: "slide_from_right" }}
+        options={{ headerShown: false, animation: "fade" }}
       />
       <Stack.Screen name="+not-found" options={{ title: "Not Found" }} />
     </Stack>

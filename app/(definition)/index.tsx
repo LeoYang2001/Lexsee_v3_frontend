@@ -251,6 +251,8 @@ export default function DefinitionPage() {
 
   const userProfile = useAppSelector((state) => state.profile);
 
+  const ifChina = useAppSelector((state) => state.ifChina.ifChina);
+
   const handleSaveWord = async (wordInfo: Word) => {
     let wordInfoToSave = {
       ...wordInfo,
@@ -320,12 +322,14 @@ export default function DefinitionPage() {
     setShowConversationView(true); // Show the conversation view when starting to fetch
     setPlayMessageAnimation(true); // Enable animation for newly generated conversations
     let conversation = null;
+
     try {
       //set a timer to test how fast the conversation loads
       conversation = await fetchQuickConversation(
         wordInfo.word,
         partOfSpeech,
-        definition
+        definition,
+        ifChina ? "deepseek" : "openai"
       );
 
       if (conversation) {
@@ -541,8 +545,18 @@ export default function DefinitionPage() {
           },
         };
 
+        const start = performance.now();
         // Call fetchDefinition with callbacks
-        const fetchedWord = await fetchDefinition(searchWord, callbacks);
+        const fetchedWord = await fetchDefinition(
+          searchWord,
+          callbacks,
+          ifChina ? "deepseek" : "openai"
+        );
+        const end = performance.now();
+        const duration = (end - start) / 1000;
+        console.log(
+          `⏱️ Definition fetched for "${searchWord}" in ${duration.toFixed(2)}s`
+        );
 
         if (fetchedWord) {
           setWordInfo(fetchedWord);

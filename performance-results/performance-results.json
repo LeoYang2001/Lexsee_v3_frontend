@@ -1,0 +1,52 @@
+[
+  {
+    "timestamp": "2025-10-27T12:40:10.791Z",
+    "provider": "deepseek",
+    "model": "deepseek-chat",
+    "averageTime": 17228.34,
+    "successRate": 100,
+    "minTime": 13617.64,
+    "maxTime": 19379.96,
+    "numRuns": 10
+  },
+  {
+    "timestamp": "2025-10-27T12:47:07.894Z",
+    "provider": "openai",
+    "model": "gpt-4-turbo-preview",
+    "averageTime": 12370.83,
+    "successRate": 100,
+    "minTime": 10819.9,
+    "maxTime": 15229.47,
+    "numRuns": 10
+  },
+  {
+    "timestamp": "2025-10-27T13:05:22.237Z",
+    "provider": "openai",
+    "model": "gpt-5-nano",
+    "averageTime": 48297.02,
+    "successRate": 100,
+    "minTime": 34721.21,
+    "maxTime": 94376.67,
+    "numRuns": 10
+  },
+  {
+    "timestamp": "2025-10-27T13:31:22.255Z",
+    "provider": "openai",
+    "model": "gpt-4.1-2025-04-14",
+    "averageTime": 5165.72,
+    "successRate": 100,
+    "minTime": 2935.53,
+    "maxTime": 17546.01,
+    "numRuns": 10
+  },
+  {
+    "timestamp": "2025-10-27T13:38:17.729Z",
+    "provider": "openai",
+    "model": "gpt-4.1-2025-04-14",
+    "averageTime": 4627.11,
+    "successRate": 100,
+    "minTime": 3506.74,
+    "maxTime": 9504.09,
+    "numRuns": 10
+  }
+]
