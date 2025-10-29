@@ -47,6 +47,12 @@ export const fetchReviewInfo = createAsyncThunk(
 
       const currentDate = new Date().toISOString().split("T")[0];
       const todaysReview = scheduleObject[currentDate];
+      //FOR TESTING PURPOSE, get all words scheduled regardless of date
+      // const todaysReview = {
+      //   reviewWordsIds: Object.values(scheduleObject).flatMap(
+      //     (entry: any) => entry.reviewWordsIds
+      //   ),
+      // };
 
       if (!todaysReview) {
         console.log(`📅 No schedule for today (${currentDate})`);
@@ -72,7 +78,6 @@ export const fetchReviewInfo = createAsyncThunk(
       const invalidIdsRemoved = uniqueIds.length - validIds.length;
 
       // Step 3: Update the schedule object with cleaned IDs
-      console.log("validIds:", validIds);
       const updatedSchedule = {
         ...scheduleObject,
         [currentDate]: {

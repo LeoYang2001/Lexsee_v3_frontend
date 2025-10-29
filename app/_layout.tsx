@@ -6,7 +6,7 @@ import { Provider } from "react-redux";
 import { store } from "../store";
 import outputs from "../amplify_outputs.json";
 import "../global.css";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { client } from "./client";
 import { useAppDispatch } from "../store/hooks";
 import {
@@ -44,6 +44,12 @@ function AppContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [wordsSubscription, setWordsSubscription] = useState<any>(null);
   const { ifChina, isLoading } = useCheckChina();
+
+  // Track profile creation to prevent duplicates
+  const profileCreationInProgress = useRef<{ [key: string]: boolean }>({});
+  const profileCreationTimeout = useRef<{
+    [key: string]: ReturnType<typeof setTimeout>;
+  }>({});
 
   async function requestNotificationPermissions() {
     const { status } = await Notifications.requestPermissionsAsync();
@@ -100,9 +106,30 @@ function AppContent() {
 
         const serializedProfile = await serializeProfile(profile);
         dispatch(setProfile(serializedProfile));
+
+        // Clear any pending creation for this user
+        if (profileCreationTimeout.current[userId]) {
+          clearTimeout(profileCreationTimeout.current[userId]);
+          delete profileCreationTimeout.current[userId];
+        }
+        delete profileCreationInProgress.current[userId];
+
         return true;
       } else {
+        // Check if we're already creating a profile for this user
+        if (profileCreationInProgress.current[userId]) {
+          console.log(
+            "⏳ Profile creation already in progress for user:",
+            userId
+          );
+          return false;
+        }
+
         console.log("No profile found, creating new profile...");
+
+        // Mark profile creation as in progress
+        profileCreationInProgress.current[userId] = true;
+
         let newProfileResult;
         try {
           newProfileResult = await (client as any).models.UserProfile.create({
@@ -110,30 +137,44 @@ function AppContent() {
             username: "user",
             schedule: JSON.stringify({}),
           });
-          console.log("created new profile", newProfileResult);
+          console.log("✅ created new profile", newProfileResult.data?.id);
         } catch (error) {
-          console.error("Error creating new profile:", error);
+          console.error("❌ Error creating new profile:", error);
+          delete profileCreationInProgress.current[userId];
+          return false;
         }
+
         if (newProfileResult.data) {
-          const wordsListResult = await (client as any).models.WordsList.create(
-            {
+          try {
+            await (client as any).models.WordsList.create({
               userProfileId: newProfileResult.data.id,
-            }
-          );
+            });
+            console.log("✅ created new words list");
+          } catch (error) {
+            console.error("❌ Error creating words list:", error);
+          }
 
           const serializedProfile = await serializeProfile(
             newProfileResult.data
           );
           dispatch(setProfile(serializedProfile));
+
+          // Clear creation flag after success with a timeout to prevent race conditions
+          profileCreationTimeout.current[userId] = setTimeout(() => {
+            delete profileCreationInProgress.current[userId];
+          }, 2000);
+
           return true;
         } else {
           dispatch(setProfileError("Failed to create profile"));
+          delete profileCreationInProgress.current[userId];
           return false;
         }
       }
     } catch (error) {
-      console.error("Error checking user profile:", error);
+      console.error("❌ Error checking user profile:", error);
       dispatch(setProfileError("Error checking user profile"));
+      delete profileCreationInProgress.current[userId];
       return false;
     }
   };

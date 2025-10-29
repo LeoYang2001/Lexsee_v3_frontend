@@ -12,6 +12,8 @@ export type Word = {
   phonetics: Phonetics | undefined;
   exampleSentences?: string;
   timeStamp?: string;
+  review_interval: number;
+  ease_factor: number;
 };
 
 export type Phonetics = {

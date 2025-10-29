@@ -18,6 +18,8 @@ interface WordDefinition {
   phonetics: {
     text: string;
   };
+  review_interval: number;
+  ease_factor: number;
 }
 
 // Type for AI provider
@@ -159,7 +161,6 @@ export async function fetchDefinition(
   provider: AIProvider = DEFAULT_AI_PROVIDER
 ): Promise<WordDefinition | null> {
   try {
-    console.log("fetching definition for:", word);
     const response = await fetch(
       `${DICTIONARY_API_URL}${encodeURIComponent(word)}`
     );
@@ -241,6 +242,8 @@ export async function fetchDefinition(
       phonetics: {
         text: phoneticText,
       },
+      review_interval: 1,
+      ease_factor: 2.5,
     };
 
     // Check if the transformed data matches our required format
