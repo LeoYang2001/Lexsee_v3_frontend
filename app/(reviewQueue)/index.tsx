@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, Dimensions } from "react-native";
 import { router } from "expo-router";
-import { Feather } from "@expo/vector-icons";
-import { ChevronLeft, ChevronRight } from "lucide-react-native";
+import { ChevronLeft, Zap } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchReviewInfo } from "../../store/slices/profileSlice";
+import {
+  fetchReviewInfo,
+  setProfile,
+  UserProfile,
+} from "../../store/slices/profileSlice";
 import { RootState } from "../../store";
 import { Word } from "../../types/common/Word";
 // Add Reanimated imports
@@ -18,11 +21,17 @@ import Animated, {
 import ControlPanel from "../../components/reviewQueue/ControlPanel";
 import ReviewFlexCard from "../../components/reviewQueue/ReviewFlexCard";
 import { RecallAccuracy } from "../../types/common/RecallAccuracy";
+import { getNextReview } from "../../lib/reviewAlgorithm";
+import { client } from "../client";
+import { useAppSelector } from "../../store/hooks";
+import { handleScheduleAndCleanup } from "../../apis/setSchedule";
+import {
+  ConversationResponse,
+  fetchQuickConversation,
+} from "../../apis/AIFeatures";
 
 const { width, height } = Dimensions.get("window");
 const BORDER_RADIUS = Math.min(width, height) * 0.06;
-
-const familiarityLevel = ["excellent", "good", "fair", "poor"];
 
 export default function ReviewQueueScreen() {
   // get the words by reviewIds we fetched
@@ -31,6 +40,134 @@ export default function ReviewQueueScreen() {
   const words = useSelector((state: RootState) => state.wordsList.words);
 
   const [hintCount, setHintCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const ifChina = useAppSelector((state) => state.ifChina.ifChina);
+
+  const userProfile = useAppSelector((state) => state.profile);
+  const currentWord = reviewQueue[currentWordIndex];
+
+  const [conversationData, setConversationData] =
+    useState<ConversationResponse | null>(null);
+
+  useEffect(() => {
+    //try to fetch existing conversation data from Redux store or local state
+    if (currentWord) {
+      const parsedConversation = JSON.parse(
+        currentWord.exampleSentences as string
+      );
+      if (parsedConversation && parsedConversation.conversation) {
+        setConversationData(parsedConversation);
+      }
+    }
+  }, [currentWord]);
+
+  useEffect(() => {
+    //fetch exampleSentences when hintCount gets to 3
+    if (hintCount === 2 && !conversationData) {
+      console.log(
+        "start fetching example sentences for word:",
+        currentWord.word
+      );
+      setLoading(true);
+
+      // Fetch example sentences from the API or any other source
+      const fetchExampleSentences = async () => {
+        try {
+          const conversation = await fetchQuickConversation(
+            currentWord.word,
+            ifChina ? "deepseek" : "openai"
+          );
+
+          if (conversation) {
+            setConversationData(conversation);
+            console.log("✅ New conversation generated (with animation)");
+            console.log("conversation:", conversation);
+          }
+        } catch (error) {
+          console.error("Error fetching example sentences:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchExampleSentences();
+    }
+  }, [hintCount]);
+
+  const handleNextWord = async (familiarityLevel: RecallAccuracy) => {
+    // step0: set loading state to true
+    setLoading(true);
+    console.log(
+      `➡️ Next word! Current index: ${currentWordIndex}, familiarityLevel: ${familiarityLevel}, word: ${JSON.stringify(currentWord.review_interval)}`
+    );
+    //Step1: get next review data
+    const { next_due, review_interval, ease_factor } = getNextReview({
+      review_interval: currentWord.review_interval,
+      ease_factor: currentWord.ease_factor,
+      recall_accuracy: familiarityLevel,
+    });
+    console.log(
+      `Next due: ${next_due}, review_interval: ${review_interval}, ease_factor: ${ease_factor}`
+    );
+    //Step2: update the word's review data in the backend
+    try {
+      if (review_interval > 60) {
+        //if review_interval is over 60 days, consider it mastered
+        console.log(`✅ Word mastered! Skipping further reviews.`);
+      } else {
+        const currentWordUpdated = {
+          ...currentWord,
+          exampleSentences: JSON.stringify(conversationData),
+          review_interval,
+          ease_factor,
+        };
+        const updateData = {
+          id: currentWordUpdated.id,
+          data: JSON.stringify(currentWordUpdated),
+        };
+        const res = await (client.models as any).Word.update(updateData);
+      }
+    } catch (error) {
+      console.log(`Error updating word review data: ${error}`);
+    }
+
+    //Step4: remove current schedule and set schedule the next review
+    try {
+      const updatedProfile: UserProfile | false =
+        await handleScheduleAndCleanup(userProfile, currentWord.id, next_due);
+      // after update profile, we should reload redux profile state to make sure it's the latest
+      console.log("updatedProfile:", updatedProfile);
+      if (updatedProfile) {
+        // Update Redux store with new profile
+        dispatch(setProfile(updatedProfile));
+        console.log("✅ Redux store updated");
+      } else {
+        console.error("❌ Failed to update profile, schedule not saved");
+      }
+    } catch (error) {
+      console.log(`Error scheduling notification: ${error}`);
+    }
+
+    //Step4: move to next word
+    // Here you can dispatch an action to update the word's review data based on familiarityLevel
+
+    if (currentWordIndex < reviewQueue.length - 1) {
+      setCurrentWordIndex((prevIndex) => prevIndex + 1);
+      setConversationData(null); //reset conversation data for next word
+      setTimeout(() => {
+        setLoading(false);
+      }, 100);
+    } else {
+      alert("🎉 You've completed all reviews for today!");
+    }
+  };
+
+  const getFamiliarityLevel = (count: number): RecallAccuracy => {
+    if (count >= 3) return "poor";
+    if (count === 2) return "fair";
+    if (count === 1) return "good";
+    return "excellent";
+  };
 
   const handleHintPressed = () => {
     if (hintCount >= 3) return;
@@ -40,7 +177,7 @@ export default function ReviewQueueScreen() {
     });
 
     console.log(
-      `💡 Hint pressed! Count: ${hintCount + 1}, familiarLevl: ${familiarityLevel[hintCount]}`
+      `💡 Hint pressed! Count: ${hintCount + 1}, familiarLevl: ${getFamiliarityLevel(hintCount + 1)}`
     );
   };
 
@@ -64,8 +201,6 @@ export default function ReviewQueueScreen() {
     setReviewQueue(reviewWords);
     setCurrentWordIndex(0); // Reset to first word when queue updates
   };
-
-  const currentWord = reviewQueue[currentWordIndex];
 
   // Animate progress bar when currentWordIndex or reviewQueue changes
   useEffect(() => {
@@ -217,13 +352,17 @@ export default function ReviewQueueScreen() {
             {/* Word Display */}
             <View className="flex-1 justify-start items-center">
               <ReviewFlexCard
-                familiarityLevel={familiarityLevel[hintCount]}
+                familiarityLevel={getFamiliarityLevel(hintCount)}
                 word={currentWord}
+                isLoading={loading}
+                conversationData={conversationData}
               />
             </View>
             <View className=" px-6">
               <ControlPanel
-                familiarityLevel={familiarityLevel[hintCount]}
+                isLoading={loading}
+                handleNextWord={handleNextWord}
+                familiarityLevel={getFamiliarityLevel(hintCount)}
                 handleHintPressed={handleHintPressed}
               />
             </View>

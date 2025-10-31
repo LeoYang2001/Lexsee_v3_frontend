@@ -82,6 +82,8 @@ const parseWordData = (word: any): Word => {
         word.exampleSentences || parsedData.exampleSentences || null,
       timeStamp:
         parsedData.timeStamp || word.timeStamp || new Date().toISOString(),
+      review_interval: word.review_interval || 1,
+      ease_factor: word.ease_factor || 2.0,
     };
   } catch (error) {
     console.error("Error parsing word data:", error);
@@ -100,6 +102,8 @@ const parseWordData = (word: any): Word => {
       },
       exampleSentences: word.exampleSentences || null,
       timeStamp: word.timeStamp || new Date().toISOString(),
+      review_interval: word.review_interval || 1,
+      ease_factor: word.ease_factor || 2.0,
     };
   }
 };

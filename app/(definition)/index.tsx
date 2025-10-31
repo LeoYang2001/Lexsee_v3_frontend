@@ -254,6 +254,7 @@ export default function DefinitionPage() {
   const ifChina = useAppSelector((state) => state.ifChina.ifChina);
 
   const handleSaveWord = async (wordInfo: Word) => {
+    // save/resave, we reset the schedule
     let wordInfoToSave = {
       ...wordInfo,
       phonetics: phonetics || undefined,
@@ -294,8 +295,15 @@ export default function DefinitionPage() {
     }
     console.log("wordInfo.id after save/create:", wordInfoToSave);
 
+    //initiate scheduling notification update
+    const newNextDue = new Date();
+    newNextDue.setDate(newNextDue.getDate() + wordInfoToSave.review_interval);
     const updatedProfile: UserProfile | false =
-      await handleScheduleNotification(userProfile, wordInfoToSave.id);
+      await handleScheduleNotification(
+        userProfile,
+        wordInfoToSave.id,
+        newNextDue
+      );
     // after update profile, we should reload redux profile state to make sure it's the latest
     console.log("updatedProfile:", updatedProfile);
     if (updatedProfile) {
@@ -432,7 +440,6 @@ export default function DefinitionPage() {
   // FIXED: Cache phonetics without causing re-renders
   useEffect(() => {
     if (phonetics && currentWord && !phoneticsCached[currentWord]) {
-      console.log("Caching phonetics for word:", currentWord);
       setPhoneticsCached((prev) => ({
         ...prev,
         [currentWord]: phonetics,
@@ -455,7 +462,6 @@ export default function DefinitionPage() {
 
       // Check if we've already fetched this word in this session
       if (fetchedWords.has(searchWord)) {
-        console.log("Definition already fetched for:", searchWord);
         return;
       }
 
@@ -467,7 +473,6 @@ export default function DefinitionPage() {
       const existingWord = words.find((word) => word.word === searchWord);
 
       if (existingWord) {
-        console.log(existingWord);
         setWordInfo(existingWord);
         setSaveStatus("saved");
         setDefinitionSource("dictionary");
@@ -481,13 +486,10 @@ export default function DefinitionPage() {
         // Load existing conversation if available
         if (existingWord.exampleSentences) {
           try {
-            console.log("📱 Loading existing conversation for:", searchWord);
             // Parse the conversation data from JSON string
             const parsedConversation = JSON.parse(
               existingWord.exampleSentences as string
             );
-
-            console.log("parsedConversation", parsedConversation);
 
             // If exampleSentences exist, do not play the animation again
             if (parsedConversation && parsedConversation.conversation) {
@@ -519,7 +521,6 @@ export default function DefinitionPage() {
         // Check cached phonetics for new words
         const cachedPhonetics = phoneticsCached[searchWord];
         if (cachedPhonetics) {
-          console.log("Found cached phonetics for:", searchWord);
           setPhonetics(cachedPhonetics);
         }
 
@@ -545,17 +546,11 @@ export default function DefinitionPage() {
           },
         };
 
-        const start = performance.now();
         // Call fetchDefinition with callbacks
         const fetchedWord = await fetchDefinition(
           searchWord,
           callbacks,
           ifChina ? "deepseek" : "openai"
-        );
-        const end = performance.now();
-        const duration = (end - start) / 1000;
-        console.log(
-          `⏱️ Definition fetched for "${searchWord}" in ${duration.toFixed(2)}s`
         );
 
         if (fetchedWord) {
