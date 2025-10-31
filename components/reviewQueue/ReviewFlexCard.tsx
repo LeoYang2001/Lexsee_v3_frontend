@@ -17,6 +17,7 @@ import Animated, {
   Easing,
   runOnJS,
 } from "react-native-reanimated";
+import { ConversationResponse } from "../../apis/AIFeatures";
 
 interface ReviewFlexCardProps {
   word: Word;
@@ -24,10 +25,144 @@ interface ReviewFlexCardProps {
   onHintPressed?: () => void;
   hintCount?: number;
   isLoading?: boolean;
+  conversationData: ConversationResponse | null;
 }
 
 const { width, height } = Dimensions.get("window");
 const BORDER_RADIUS = Math.min(width, height) * 0.06;
+
+const AnimatedLoadingMessages = () => {
+  const messages = [
+    "No sample sentences found",
+    "Currently generating for you",
+    "This might take a while...",
+  ];
+  const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
+  const messageOpacity = useSharedValue(0);
+
+  useEffect(() => {
+    // Fade in
+    messageOpacity.value = withTiming(1, {
+      duration: 500,
+      easing: Easing.inOut(Easing.ease),
+    });
+
+    const timer = setTimeout(() => {
+      // Fade out
+      messageOpacity.value = withTiming(0, {
+        duration: 500,
+        easing: Easing.inOut(Easing.ease),
+      });
+
+      // Change message after fade out
+      const changeTimer = setTimeout(() => {
+        setCurrentMessageIndex((prev) => (prev + 1) % messages.length);
+        messageOpacity.value = 0; // Reset opacity for next message
+      }, 500);
+
+      return () => clearTimeout(changeTimer);
+    }, 1500); // Show each message for 2.5 seconds
+
+    return () => clearTimeout(timer);
+  }, [currentMessageIndex, messageOpacity]);
+
+  const animatedMessageStyle = useAnimatedStyle(() => {
+    return {
+      opacity: messageOpacity.value,
+    };
+  });
+
+  return (
+    <Animated.Text
+      style={[
+        animatedMessageStyle,
+        {
+          fontSize: 15,
+          color: "#60a5fa",
+          opacity: 0.8,
+          fontWeight: "500",
+        },
+      ]}
+    >
+      {messages[currentMessageIndex]}
+    </Animated.Text>
+  );
+};
+
+const FairContentLoadingSkeleton = ({ height = 400 }: { height?: number }) => (
+  <View style={{ height: height }} className="flex-col pt-6 pb-8 items-center">
+    {/* Header text */}
+    <View className="w-48 h-4 bg-gray-700 rounded-lg mb-4 opacity-50" />
+
+    {/* Word title skeleton */}
+    <View className="w-40 h-10 bg-gray-700 rounded-lg mb-4 opacity-50 mt-2" />
+
+    {/* Part of speech tags */}
+    <View className="flex-row gap-2 mb-4">
+      <View className="w-16 h-6 bg-gray-700 rounded-lg opacity-50" />
+      <View className="w-20 h-6 bg-gray-700 rounded-lg opacity-50" />
+    </View>
+
+    {/* Image skeleton */}
+    <View className="w-full mt-4 px-4">
+      <View className="w-full h-16 bg-gray-700 rounded-lg opacity-50" />
+    </View>
+
+    {/* Examples loading section with improved messaging */}
+    <View className="w-full px-4 mt-8">
+      {/* Animated loading indicator */}
+      <View className="flex-row items-center gap-2 mb-3">
+        <View
+          className="w-2 h-2 bg-blue-400 rounded-full"
+          style={{
+            opacity: 0.8,
+          }}
+        />
+        {/* <Text
+          style={{
+            fontSize: 15,
+            color: "#60a5fa",
+            opacity: 0.8,
+            fontWeight: "500",
+          }}
+        >
+          Generating example sentences...
+        </Text> */}
+        <AnimatedLoadingMessages />
+      </View>
+
+      {/* Subtle info message */}
+      <Text
+        style={{
+          fontSize: 13,
+          color: "#9ca3af",
+          opacity: 0.6,
+          marginBottom: 12,
+          fontStyle: "italic",
+          lineHeight: 14,
+        }}
+      >
+        We're creating contextual examples to help you learn this word better.
+        This may take a moment.
+      </Text>
+
+      {/* Animated example message skeletons */}
+      <View className="gap-4">
+        {/* First message skeleton */}
+        <View className="gap-1.5">
+          <View
+            className="w-20 h-3 bg-gray-700 rounded opacity-50"
+            style={{ marginBottom: 4 }}
+          />
+          <View className="flex-col gap-1.5">
+            <View className="w-full h-10 bg-gray-700 rounded-lg opacity-50" />
+            <View className="w-5/6 h-10 bg-gray-700 rounded-lg opacity-50" />
+          </View>
+        </View>
+      </View>
+    </View>
+  </View>
+);
 
 const LoadingSkeleton = ({ height = 200 }: { height?: number }) => (
   <View
@@ -50,12 +185,13 @@ const LoadingSkeleton = ({ height = 200 }: { height?: number }) => (
 const ReviewFlexCard = ({
   word,
   familiarityLevel,
-  onHintPressed,
-  hintCount = 0,
   isLoading = false,
+  conversationData,
 }: ReviewFlexCardProps) => {
   const [isImageZoomed, setIsImageZoomed] = useState(false);
   const [contentHeight, setContentHeight] = useState(200);
+
+  console.log("conversationData:", conversationData);
 
   // Refs for measuring content
   const excellentRef = useRef<View>(null);
@@ -153,22 +289,6 @@ const ReviewFlexCard = ({
 
   const handleCloseImageZoom = () => {
     setIsImageZoomed(false);
-  };
-
-  // Get familiarity level color
-  const getFamiliarityColor = (level: string): string => {
-    switch (level) {
-      case "excellent":
-        return "#10B981"; // Green
-      case "good":
-        return "#3B82F6"; // Blue
-      case "fair":
-        return "#F59E0B"; // Yellow
-      case "poor":
-        return "#EF4444"; // Red
-      default:
-        return "#6B7280"; // Gray
-    }
   };
 
   // Content components for measurement
@@ -296,177 +416,182 @@ const ReviewFlexCard = ({
   };
 
   const FairContent = ({ isLoading }: { isLoading: boolean }) => {
-    console.log("sample sentences:", word?.exampleSentences);
-    if (isLoading) {
+    // Show full skeleton if loading with conversation data
+    if (isLoading && conversationData) {
       return <LoadingSkeleton height={contentHeight} />;
-    } else
+    }
+
+    // Show partial skeleton if conversation is still loading
+    if (isLoading && !conversationData) {
       return (
         <View
           ref={fairRef}
           onLayout={() => measureContent("fair")}
           className="flex-col pt-6 pb-8 items-center"
         >
-          <Text style={{ fontSize: 14 }} className="color-white opacity-30">
-            Almost there! Can you recall its meaning?
-          </Text>
-          <View className=" flex-row items-center mt-2 gap-4">
-            <Text className=" my-2" style={{ fontSize: 32, color: "white" }}>
-              {word.word}
-            </Text>
-            {/* <PhoneticAudio size={18} phonetics={word.phonetics} /> */}
-          </View>
-
-          <View className="mt-0 flex-row flex-wrap gap-2">
-            {word?.meanings.map((meaning, index) => (
-              <View
-                style={{
-                  borderRadius: 12,
-                  backgroundColor: "#3c3d3e",
-                }}
-                className="px-3 py-1"
-                key={index}
-              >
-                <Text
-                  style={{ fontSize: 12 }}
-                  className="text-white opacity-70"
-                >
-                  {meaning.partOfSpeech}
-                </Text>
-              </View>
-            ))}
-          </View>
-          {word?.imgUrl && (
-            <View className="w-full mt-4">
-              <TouchableOpacity onPress={handleImagePress} activeOpacity={0.8}>
-                <ImageBackground
-                  source={{ uri: word.imgUrl }}
-                  style={{
-                    height: 60,
-                    borderRadius: 10,
-                    overflow: "hidden",
-                  }}
-                  className="w-full flex justify-center items-center"
-                  resizeMode="cover"
-                >
-                  <View
-                    style={{
-                      position: "absolute",
-                      top: "50%",
-                      left: "50%",
-                      transform: [
-                        { translateX: `-50%` },
-                        { translateY: `-50%` },
-                      ],
-                      backgroundColor: "rgba(0, 0, 0, 0.6)",
-                      borderRadius: 8,
-                      paddingHorizontal: 12,
-                      paddingVertical: 4,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: "#ffffff",
-                        fontSize: 18,
-                        opacity: 0.9,
-                      }}
-                    >
-                      Tap to zoom
-                    </Text>
-                  </View>
-                </ImageBackground>
-              </TouchableOpacity>
-            </View>
-          )}
-          <View className="mt-4 px-2 w-full">
-            {/* Render example sentences from conversation */}
-            {word?.exampleSentences && (
-              <View>
-                {(() => {
-                  try {
-                    const parsedConversation = JSON.parse(
-                      word.exampleSentences
-                    );
-                    return (
-                      <View className="flex flex-col gap-3">
-                        {parsedConversation?.conversation?.map(
-                          (item: any, index: number) => (
-                            <View key={index} className="flex-col gap-1">
-                              <Text
-                                style={{
-                                  fontSize: 11,
-                                  fontWeight: "500",
-                                  color: "white",
-                                  opacity: 0.6,
-                                }}
-                              >
-                                {item.speaker}:
-                              </Text>
-                              {(() => {
-                                // Split message and find the target word
-                                const targetWord = word.word.toLowerCase();
-                                const messageText = item.message;
-                                const regex = new RegExp(
-                                  `\\b(${targetWord})\\b`,
-                                  "gi"
-                                );
-                                const parts = messageText.split(regex);
-
-                                return (
-                                  <Text
-                                    style={{
-                                      fontSize: 13,
-                                      color: "white",
-                                      opacity: 0.9,
-                                      lineHeight: 16,
-                                    }}
-                                  >
-                                    "
-                                    {parts.map((part: string, idx: number) =>
-                                      part?.toLowerCase() === targetWord ? (
-                                        <Text
-                                          key={idx}
-                                          style={{
-                                            backgroundColor: "#56362d",
-                                            color: "#ea511d",
-                                            fontWeight: "700",
-                                            paddingHorizontal: 2,
-                                            borderRadius: 2,
-                                          }}
-                                        >
-                                          {part}
-                                        </Text>
-                                      ) : (
-                                        <Text key={idx}>{part}</Text>
-                                      )
-                                    )}
-                                    "
-                                  </Text>
-                                );
-                              })()}
-                            </View>
-                          )
-                        )}
-                      </View>
-                    );
-                  } catch (error) {
-                    return (
-                      <Text
-                        style={{
-                          fontSize: 11,
-                          color: "#ef4444",
-                          opacity: 0.6,
-                        }}
-                      >
-                        Could not parse examples
-                      </Text>
-                    );
-                  }
-                })()}
-              </View>
-            )}
-          </View>
+          <FairContentLoadingSkeleton />
         </View>
       );
+    }
+
+    return (
+      <View
+        ref={fairRef}
+        onLayout={() => measureContent("fair")}
+        className="flex-col pt-6 pb-8 items-center"
+      >
+        <Text style={{ fontSize: 14 }} className="color-white opacity-30">
+          Almost there! Can you recall its meaning?
+        </Text>
+        <View className=" flex-row items-center mt-2 gap-4">
+          <Text className=" my-2" style={{ fontSize: 32, color: "white" }}>
+            {word.word}
+          </Text>
+          {/* <PhoneticAudio size={18} phonetics={word.phonetics} /> */}
+        </View>
+
+        <View className="mt-0 flex-row flex-wrap gap-2">
+          {word?.meanings.map((meaning, index) => (
+            <View
+              style={{
+                borderRadius: 12,
+                backgroundColor: "#3c3d3e",
+              }}
+              className="px-3 py-1"
+              key={index}
+            >
+              <Text style={{ fontSize: 12 }} className="text-white opacity-70">
+                {meaning.partOfSpeech}
+              </Text>
+            </View>
+          ))}
+        </View>
+        {word?.imgUrl && (
+          <View className="w-full mt-4">
+            <TouchableOpacity onPress={handleImagePress} activeOpacity={0.8}>
+              <ImageBackground
+                source={{ uri: word.imgUrl }}
+                style={{
+                  height: 60,
+                  borderRadius: 10,
+                  overflow: "hidden",
+                }}
+                className="w-full flex justify-center items-center"
+                resizeMode="cover"
+              >
+                <View
+                  style={{
+                    position: "absolute",
+                    top: "50%",
+                    left: "50%",
+                    transform: [{ translateX: `-50%` }, { translateY: `-50%` }],
+                    backgroundColor: "rgba(0, 0, 0, 0.6)",
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 4,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: "#ffffff",
+                      fontSize: 18,
+                      opacity: 0.9,
+                    }}
+                  >
+                    Tap to zoom
+                  </Text>
+                </View>
+              </ImageBackground>
+            </TouchableOpacity>
+          </View>
+        )}
+        <View className="mt-4 px-2 w-full">
+          {/* Render example sentences from conversationData */}
+          {conversationData?.conversation && (
+            <View>
+              {(() => {
+                try {
+                  return (
+                    <View className="flex flex-col gap-3">
+                      {conversationData.conversation.map(
+                        (item: any, index: number) => (
+                          <View key={index} className="flex-col gap-1">
+                            <Text
+                              style={{
+                                fontSize: 11,
+                                fontWeight: "500",
+                                color: "white",
+                                opacity: 0.6,
+                              }}
+                            >
+                              {item.speaker}:
+                            </Text>
+                            {(() => {
+                              // Split message and find the target word
+                              const targetWord = word.word.toLowerCase();
+                              const messageText = item.message;
+                              const regex = new RegExp(
+                                `\\b(${targetWord})\\b`,
+                                "gi"
+                              );
+                              const parts = messageText.split(regex);
+
+                              return (
+                                <Text
+                                  style={{
+                                    fontSize: 13,
+                                    color: "white",
+                                    opacity: 0.9,
+                                    lineHeight: 16,
+                                  }}
+                                >
+                                  "
+                                  {parts.map((part: string, idx: number) =>
+                                    part?.toLowerCase() === targetWord ? (
+                                      <Text
+                                        key={idx}
+                                        style={{
+                                          backgroundColor: "#56362d",
+                                          color: "#ea511d",
+                                          fontWeight: "700",
+                                          paddingHorizontal: 2,
+                                          borderRadius: 2,
+                                        }}
+                                      >
+                                        {part}
+                                      </Text>
+                                    ) : (
+                                      <Text key={idx}>{part}</Text>
+                                    )
+                                  )}
+                                  "
+                                </Text>
+                              );
+                            })()}
+                          </View>
+                        )
+                      )}
+                    </View>
+                  );
+                } catch (error) {
+                  return (
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        color: "#ef4444",
+                        opacity: 0.6,
+                      }}
+                    >
+                      Could not parse examples
+                    </Text>
+                  );
+                }
+              })()}
+            </View>
+          )}
+        </View>
+      </View>
+    );
   };
 
   const PoorContent = ({ isLoading }: { isLoading: boolean }) => {

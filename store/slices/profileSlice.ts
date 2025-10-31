@@ -43,7 +43,7 @@ export const fetchReviewInfo = createAsyncThunk(
     try {
       // Parse the schedule JSON
       const scheduleObject = JSON.parse(profile.schedule);
-      console.log("Parsed scheduleObject:", scheduleObject);
+      // console.log("Parsed scheduleObject:", scheduleObject);
 
       const currentDate = new Date().toISOString().split("T")[0];
       const todaysReview = scheduleObject[currentDate];
@@ -85,10 +85,10 @@ export const fetchReviewInfo = createAsyncThunk(
           reviewWordsIds: validIds,
         },
       };
-      console.log(
-        "Updated schedule after filtering invalid IDs:",
-        updatedSchedule
-      );
+      // console.log(
+      //   "Updated schedule after filtering invalid IDs:",
+      //   updatedSchedule
+      // );
       // Step 4: Update the schedule in the database
       try {
         await (client as any).models.UserProfile.update({
@@ -96,10 +96,10 @@ export const fetchReviewInfo = createAsyncThunk(
           schedule: JSON.stringify(updatedSchedule),
         });
 
-        console.log(
-          "✅ Schedule updated after filtering invalid IDs:",
-          JSON.stringify(updatedSchedule, null, 2)
-        );
+        // console.log(
+        //   "✅ Schedule updated after filtering invalid IDs:",
+        //   JSON.stringify(updatedSchedule, null, 2)
+        // );
       } catch (error) {
         console.error("❌ Error updating profile:", error);
       }

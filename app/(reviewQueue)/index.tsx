@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, Dimensions } from "react-native";
 import { router } from "expo-router";
-import { Feather } from "@expo/vector-icons";
-import { ChevronLeft, ChevronRight } from "lucide-react-native";
+import { ChevronLeft, Zap } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -26,6 +25,10 @@ import { getNextReview } from "../../lib/reviewAlgorithm";
 import { client } from "../client";
 import { useAppSelector } from "../../store/hooks";
 import { handleScheduleAndCleanup } from "../../apis/setSchedule";
+import {
+  ConversationResponse,
+  fetchQuickConversation,
+} from "../../apis/AIFeatures";
 
 const { width, height } = Dimensions.get("window");
 const BORDER_RADIUS = Math.min(width, height) * 0.06;
@@ -38,7 +41,58 @@ export default function ReviewQueueScreen() {
 
   const [hintCount, setHintCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const ifChina = useAppSelector((state) => state.ifChina.ifChina);
+
   const userProfile = useAppSelector((state) => state.profile);
+  const currentWord = reviewQueue[currentWordIndex];
+
+  const [conversationData, setConversationData] =
+    useState<ConversationResponse | null>(null);
+
+  useEffect(() => {
+    //try to fetch existing conversation data from Redux store or local state
+    if (currentWord) {
+      const parsedConversation = JSON.parse(
+        currentWord.exampleSentences as string
+      );
+      if (parsedConversation && parsedConversation.conversation) {
+        setConversationData(parsedConversation);
+      }
+    }
+  }, [currentWord]);
+
+  useEffect(() => {
+    //fetch exampleSentences when hintCount gets to 3
+    if (hintCount === 2 && !conversationData) {
+      console.log(
+        "start fetching example sentences for word:",
+        currentWord.word
+      );
+      setLoading(true);
+
+      // Fetch example sentences from the API or any other source
+      const fetchExampleSentences = async () => {
+        try {
+          const conversation = await fetchQuickConversation(
+            currentWord.word,
+            ifChina ? "deepseek" : "openai"
+          );
+
+          if (conversation) {
+            setConversationData(conversation);
+            console.log("✅ New conversation generated (with animation)");
+            console.log("conversation:", conversation);
+          }
+        } catch (error) {
+          console.error("Error fetching example sentences:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchExampleSentences();
+    }
+  }, [hintCount]);
 
   const handleNextWord = async (familiarityLevel: RecallAccuracy) => {
     // step0: set loading state to true
@@ -63,6 +117,7 @@ export default function ReviewQueueScreen() {
       } else {
         const currentWordUpdated = {
           ...currentWord,
+          exampleSentences: JSON.stringify(conversationData),
           review_interval,
           ease_factor,
         };
@@ -98,6 +153,7 @@ export default function ReviewQueueScreen() {
 
     if (currentWordIndex < reviewQueue.length - 1) {
       setCurrentWordIndex((prevIndex) => prevIndex + 1);
+      setConversationData(null); //reset conversation data for next word
       setTimeout(() => {
         setLoading(false);
       }, 100);
@@ -145,8 +201,6 @@ export default function ReviewQueueScreen() {
     setReviewQueue(reviewWords);
     setCurrentWordIndex(0); // Reset to first word when queue updates
   };
-
-  const currentWord = reviewQueue[currentWordIndex];
 
   // Animate progress bar when currentWordIndex or reviewQueue changes
   useEffect(() => {
@@ -301,6 +355,7 @@ export default function ReviewQueueScreen() {
                 familiarityLevel={getFamiliarityLevel(hintCount)}
                 word={currentWord}
                 isLoading={loading}
+                conversationData={conversationData}
               />
             </View>
             <View className=" px-6">
