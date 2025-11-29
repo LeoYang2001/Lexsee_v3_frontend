@@ -135,7 +135,6 @@ function AppContent() {
           newProfileResult = await (client as any).models.UserProfile.create({
             userId: userId,
             username: "user",
-            schedule: JSON.stringify({}),
           });
           console.log("✅ created new profile", newProfileResult.data?.id);
         } catch (error) {
