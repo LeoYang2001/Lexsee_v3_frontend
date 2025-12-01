@@ -305,21 +305,12 @@ export default function DefinitionPage() {
     //initiate scheduling notification update
     const newNextDue = new Date();
     newNextDue.setDate(newNextDue.getDate() + wordInfoToSave.review_interval);
-    const updatedProfile: UserProfile | false =
-      await handleScheduleNotification(
-        userProfile,
-        wordInfoToSave.id,
-        newNextDue
-      );
-    // after update profile, we should reload redux profile state to make sure it's the latest
-    console.log("updatedProfile:", updatedProfile);
-    if (updatedProfile) {
-      // Update Redux store with new profile
-      dispatch(setProfile(updatedProfile));
-      console.log("✅ Redux store updated");
-    } else {
-      console.error("❌ Failed to update profile, schedule not saved");
-    }
+    const ifSuccess = await handleScheduleNotification(
+      userProfile,
+      wordInfoToSave.id,
+      newNextDue
+    );
+    console.log("Handle schedule notification success:", ifSuccess);
     // 4. Force refresh to get accurate state
     setSaveStatus("saved");
   };

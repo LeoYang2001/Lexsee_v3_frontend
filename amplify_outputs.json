@@ -6,12 +6,8 @@
     "identity_pool_id": "us-east-2:6880d98a-2565-44e0-a030-7c538356bab0",
     "mfa_methods": [],
     "standard_required_attributes": [],
-    "username_attributes": [
-      "email"
-    ],
-    "user_verification_types": [
-      "email"
-    ],
+    "username_attributes": ["email"],
+    "user_verification_types": ["email"],
     "mfa_configuration": "NONE",
     "password_policy": {
       "min_length": 8,
@@ -21,16 +17,9 @@
       "require_uppercase": true
     },
     "oauth": {
-      "identity_providers": [
-        "GOOGLE",
-        "SIGN_IN_WITH_APPLE"
-      ],
-      "redirect_sign_in_uri": [
-        "myapp://"
-      ],
-      "redirect_sign_out_uri": [
-        "myapp://"
-      ],
+      "identity_providers": ["GOOGLE", "SIGN_IN_WITH_APPLE"],
+      "redirect_sign_in_uri": ["myapp://"],
+      "redirect_sign_out_uri": ["myapp://"],
       "response_type": "code",
       "scopes": [
         "phone",
@@ -47,9 +36,7 @@
     "url": "https://cs7hujqlorg4xi4x6rft33u5qq.appsync-api.us-east-2.amazonaws.com/graphql",
     "aws_region": "us-east-2",
     "default_authorization_type": "AMAZON_COGNITO_USER_POOLS",
-    "authorization_types": [
-      "AWS_IAM"
-    ],
+    "authorization_types": ["AWS_IAM"],
     "model_introspection": {
       "version": 1,
       "models": {
@@ -87,18 +74,30 @@
               "attributes": [],
               "association": {
                 "connectionType": "HAS_ONE",
-                "associatedWith": [
-                  "userProfileId"
-                ],
+                "associatedWith": ["userProfileId"],
                 "targetNames": []
               }
             },
-            "schedule": {
-              "name": "schedule",
+            "ifChineseUser": {
+              "name": "ifChineseUser",
               "isArray": false,
-              "type": "AWSJSON",
+              "type": "Boolean",
               "isRequired": false,
               "attributes": []
+            },
+            "reviewSchedules": {
+              "name": "reviewSchedules",
+              "isArray": true,
+              "type": {
+                "model": "ReviewSchedule"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": true,
+              "association": {
+                "connectionType": "HAS_MANY",
+                "associatedWith": ["userProfileId"]
+              }
             },
             "createdAt": {
               "name": "createdAt",
@@ -133,12 +132,7 @@
                     "ownerField": "owner",
                     "allow": "owner",
                     "identityClaim": "cognito:username",
-                    "operations": [
-                      "create",
-                      "update",
-                      "delete",
-                      "read"
-                    ]
+                    "operations": ["create", "update", "delete", "read"]
                   }
                 ]
               }
@@ -177,9 +171,7 @@
               "attributes": [],
               "association": {
                 "connectionType": "BELONGS_TO",
-                "targetNames": [
-                  "userProfileId"
-                ]
+                "targetNames": ["userProfileId"]
               }
             },
             "words": {
@@ -193,9 +185,7 @@
               "isArrayNullable": true,
               "association": {
                 "connectionType": "HAS_MANY",
-                "associatedWith": [
-                  "wordsListId"
-                ]
+                "associatedWith": ["wordsListId"]
               }
             },
             "createdAt": {
@@ -231,12 +221,7 @@
                     "ownerField": "owner",
                     "allow": "owner",
                     "identityClaim": "cognito:username",
-                    "operations": [
-                      "create",
-                      "update",
-                      "delete",
-                      "read"
-                    ]
+                    "operations": ["create", "update", "delete", "read"]
                   }
                 ]
               }
@@ -291,9 +276,21 @@
               "attributes": [],
               "association": {
                 "connectionType": "BELONGS_TO",
-                "targetNames": [
-                  "wordsListId"
-                ]
+                "targetNames": ["wordsListId"]
+              }
+            },
+            "scheduleWords": {
+              "name": "scheduleWords",
+              "isArray": true,
+              "type": {
+                "model": "ReviewScheduleWord"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": true,
+              "association": {
+                "connectionType": "HAS_MANY",
+                "associatedWith": ["wordId"]
               }
             },
             "createdAt": {
@@ -329,12 +326,270 @@
                     "ownerField": "owner",
                     "allow": "owner",
                     "identityClaim": "cognito:username",
-                    "operations": [
-                      "create",
-                      "update",
-                      "delete",
-                      "read"
-                    ]
+                    "operations": ["create", "update", "delete", "read"]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": false,
+            "primaryKeyFieldName": "id",
+            "sortKeyFieldNames": []
+          }
+        },
+        "ReviewSchedule": {
+          "name": "ReviewSchedule",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "userProfileId": {
+              "name": "userProfileId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "userProfile": {
+              "name": "userProfile",
+              "isArray": false,
+              "type": {
+                "model": "UserProfile"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "association": {
+                "connectionType": "BELONGS_TO",
+                "targetNames": ["userProfileId"]
+              }
+            },
+            "scheduleDate": {
+              "name": "scheduleDate",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "notificationId": {
+              "name": "notificationId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "successRate": {
+              "name": "successRate",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "totalWords": {
+              "name": "totalWords",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "reviewedCount": {
+              "name": "reviewedCount",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "toBeReviewedCount": {
+              "name": "toBeReviewedCount",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "scheduleInfo": {
+              "name": "scheduleInfo",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": false,
+              "attributes": []
+            },
+            "scheduleWords": {
+              "name": "scheduleWords",
+              "isArray": true,
+              "type": {
+                "model": "ReviewScheduleWord"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": true,
+              "association": {
+                "connectionType": "HAS_MANY",
+                "associatedWith": ["reviewScheduleId"]
+              }
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "ReviewSchedules",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "provider": "userPools",
+                    "ownerField": "owner",
+                    "allow": "owner",
+                    "identityClaim": "cognito:username",
+                    "operations": ["create", "update", "delete", "read"]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": false,
+            "primaryKeyFieldName": "id",
+            "sortKeyFieldNames": []
+          }
+        },
+        "ReviewScheduleWord": {
+          "name": "ReviewScheduleWord",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "reviewScheduleId": {
+              "name": "reviewScheduleId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "reviewSchedule": {
+              "name": "reviewSchedule",
+              "isArray": false,
+              "type": {
+                "model": "ReviewSchedule"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "association": {
+                "connectionType": "BELONGS_TO",
+                "targetNames": ["reviewScheduleId"]
+              }
+            },
+            "wordId": {
+              "name": "wordId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "word": {
+              "name": "word",
+              "isArray": false,
+              "type": {
+                "model": "Word"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "association": {
+                "connectionType": "BELONGS_TO",
+                "targetNames": ["wordId"]
+              }
+            },
+            "status": {
+              "name": "status",
+              "isArray": false,
+              "type": {
+                "enum": "ReviewScheduleWordStatus"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "score": {
+              "name": "score",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "answeredAt": {
+              "name": "answeredAt",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "meta": {
+              "name": "meta",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": [],
+              "isReadOnly": true
+            }
+          },
+          "syncable": true,
+          "pluralName": "ReviewScheduleWords",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "provider": "userPools",
+                    "ownerField": "owner",
+                    "allow": "owner",
+                    "identityClaim": "cognito:username",
+                    "operations": ["create", "update", "delete", "read"]
                   }
                 ]
               }
@@ -350,10 +605,11 @@
       "enums": {
         "WordStatus": {
           "name": "WordStatus",
-          "values": [
-            "COLLECTED",
-            "LEARNED"
-          ]
+          "values": ["COLLECTED", "LEARNED"]
+        },
+        "ReviewScheduleWordStatus": {
+          "name": "ReviewScheduleWordStatus",
+          "values": ["TO_REVIEW", "REVIEWED"]
         }
       },
       "nonModels": {}

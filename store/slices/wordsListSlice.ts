@@ -108,15 +108,33 @@ const parseWordData = (word: any): Word => {
   }
 };
 
+/**
+ * Helper to clean Word objects - remove function relationships
+ */
+export const cleanWord = (word: any): Word => {
+  // Parse word data to extract the actual word properties
+  return parseWordData(word);
+};
+
+/**
+ * Helper to clean multiple words
+ */
+export const cleanWords = (words: any[]): Word[] => {
+  return words.map((word) => cleanWord(word));
+};
+
 const wordsListSlice = createSlice({
   name: "wordsList",
   initialState,
   reducers: {
-    setWords: (state, action: PayloadAction<Word[]>) => {
-      // Parse the data for each word
-      state.words = action.payload.map(parseWordData);
+    setWords: (state, action: PayloadAction<any[]>) => {
+      // Clean words before storing
+      const cleanedWords = cleanWords(action.payload);
+      state.words = cleanedWords;
+      state.isSynced = true;
       state.isLoading = false;
       state.error = null;
+      console.log(`✅ ${cleanedWords.length} words loaded and cleaned`);
     },
     setSynced: (state, action: PayloadAction<boolean>) => {
       state.isSynced = action.payload;
