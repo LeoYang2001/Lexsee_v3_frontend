@@ -64,10 +64,6 @@ const ProgressPage = () => {
   ).length;
   const learnedWords = words.filter((word) => word.status === "LEARNED").length;
 
-  // safe progress values to avoid division by zero / NaN
-  const solidProgressSafe = totalWords > 0 ? learnedWords / totalWords : 0;
-  const dashedProgressSafe = totalWords > 0 ? collectedWords / totalWords : 0;
-
   // Calculate collapsed card height as percentage
   const collapsedCardHeightPercentage =
     containerHeight > 0
@@ -327,8 +323,8 @@ const ProgressPage = () => {
 
         {/* ProgressBar with animation */}
         <ProgressBar
-          solidProgress={solidProgressSafe}
-          dashedProgress={dashedProgressSafe}
+          solidProgress={learnedWords / totalWords}
+          dashedProgress={collectedWords / totalWords}
           height={11}
           solidColor="#c4c4c5"
           dashedColor="#424345"
