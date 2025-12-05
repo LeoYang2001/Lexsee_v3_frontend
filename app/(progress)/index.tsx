@@ -1,7 +1,23 @@
-import { View, Text, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Pressable,
+  Dimensions,
+} from "react-native";
 import React, { useEffect, useState } from "react";
 import { useAppSelector } from "../../store/hooks";
 import { client } from "../client";
+import { router } from "expo-router";
+import { Calendar, ChevronLeft, EllipsisVertical } from "lucide-react-native";
+import ProgressBar from "../../components/common/ProgressBar";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+} from "react-native-reanimated";
+import Card1Content from "../../components/progress/Card1Content";
+import Card2Content from "../../components/progress/Card2Content";
 
 interface AllTimeSchedule {
   id: string;
@@ -12,6 +28,15 @@ interface AllTimeSchedule {
   successRate: number;
 }
 
+type ViewMode = "default" | "card1Expanded" | "card2Expanded";
+
+// Constants
+const { width, height } = Dimensions.get("window");
+const BORDER_RADIUS = Math.min(width, height) * 0.06;
+const COLLAPSED_CARD_HEIGHT_PX = 60;
+const COLLAPSED_BORDER_RADIUS = 12; // top corners for collapsed card2
+const EXPANDED_BORDER_RADIUS = BORDER_RADIUS * 2;
+
 const ProgressPage = () => {
   const words = useAppSelector((state) => state.wordsList.words);
   const userProfile = useAppSelector((state) => state.profile.profile);
@@ -21,6 +46,16 @@ const ProgressPage = () => {
 
   const [allSchedules, setAllSchedules] = useState<AllTimeSchedule[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<ViewMode>("default");
+  const [containerHeight, setContainerHeight] = useState(0);
+
+  // Animated values for card heights
+  const card1Height = useSharedValue(0);
+  const card2Height = useSharedValue(0);
+
+  // Animated values for border radius
+  const card1BorderRadius = useSharedValue(EXPANDED_BORDER_RADIUS);
+  const card2BorderRadius = useSharedValue(EXPANDED_BORDER_RADIUS);
 
   // Calculate word statistics
   const totalWords = words.length;
@@ -28,6 +63,16 @@ const ProgressPage = () => {
     (word) => word.status === "COLLECTED"
   ).length;
   const learnedWords = words.filter((word) => word.status === "LEARNED").length;
+
+  // safe progress values to avoid division by zero / NaN
+  const solidProgressSafe = totalWords > 0 ? learnedWords / totalWords : 0;
+  const dashedProgressSafe = totalWords > 0 ? collectedWords / totalWords : 0;
+
+  // Calculate collapsed card height as percentage
+  const collapsedCardHeightPercentage =
+    containerHeight > 0
+      ? (COLLAPSED_CARD_HEIGHT_PX / containerHeight) * 100
+      : 20;
 
   // Fetch all schedules
   useEffect(() => {
@@ -47,7 +92,6 @@ const ProgressPage = () => {
         });
 
         if (result.data && result.data.length > 0) {
-          // Clean and sort schedules by date (newest first)
           const cleanedSchedules = result.data
             .map((schedule: any) => ({
               id: schedule.id,
@@ -79,6 +123,100 @@ const ProgressPage = () => {
     fetchAllSchedules();
   }, [userProfile?.id]);
 
+  // Animated styles
+  const card1AnimatedStyle = useAnimatedStyle(() => ({
+    height: `${card1Height.value}%`,
+    borderRadius: card1BorderRadius.value,
+  }));
+
+  const card2AnimatedStyle = useAnimatedStyle(() => ({
+    height: `${card2Height.value}%`,
+    // top corners animate (card2BorderRadius), bottom corners always stay expanded
+    borderTopLeftRadius: card2BorderRadius.value,
+    borderTopRightRadius: card2BorderRadius.value,
+    borderBottomLeftRadius: EXPANDED_BORDER_RADIUS,
+    borderBottomRightRadius: EXPANDED_BORDER_RADIUS,
+  }));
+
+  // Animate heights and border radius based on viewMode
+  useEffect(() => {
+    const duration = 300;
+
+    switch (viewMode) {
+      case "default":
+        // Card 1: 63%, Card 2: 37%
+        card1Height.value = withTiming(63, { duration });
+        card2Height.value = withTiming(37, { duration });
+        card1BorderRadius.value = withTiming(EXPANDED_BORDER_RADIUS, {
+          duration,
+        });
+        card2BorderRadius.value = withTiming(EXPANDED_BORDER_RADIUS, {
+          duration,
+        });
+        break;
+
+      case "card1Expanded":
+        // Card 1: expanded, Card 2: collapsed
+        card1Height.value = withTiming(100 - collapsedCardHeightPercentage, {
+          duration,
+        });
+        card2Height.value = withTiming(collapsedCardHeightPercentage, {
+          duration,
+        });
+        card1BorderRadius.value = withTiming(EXPANDED_BORDER_RADIUS, {
+          duration,
+        });
+        card2BorderRadius.value = withTiming(COLLAPSED_BORDER_RADIUS, {
+          duration,
+        });
+        break;
+
+      case "card2Expanded":
+        // Card 1: collapsed, Card 2: expanded
+
+        card1Height.value = withTiming(collapsedCardHeightPercentage, {
+          duration,
+        });
+        card2Height.value = withTiming(100 - collapsedCardHeightPercentage, {
+          duration,
+        });
+        card1BorderRadius.value = withTiming(COLLAPSED_BORDER_RADIUS, {
+          duration,
+        });
+        card2BorderRadius.value = withTiming(EXPANDED_BORDER_RADIUS, {
+          duration,
+        });
+        break;
+    }
+  }, [viewMode, containerHeight, collapsedCardHeightPercentage]);
+
+  // Handle card 1 press
+  const handleCard1Press = () => {
+    if (viewMode === "card1Expanded") {
+      setViewMode("default");
+    } else {
+      setViewMode("card1Expanded");
+    }
+  };
+
+  // Handle card 2 press
+  const handleCard2Press = () => {
+    console.log(`🖱️ Card 2 pressed - Current mode: ${viewMode}`);
+    if (viewMode === "card2Expanded") {
+      setViewMode("default");
+    } else {
+      setViewMode("card2Expanded");
+    }
+  };
+
+  // Handle outside press (collapse cards)
+  const handleOutsidePress = () => {
+    if (viewMode !== "default") {
+      console.log(`🖱️ Outside press - Returning to default`);
+      setViewMode("default");
+    }
+  };
+
   useEffect(() => {
     console.log("📊 Progress Page Mounted");
     console.log(`📚 Total Words: ${totalWords}`);
@@ -89,172 +227,178 @@ const ProgressPage = () => {
   }, [totalWords, collectedWords, learnedWords, todaySchedule, allSchedules]);
 
   return (
-    <ScrollView className="flex-1 bg-white">
-      <View className="p-4">
-        <Text className="text-2xl font-bold mb-6">Progress Overview</Text>
+    <View
+      style={{
+        backgroundColor: "#131416",
+      }}
+      className="w-full h-full flex flex-col"
+    >
+      {/* Header */}
+      <View className="mt-16  mx-3 justify-between flex-row items-center">
+        <TouchableOpacity
+          onPress={() => {
+            router.back();
+          }}
+        >
+          <ChevronLeft color={"#fff"} />
+        </TouchableOpacity>
+        <Text style={{ fontSize: 18 }} className="opacity-70 text-white">
+          Recall Dashboard
+        </Text>
+        <TouchableOpacity className="p-2" onPress={() => {}}>
+          <EllipsisVertical size={18} color={"#fff"} />
+        </TouchableOpacity>
+      </View>
 
-        {/* Word Statistics */}
-        <View className="bg-gray-100 p-4 rounded-lg mb-6">
-          <Text className="text-lg font-semibold mb-4">Word Statistics</Text>
-
-          <View className="mb-3">
-            <Text className="text-base">Total Words:</Text>
-            <Text className="text-xl font-bold">{totalWords}</Text>
-          </View>
-
-          <View className="mb-3">
-            <Text className="text-base">Collected Words:</Text>
-            <Text className="text-xl font-bold text-blue-500">
-              {collectedWords}
-            </Text>
-          </View>
-
-          <View className="mb-3">
-            <Text className="text-base">Learned/Mastered Words:</Text>
-            <Text className="text-xl font-bold text-green-500">
+      {/* Progress Overview */}
+      <View className="flex w-full p-3 mt-6 flex-col justify-center">
+        <View className="flex-row justify-around items-center mb-6">
+          <View className="flex flex-col items-center gap-2">
+            <Text
+              style={{
+                fontSize: 32,
+                fontWeight: "400",
+                color: "#FFFFFF",
+              }}
+            >
               {learnedWords}
             </Text>
+            <View className="flex flex-row items-center justify-center gap-1">
+              <Text
+                style={{
+                  fontSize: 12,
+                  opacity: 0.7,
+                  color: "#FFFFFF",
+                }}
+              >
+                Mastered
+              </Text>
+              <View
+                style={{
+                  height: 8,
+                  width: 8,
+                  borderRadius: 2,
+                  backgroundColor: "#fff",
+                  opacity: 0.7,
+                }}
+              />
+            </View>
+          </View>
+          <View
+            style={{
+              height: 12,
+              width: 1,
+              backgroundColor: "#FFFFFF",
+              opacity: 0.2,
+            }}
+          />
+          <View className="flex flex-col items-center gap-2">
+            <Text
+              style={{
+                fontSize: 32,
+                fontWeight: "400",
+                color: "#FFFFFF",
+              }}
+            >
+              {collectedWords}
+            </Text>
+            <View className="flex flex-row items-center justify-center gap-1">
+              <Text
+                style={{
+                  fontSize: 12,
+                  opacity: 0.7,
+                  color: "#FFFFFF",
+                }}
+              >
+                Collected
+              </Text>
+              <View
+                style={{
+                  height: 8,
+                  width: 8,
+                  borderRadius: 2,
+                  backgroundColor: "#424345",
+                  opacity: 0.7,
+                }}
+              />
+            </View>
           </View>
         </View>
 
-        {/* Today's Schedule Raw Data */}
-        <View className="bg-gray-100 p-4 rounded-lg mb-6">
-          <Text className="text-lg font-semibold mb-4">Today's Schedule</Text>
-
-          {todaySchedule ? (
-            <View>
-              <Text className="text-sm font-mono bg-gray-200 p-2 rounded mb-2">
-                {JSON.stringify(todaySchedule, null, 2)}
-              </Text>
-
-              <View className="mt-4 space-y-2">
-                <View>
-                  <Text className="text-base">Schedule Date:</Text>
-                  <Text className="text-lg font-bold">
-                    {todaySchedule.scheduleDate}
-                  </Text>
-                </View>
-
-                <View>
-                  <Text className="text-base">Total Words in Schedule:</Text>
-                  <Text className="text-lg font-bold">
-                    {todaySchedule.totalWords || 0}
-                  </Text>
-                </View>
-
-                <View>
-                  <Text className="text-base">To Be Reviewed:</Text>
-                  <Text className="text-lg font-bold text-orange-500">
-                    {todaySchedule.toBeReviewedCount || 0}
-                  </Text>
-                </View>
-
-                <View>
-                  <Text className="text-base">Already Reviewed:</Text>
-                  <Text className="text-lg font-bold text-green-500">
-                    {todaySchedule.reviewedCount || 0}
-                  </Text>
-                </View>
-
-                <View>
-                  <Text className="text-base">Success Rate:</Text>
-                  <Text className="text-lg font-bold">
-                    {(todaySchedule.successRate || 0).toFixed(2)}%
-                  </Text>
-                </View>
-              </View>
-            </View>
-          ) : (
-            <Text className="text-base text-gray-500">
-              No schedule for today
-            </Text>
-          )}
-        </View>
-
-        {/* All-Time Schedules */}
-        <View className="bg-gray-100 p-4 rounded-lg mb-6">
-          <Text className="text-lg font-semibold mb-4">
-            All-Time Schedules ({allSchedules.length})
-          </Text>
-
-          {isLoading ? (
-            <Text className="text-base text-gray-500">
-              Loading schedules...
-            </Text>
-          ) : allSchedules.length > 0 ? (
-            <View>
-              {allSchedules.map((schedule: AllTimeSchedule, index: number) => (
-                <View
-                  key={schedule.id}
-                  className="bg-white p-3 rounded border border-gray-300 mb-3"
-                >
-                  <Text className="font-semibold text-base mb-2">
-                    {schedule.scheduleDate}
-                  </Text>
-
-                  <View className="flex flex-row justify-between mb-1">
-                    <Text className="text-sm">Total Words:</Text>
-                    <Text className="text-sm font-bold">
-                      {schedule.totalWords}
-                    </Text>
-                  </View>
-
-                  <View className="flex flex-row justify-between mb-1">
-                    <Text className="text-sm">To Review:</Text>
-                    <Text className="text-sm font-bold text-orange-500">
-                      {schedule.toBeReviewedCount}
-                    </Text>
-                  </View>
-
-                  <View className="flex flex-row justify-between mb-1">
-                    <Text className="text-sm">Reviewed:</Text>
-                    <Text className="text-sm font-bold text-green-500">
-                      {schedule.reviewedCount}
-                    </Text>
-                  </View>
-
-                  <View className="flex flex-row justify-between">
-                    <Text className="text-sm">Success Rate:</Text>
-                    <Text className="text-sm font-bold">
-                      {schedule.successRate.toFixed(2)}%
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          ) : (
-            <Text className="text-base text-gray-500">No schedules found</Text>
-          )}
-        </View>
-
-        {/* Summary */}
-        <View className="bg-blue-50 p-4 rounded-lg mb-6">
-          <Text className="text-lg font-semibold mb-4">Summary</Text>
-
-          <View className="space-y-2">
-            <Text>
-              Progress:{" "}
-              <Text className="font-bold">
-                {learnedWords}/{totalWords} words mastered
-              </Text>
-            </Text>
-            <Text>
-              Completion Rate:{" "}
-              <Text className="font-bold">
-                {totalWords > 0
-                  ? ((learnedWords / totalWords) * 100).toFixed(2)
-                  : 0}
-                %
-              </Text>
-            </Text>
-            <Text>
-              Total Review Sessions:{" "}
-              <Text className="font-bold">{allSchedules.length}</Text>
-            </Text>
-          </View>
-        </View>
+        {/* ProgressBar with animation */}
+        <ProgressBar
+          solidProgress={solidProgressSafe}
+          dashedProgress={dashedProgressSafe}
+          height={11}
+          solidColor="#c4c4c5"
+          dashedColor="#424345"
+          duration={2500}
+        />
       </View>
-    </ScrollView>
+
+      {/* Main Content - Expandable Cards Container */}
+      <Pressable
+        className="mt-10 "
+        style={{
+          flex: 1,
+          width: "100%",
+          padding: 6,
+          transform: [{ translateY: -6 }],
+        }}
+        onPress={handleOutsidePress}
+        onLayout={(event) => {
+          const { height } = event.nativeEvent.layout;
+          setContainerHeight(height);
+          console.log(`📏 Container layout measured: ${height}px`);
+        }}
+      >
+        {/* Card 1 - Today's Review */}
+        <Animated.View
+          style={[
+            {
+              backgroundColor: "#202123",
+              overflow: "hidden",
+            },
+            card1AnimatedStyle,
+          ]}
+        >
+          <Pressable
+            className="flex flex-col justify-start"
+            onPress={handleCard1Press}
+            style={{ height: "100%", padding: 12 }}
+          >
+            <Card1Content
+              viewMode={viewMode}
+              allSchedules={allSchedules}
+              todaySchedule={todaySchedule}
+            />
+          </Pressable>
+        </Animated.View>
+
+        {/* Card 2 - All-Time Schedules */}
+        <Animated.View
+          style={[
+            {
+              backgroundColor: "#202123",
+              overflow: "hidden",
+              marginTop: 6,
+            },
+            card2AnimatedStyle,
+          ]}
+        >
+          <Pressable
+            onPress={handleCard2Press}
+            style={{ height: "100%", padding: 12 }}
+          >
+            <Card2Content
+              viewMode={viewMode}
+              allSchedules={allSchedules}
+              isLoading={isLoading}
+            />
+          </Pressable>
+        </Animated.View>
+      </Pressable>
+    </View>
   );
 };
 

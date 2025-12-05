@@ -219,7 +219,7 @@ const DashCard = () => {
                     marginTop: 2,
                   }}
                 >
-                  Review
+                  Collected
                 </Text>
               </View>
 

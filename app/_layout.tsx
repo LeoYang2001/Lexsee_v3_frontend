@@ -438,6 +438,10 @@ function AppContent() {
         name="(reviewQueue)"
         options={{ headerShown: false, animation: "fade" }}
       />
+      <Stack.Screen
+        name="(progress)"
+        options={{ headerShown: false, animation: "slide_from_right" }}
+      />
       <Stack.Screen name="+not-found" options={{ title: "Not Found" }} />
     </Stack>
   );
