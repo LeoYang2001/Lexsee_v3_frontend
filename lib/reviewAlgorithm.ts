@@ -79,7 +79,7 @@ export function calculateStreak(allSchedules: any) {
       continue;
     }
 
-    const isReviewed = schedule.reviewedCount > 0;
+    const isReviewed = schedule.reviewedCount === schedule.totalWords;
     const isToday = dateStr === todayStr;
 
     if (!isReviewed) {

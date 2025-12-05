@@ -19,7 +19,7 @@ import Animated, {
 import Card1Content from "../../components/progress/Card1Content";
 import Card2Content from "../../components/progress/Card2Content";
 
-interface AllTimeSchedule {
+export interface AllTimeSchedule {
   id: string;
   scheduleDate: string;
   totalWords: number;
@@ -34,7 +34,7 @@ type ViewMode = "default" | "card1Expanded" | "card2Expanded";
 const { width, height } = Dimensions.get("window");
 const BORDER_RADIUS = Math.min(width, height) * 0.06;
 const COLLAPSED_CARD_HEIGHT_PX = 60;
-const COLLAPSED_BORDER_RADIUS = 12; // top corners for collapsed card2
+const COLLAPSED_BORDER_RADIUS = 16; // top corners for collapsed card2
 const EXPANDED_BORDER_RADIUS = BORDER_RADIUS * 2;
 
 const ProgressPage = () => {
@@ -53,9 +53,11 @@ const ProgressPage = () => {
   const card1Height = useSharedValue(0);
   const card2Height = useSharedValue(0);
 
-  // Animated values for border radius
-  const card1BorderRadius = useSharedValue(EXPANDED_BORDER_RADIUS);
-  const card2BorderRadius = useSharedValue(EXPANDED_BORDER_RADIUS);
+  // Animated values for border radii (separate top / bottom)
+  const card1TopRadius = useSharedValue(EXPANDED_BORDER_RADIUS);
+  const card1BottomRadius = useSharedValue(EXPANDED_BORDER_RADIUS);
+  const card2TopRadius = useSharedValue(EXPANDED_BORDER_RADIUS);
+  const card2BottomRadius = useSharedValue(EXPANDED_BORDER_RADIUS);
 
   // Calculate word statistics
   const totalWords = words.length;
@@ -122,16 +124,19 @@ const ProgressPage = () => {
   // Animated styles
   const card1AnimatedStyle = useAnimatedStyle(() => ({
     height: `${card1Height.value}%`,
-    borderRadius: card1BorderRadius.value,
+    borderTopLeftRadius: card1TopRadius.value,
+    borderTopRightRadius: card1TopRadius.value,
+    borderBottomLeftRadius: card1BottomRadius.value,
+    borderBottomRightRadius: card1BottomRadius.value,
   }));
 
   const card2AnimatedStyle = useAnimatedStyle(() => ({
     height: `${card2Height.value}%`,
-    // top corners animate (card2BorderRadius), bottom corners always stay expanded
-    borderTopLeftRadius: card2BorderRadius.value,
-    borderTopRightRadius: card2BorderRadius.value,
-    borderBottomLeftRadius: EXPANDED_BORDER_RADIUS,
-    borderBottomRightRadius: EXPANDED_BORDER_RADIUS,
+    // top corners animate (card2TopRadius), bottom corners stay expanded
+    borderTopLeftRadius: card2TopRadius.value,
+    borderTopRightRadius: card2TopRadius.value,
+    borderBottomLeftRadius: card2BottomRadius.value,
+    borderBottomRightRadius: card2BottomRadius.value,
   }));
 
   // Animate heights and border radius based on viewMode
@@ -143,10 +148,13 @@ const ProgressPage = () => {
         // Card 1: 63%, Card 2: 37%
         card1Height.value = withTiming(63, { duration });
         card2Height.value = withTiming(37, { duration });
-        card1BorderRadius.value = withTiming(EXPANDED_BORDER_RADIUS, {
+        // both cards fully expanded (top & bottom)
+        card1TopRadius.value = withTiming(EXPANDED_BORDER_RADIUS, { duration });
+        card1BottomRadius.value = withTiming(EXPANDED_BORDER_RADIUS, {
           duration,
         });
-        card2BorderRadius.value = withTiming(EXPANDED_BORDER_RADIUS, {
+        card2TopRadius.value = withTiming(EXPANDED_BORDER_RADIUS, { duration });
+        card2BottomRadius.value = withTiming(EXPANDED_BORDER_RADIUS, {
           duration,
         });
         break;
@@ -159,27 +167,40 @@ const ProgressPage = () => {
         card2Height.value = withTiming(collapsedCardHeightPercentage, {
           duration,
         });
-        card1BorderRadius.value = withTiming(EXPANDED_BORDER_RADIUS, {
+        // Card1: top expanded, bottom collapsed to visually match collapsed card2
+        card1TopRadius.value = withTiming(EXPANDED_BORDER_RADIUS, { duration });
+        card1BottomRadius.value = withTiming(COLLAPSED_BORDER_RADIUS, {
           duration,
         });
-        card2BorderRadius.value = withTiming(COLLAPSED_BORDER_RADIUS, {
+        // Card2: top collapsed, bottom stays expanded
+        card2TopRadius.value = withTiming(COLLAPSED_BORDER_RADIUS, {
+          duration,
+        });
+        card2BottomRadius.value = withTiming(EXPANDED_BORDER_RADIUS, {
           duration,
         });
         break;
 
       case "card2Expanded":
         // Card 1: collapsed, Card 2: expanded
-
         card1Height.value = withTiming(collapsedCardHeightPercentage, {
           duration,
         });
         card2Height.value = withTiming(100 - collapsedCardHeightPercentage, {
           duration,
         });
-        card1BorderRadius.value = withTiming(COLLAPSED_BORDER_RADIUS, {
+        // Card1 collapsed: top collapsed, bottom stays expanded
+        card1TopRadius.value = withTiming(COLLAPSED_BORDER_RADIUS, {
           duration,
         });
-        card2BorderRadius.value = withTiming(EXPANDED_BORDER_RADIUS, {
+        card1BottomRadius.value = withTiming(COLLAPSED_BORDER_RADIUS, {
+          duration,
+        });
+        // Card2 expanded: top collapsed, bottom expanded (special visual)
+        card2TopRadius.value = withTiming(COLLAPSED_BORDER_RADIUS, {
+          duration,
+        });
+        card2BottomRadius.value = withTiming(EXPANDED_BORDER_RADIUS, {
           duration,
         });
         break;
