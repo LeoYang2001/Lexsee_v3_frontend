@@ -58,7 +58,7 @@ const Card2Content: React.FC<Card2ContentProps> = ({
             opacity: 0.4,
           }}
         >
-          Calendar
+          Badge
         </Text>
       </View>
       <ScrollView

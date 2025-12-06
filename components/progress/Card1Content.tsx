@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Calendar, TrendingDown, TrendingUp } from "lucide-react-native";
 import { calculateStreak } from "../../lib/reviewAlgorithm";
 import { AllTimeSchedule } from "../../app/(progress)";
+import ProgressCalendar from "./ProgressCalendar";
 
 interface Card1ContentProps {
   viewMode: "default" | "card1Expanded" | "card2Expanded";
@@ -12,9 +13,10 @@ interface Card1ContentProps {
 
 const Card1Content: React.FC<Card1ContentProps> = ({
   viewMode,
-  todaySchedule,
   allSchedules,
 }) => {
+  // selected date lifted here
+  const [selectedIso, setSelectedIso] = useState<string | null>(null);
   // guard schedules to avoid undefined being passed into calculateStreak
   const [streak, setStreak] = useState(0);
 
@@ -71,12 +73,12 @@ const Card1Content: React.FC<Card1ContentProps> = ({
   }
 
   return (
-    <View className=" flex-1 flex flex-col justify-start px-3">
+    <View className=" flex-1 flex flex-col justify-start ">
       <View
         style={{
           height: 48,
         }}
-        className=" w-full   flex flex-row  justify-start gap-2 items-center"
+        className=" w-full   px-3 flex flex-row  justify-start gap-2 items-center"
       >
         <Calendar color="#fff" opacity={0.6} size={16} />
         <Text
@@ -117,71 +119,19 @@ const Card1Content: React.FC<Card1ContentProps> = ({
         )}
       </View>
 
-      <ScrollView
-        className="  flex-1  flex flex-col w-full border  border-red-50"
-        showsVerticalScrollIndicator={false}
-      >
-        <View>
-          {todaySchedule ? (
-            <>
-              <Text
-                style={{
-                  color: "#fff",
-                  opacity: 0.7,
-                  marginBottom: 8,
-                  fontSize: 12,
-                }}
-              >
-                Schedule Date: {todaySchedule.scheduleDate}
-              </Text>
-              <Text
-                style={{
-                  color: "#fff",
-                  opacity: 0.7,
-                  marginBottom: 8,
-                  fontSize: 12,
-                }}
-              >
-                Total Words: {todaySchedule.totalWords || 0}
-              </Text>
-              <Text
-                style={{
-                  color: "#FFA500",
-                  opacity: 0.8,
-                  marginBottom: 8,
-                  fontSize: 12,
-                }}
-              >
-                To Review: {todaySchedule.toBeReviewedCount || 0}
-              </Text>
-              <Text
-                style={{
-                  color: "#4CAF50",
-                  opacity: 0.8,
-                  marginBottom: 8,
-                  fontSize: 12,
-                }}
-              >
-                Reviewed: {todaySchedule.reviewedCount || 0}
-              </Text>
-              <Text
-                style={{
-                  color: "#fff",
-                  opacity: 0.7,
-                  fontSize: 12,
-                }}
-              >
-                Success Rate:{" "}
-                {Number(todaySchedule?.successRate ?? 0).toFixed(2)}%
-              </Text>
-            </>
-          ) : (
-            <Text style={{ color: "#fff", opacity: 0.5, fontSize: 12 }}>
-              No schedule for today
-            </Text>
-          )}
+      <View className="  flex-1  relative  flex flex-col w-full ">
+        <ProgressCalendar
+          viewMode={viewMode}
+          selectedIso={selectedIso}
+          onSelectDate={setSelectedIso}
+        />
+        <View className=" flex-1 mt-3 w-full p-3">
+          {/* placeholder display of selected date */}
+          <Text style={{ color: "#fff" }}>
+            {JSON.stringify({ selectedDate: selectedIso })}
+          </Text>
         </View>
-      </ScrollView>
+      </View>
     </View>
   );
 };
