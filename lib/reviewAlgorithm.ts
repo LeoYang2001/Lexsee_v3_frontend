@@ -57,48 +57,54 @@ export function getNextReview(input: ReviewInput): ReviewOutput {
 }
 
 export function calculateStreak(allSchedules: any) {
-  // Convert the array into a map for O(1) lookup
-  const scheduleMap: Record<string, any> = {};
-  allSchedules.forEach((s: any) => {
-    scheduleMap[s.scheduleDate] = s;
-  });
+  // Guard
+  if (!Array.isArray(allSchedules) || allSchedules.length === 0) return 0;
 
+  // allSchedules is expected sorted from latest -> oldest
+  const todayStr = new Date().toISOString().split("T")[0];
   let streak = 0;
 
-  // Start from today's date
-  let currentDate = new Date();
-  const todayStr = currentDate.toISOString().split("T")[0];
+  for (let i = 0; i < allSchedules.length; i++) {
+    const s = allSchedules[i];
+    if (!s) continue;
 
-  while (true) {
-    const dateStr = currentDate.toISOString().split("T")[0];
-    const schedule = scheduleMap[dateStr];
-
-    if (!schedule) {
-      // No schedule today, move to previous day
-      currentDate.setDate(currentDate.getDate() - 1);
+    // fully reviewed day increments streak
+    if (s.reviewedCount === s.totalWords) {
+      streak++;
       continue;
     }
 
-    const isReviewed = schedule.reviewedCount === schedule.totalWords;
-    const isToday = dateStr === todayStr;
-
-    if (!isReviewed) {
-      if (isToday) {
-        // Today is allowed to be unreviewed → do NOT break streak
-        currentDate.setDate(currentDate.getDate() - 1);
-        continue;
-      } else {
-        // Past unreviewed schedule breaks streak
-        break;
-      }
+    // if the latest entry is today's schedule and it's not reviewed yet,
+    // keep counting past it (do not treat today's unreviewed as a break).
+    if (s.scheduleDate === todayStr) {
+      // skip today's unreviewed schedule and continue checking previous days
+      continue;
     }
 
-    // Count reviewed schedule day
-    streak++;
-
-    // Move to previous day
-    currentDate.setDate(currentDate.getDate() - 1);
+    // any past (non-today) non-complete schedule breaks the streak
+    break;
   }
 
   return streak;
+}
+
+/**
+ * Calculate learning score from completion and accuracy using
+ * a weighted geometric mean.
+ *
+ * WHY geometric mean?
+ * - Both completion AND accuracy must be good to get a high score
+ * - One high value cannot fully compensate for the other being low
+ * - This matches real learning: guessing through everything ≠ mastery
+ *
+ * completion, accuracy: numbers in range [0, 100]
+ * wAcc: weight of accuracy importance (0.6–0.8 recommended)
+ */
+export function score_geo(completion: number, accuracy: number, wAcc = 0.7) {
+  const c = Math.max(0, Math.min(1, completion / 100));
+  const a = Math.max(0, Math.min(1, accuracy / 100));
+  const wComp = 1 - wAcc;
+
+  const s = Math.pow(a, wAcc) * Math.pow(c, wComp);
+  return Math.round(100 * s);
 }

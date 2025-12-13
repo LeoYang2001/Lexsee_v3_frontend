@@ -8,6 +8,7 @@ import Animated, {
   interpolate,
   Extrapolate,
 } from "react-native-reanimated";
+import { AllTimeSchedule } from "../../app/(progress)";
 
 type ParentViewMode = "default" | "card1Expanded" | "card2Expanded";
 
@@ -15,10 +16,12 @@ export default function ProgressCalendar({
   viewMode,
   selectedIso = null,
   onSelectDate = () => {},
+  allSchedules = [],
 }: {
   viewMode?: ParentViewMode;
   selectedIso?: string | null;
   onSelectDate?: (iso: string | null) => void;
+  allSchedules?: AllTimeSchedule[];
 }) {
   const COLLAPSED_H = 65;
   const EXPANDED_H = 230;
@@ -146,36 +149,60 @@ export default function ProgressCalendar({
     isToday,
     isSelected,
     onPress,
+    isScheduled,
+    isReviewed,
   }: {
     date: Date | null;
     iso: string | null;
     isToday: boolean;
     isSelected: boolean;
     onPress: (iso: string | null) => void;
+    isScheduled: boolean;
+    isReviewed: boolean;
   }) {
     if (!date) {
       return <View className="flex-1 items-center justify-center p-1" />;
     }
+
+    const shouldHighlightText = !isScheduled || (isScheduled && isReviewed);
     return (
       <TouchableOpacity
         activeOpacity={0.7}
-        className="flex-1 items-center relative justify-center p-1 "
+        className="flex-1 items-center   relative justify-center p-1 "
         onPress={() => onPress(iso)}
       >
         <View
-          style={{ width: 21, height: 21 }}
+          style={{
+            width: 21,
+            height: 21,
+            // backgroundColor: isScheduled ? "#444" : "transparent",
+          }}
           className={`  items-center justify-center rounded-full ${
             isSelected ? "bg-orange-500" : ""
           }`}
         >
           <Text
-            style={{ fontSize: 14, fontWeight: "400" }}
-            className={`${isSelected ? "text-white" : "text-gray-300"}`}
+            style={{
+              fontSize: 14,
+              fontWeight: "400",
+              opacity: shouldHighlightText ? 1 : 0.3,
+            }}
+            className="text-white"
           >
             {date.getDate()}
           </Text>
         </View>
         {/* IsToday Hightlight  */}
+        {isToday && (
+          <View
+            className=" absolute   self-center rounded-full bg-white "
+            style={{
+              height: 3,
+              width: 3,
+              bottom: 0,
+            }}
+          />
+        )}
       </TouchableOpacity>
     );
   }
@@ -294,13 +321,12 @@ export default function ProgressCalendar({
       >
         <View className="  flex-row  items-center justify-between">
           {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((label) => (
-            <View className="flex-1 ">
+            <View key={label} className="flex-1 ">
               <Text
                 style={{
                   color: "#fff",
                   opacity: 0.4,
                 }}
-                key={label}
                 className="text-xs text-center"
               >
                 {label}
@@ -314,6 +340,14 @@ export default function ProgressCalendar({
             const iso = isoDate(d);
             const isToday = iso === isoDate(today);
             const isSelected = iso === selectedIso;
+            const isScheduled =
+              allSchedules.filter((s) => s.scheduleDate === iso).length > 0;
+            const schedule = allSchedules.filter(
+              (s) => s.scheduleDate === iso
+            )[0];
+            const isReviewed = schedule
+              ? schedule.reviewedCount === schedule.totalWords
+              : false;
             return (
               <DateCell
                 key={iso}
@@ -321,9 +355,10 @@ export default function ProgressCalendar({
                 iso={iso}
                 isToday={isToday}
                 isSelected={isSelected}
+                isScheduled={isScheduled}
+                isReviewed={isReviewed}
                 onPress={(iso) => {
                   setSelectedIso(iso);
-                  console.log("Calendar date pressed:", iso);
                 }}
               />
             );
@@ -428,11 +463,22 @@ export default function ProgressCalendar({
                   {monthCells.slice(start, start + 7).map((cell, cidx) => {
                     const iso = cell ? isoDate(cell) : null;
                     const cellKey = iso ?? `empty-${r}-${cidx}`;
+                    const isScheduled =
+                      allSchedules.filter((s) => s.scheduleDate === iso)
+                        .length > 0;
+                    const schedule = allSchedules.filter(
+                      (s) => s.scheduleDate === iso
+                    )[0];
+                    const isReviewed = schedule
+                      ? schedule.reviewedCount === schedule.totalWords
+                      : false;
                     return (
                       <DateCell
                         key={cellKey}
                         date={cell}
                         iso={iso}
+                        isScheduled={isScheduled}
+                        isReviewed={isReviewed}
                         isToday={
                           cell ? isoDate(cell) === isoDate(today) : false
                         }
@@ -442,7 +488,6 @@ export default function ProgressCalendar({
                         onPress={(iso) => {
                           if (!iso) return;
                           setSelectedIso(iso);
-                          console.log("Calendar date pressed:", iso);
                         }}
                       />
                     );

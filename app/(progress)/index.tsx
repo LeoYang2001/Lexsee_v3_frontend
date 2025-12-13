@@ -9,7 +9,7 @@ import React, { useEffect, useState } from "react";
 import { useAppSelector } from "../../store/hooks";
 import { client } from "../client";
 import { router } from "expo-router";
-import { Calendar, ChevronLeft, EllipsisVertical } from "lucide-react-native";
+import { ChevronLeft, EllipsisVertical } from "lucide-react-native";
 import ProgressBar from "../../components/common/ProgressBar";
 import Animated, {
   useSharedValue,
@@ -26,6 +26,7 @@ export interface AllTimeSchedule {
   toBeReviewedCount: number;
   reviewedCount: number;
   successRate: number;
+  scheduleWords?: string[];
 }
 
 type ViewMode = "default" | "card1Expanded" | "card2Expanded";
@@ -98,6 +99,7 @@ const ProgressPage = () => {
               toBeReviewedCount: schedule.toBeReviewedCount || 0,
               reviewedCount: schedule.reviewedCount || 0,
               successRate: schedule.successRate || 0,
+              scheduleWords: schedule.scheduleWords || [],
             }))
             .sort(
               (a: AllTimeSchedule, b: AllTimeSchedule) =>
@@ -105,7 +107,9 @@ const ProgressPage = () => {
                 new Date(a.scheduleDate).getTime()
             );
 
-          console.log(`✅ Fetched ${cleanedSchedules.length} schedules`);
+          console.log(
+            `✅ Fetched schedules: ${JSON.stringify(cleanedSchedules)} `
+          );
           setAllSchedules(cleanedSchedules);
         } else {
           console.log("📅 No schedules found");
@@ -233,15 +237,6 @@ const ProgressPage = () => {
       setViewMode("default");
     }
   };
-
-  useEffect(() => {
-    console.log("📊 Progress Page Mounted");
-    console.log(`📚 Total Words: ${totalWords}`);
-    console.log(`📝 Collected: ${collectedWords}`);
-    console.log(`✅ Learned: ${learnedWords}`);
-    console.log(`📅 Today's Schedule:`, todaySchedule);
-    console.log(`📈 All-time Schedules:`, allSchedules);
-  }, [totalWords, collectedWords, learnedWords, todaySchedule, allSchedules]);
 
   return (
     <View

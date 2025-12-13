@@ -4,6 +4,7 @@ import { Calendar, TrendingDown, TrendingUp } from "lucide-react-native";
 import { calculateStreak } from "../../lib/reviewAlgorithm";
 import { AllTimeSchedule } from "../../app/(progress)";
 import ProgressCalendar from "./ProgressCalendar";
+import ProgressReview from "./ProgressReview";
 
 interface Card1ContentProps {
   viewMode: "default" | "card1Expanded" | "card2Expanded";
@@ -16,7 +17,10 @@ const Card1Content: React.FC<Card1ContentProps> = ({
   allSchedules,
 }) => {
   // selected date lifted here
-  const [selectedIso, setSelectedIso] = useState<string | null>(null);
+  // default selected date to today (YYYY-MM-DD)
+  const [selectedIso, setSelectedIso] = useState<string | null>(
+    new Date().toISOString().slice(0, 10)
+  );
   // guard schedules to avoid undefined being passed into calculateStreak
   const [streak, setStreak] = useState(0);
 
@@ -124,12 +128,13 @@ const Card1Content: React.FC<Card1ContentProps> = ({
           viewMode={viewMode}
           selectedIso={selectedIso}
           onSelectDate={setSelectedIso}
+          allSchedules={allSchedules}
         />
         <View className=" flex-1 mt-3 w-full p-3">
-          {/* placeholder display of selected date */}
-          <Text style={{ color: "#fff" }}>
-            {JSON.stringify({ selectedDate: selectedIso })}
-          </Text>
+          <ProgressReview
+            allSchedules={allSchedules}
+            selectedIso={selectedIso}
+          />
         </View>
       </View>
     </View>
