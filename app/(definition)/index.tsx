@@ -228,7 +228,6 @@ export default function DefinitionPage() {
   const params = useLocalSearchParams();
   const { words } = useAppSelector((state) => state.wordsList);
   const { profile } = useAppSelector((state) => state.profile);
-  const dispatch = useDispatch();
 
   const [wordInfo, setWordInfo] = useState<Word | undefined>(undefined);
 
@@ -300,26 +299,16 @@ export default function DefinitionPage() {
     } catch (error) {
       console.log(error);
     }
-    console.log("wordInfo.id after save/create:", wordInfoToSave);
 
     //initiate scheduling notification update
     const newNextDue = new Date();
     newNextDue.setDate(newNextDue.getDate() + wordInfoToSave.review_interval);
-    const updatedProfile: UserProfile | false =
-      await handleScheduleNotification(
-        userProfile,
-        wordInfoToSave.id,
-        newNextDue
-      );
-    // after update profile, we should reload redux profile state to make sure it's the latest
-    console.log("updatedProfile:", updatedProfile);
-    if (updatedProfile) {
-      // Update Redux store with new profile
-      dispatch(setProfile(updatedProfile));
-      console.log("✅ Redux store updated");
-    } else {
-      console.error("❌ Failed to update profile, schedule not saved");
-    }
+    const ifSuccess = await handleScheduleNotification(
+      userProfile,
+      wordInfoToSave.id,
+      newNextDue
+    );
+    console.log("Handle schedule notification success:", ifSuccess);
     // 4. Force refresh to get accurate state
     setSaveStatus("saved");
   };
@@ -626,35 +615,6 @@ export default function DefinitionPage() {
           <Text style={{ color: "#fff", fontSize: 12, opacity: 0.3 }}>
             AI-generated • For reference only
           </Text>
-        </View>
-      );
-    }
-    return null;
-  };
-
-  // Loading State with AI Indicator
-  const LoadingStateIndicator = () => {
-    if (isLoadingDefinition) {
-      return (
-        <View style={{ alignItems: "center", marginTop: 20 }}>
-          <ActivityIndicator size="small" color="#E44814" />
-          <Text
-            style={{ color: "#fff", opacity: 0.8, marginTop: 8, fontSize: 14 }}
-          >
-            {isUsingAI ? "Generating with AI..." : "Fetching definition..."}
-          </Text>
-          {isUsingAI && (
-            <Text
-              style={{
-                color: "#E44814",
-                opacity: 0.7,
-                marginTop: 4,
-                fontSize: 12,
-              }}
-            >
-              Dictionary unavailable, using AI fallback
-            </Text>
-          )}
         </View>
       );
     }

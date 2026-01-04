@@ -8,28 +8,28 @@
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
-		3346B4DCA6B6993EE9CCFB88 /* libPods-lexseev3frontend.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B855A8BA0C758B9D4161CD1A /* libPods-lexseev3frontend.a */; };
+		2939B348005DD6430CEAC2CF /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B914224ACD3AE6C2886052B9 /* ExpoModulesProvider.swift */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		65A0A4A39D641EF279060C18 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = AF0D588E0F5C18C916D1BD2B /* PrivacyInfo.xcprivacy */; };
-		6C82C353FBF3CB60523E3B9E /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CDA5DE65F4AFCF61B157B48 /* ExpoModulesProvider.swift */; };
+		51550C5A2495178AE04EC537 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 61CBA9EE38E1226AF571C38A /* PrivacyInfo.xcprivacy */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
+		FC13B104661EAB56301B0244 /* libPods-lexseev3frontend.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D1208A40A84A444F0C5A659 /* libPods-lexseev3frontend.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		13B07F961A680F5B00A75B9A /* lexseev3frontend.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = lexseev3frontend.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = lexseev3frontend/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = lexseev3frontend/Info.plist; sourceTree = "<group>"; };
-		62A326191BA0C1C203362E9A /* Pods-lexseev3frontend.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-lexseev3frontend.debug.xcconfig"; path = "Target Support Files/Pods-lexseev3frontend/Pods-lexseev3frontend.debug.xcconfig"; sourceTree = "<group>"; };
-		9CDA5DE65F4AFCF61B157B48 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-lexseev3frontend/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		61CBA9EE38E1226AF571C38A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = lexseev3frontend/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		8C96F9C801C883A7E4602A53 /* Pods-lexseev3frontend.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-lexseev3frontend.debug.xcconfig"; path = "Target Support Files/Pods-lexseev3frontend/Pods-lexseev3frontend.debug.xcconfig"; sourceTree = "<group>"; };
+		99B538933C05C8599D62A9CC /* Pods-lexseev3frontend.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-lexseev3frontend.release.xcconfig"; path = "Target Support Files/Pods-lexseev3frontend/Pods-lexseev3frontend.release.xcconfig"; sourceTree = "<group>"; };
+		9D1208A40A84A444F0C5A659 /* libPods-lexseev3frontend.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-lexseev3frontend.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = lexseev3frontend/SplashScreen.storyboard; sourceTree = "<group>"; };
-		AF0D588E0F5C18C916D1BD2B /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = lexseev3frontend/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		B855A8BA0C758B9D4161CD1A /* libPods-lexseev3frontend.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-lexseev3frontend.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		B914224ACD3AE6C2886052B9 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-lexseev3frontend/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = lexseev3frontend/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* lexseev3frontend-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "lexseev3frontend-Bridging-Header.h"; path = "lexseev3frontend/lexseev3frontend-Bridging-Header.h"; sourceTree = "<group>"; };
-		FFA6C5D17C611C67B1910A32 /* Pods-lexseev3frontend.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-lexseev3frontend.release.xcconfig"; path = "Target Support Files/Pods-lexseev3frontend/Pods-lexseev3frontend.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,7 +37,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3346B4DCA6B6993EE9CCFB88 /* libPods-lexseev3frontend.a in Frameworks */,
+				FC13B104661EAB56301B0244 /* libPods-lexseev3frontend.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -53,44 +53,36 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				AF0D588E0F5C18C916D1BD2B /* PrivacyInfo.xcprivacy */,
+				61CBA9EE38E1226AF571C38A /* PrivacyInfo.xcprivacy */,
 			);
 			name = lexseev3frontend;
 			sourceTree = "<group>";
 		};
-		154DE003177DFA7636E21E2B /* Pods */ = {
+		2B94EC1516F555A3AD855873 /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				62A326191BA0C1C203362E9A /* Pods-lexseev3frontend.debug.xcconfig */,
-				FFA6C5D17C611C67B1910A32 /* Pods-lexseev3frontend.release.xcconfig */,
+				8C96F9C801C883A7E4602A53 /* Pods-lexseev3frontend.debug.xcconfig */,
+				99B538933C05C8599D62A9CC /* Pods-lexseev3frontend.release.xcconfig */,
 			);
 			name = Pods;
 			path = Pods;
-			sourceTree = "<group>";
-		};
-		2203F439CFFDBF7709A853A9 /* lexseev3frontend */ = {
-			isa = PBXGroup;
-			children = (
-				9CDA5DE65F4AFCF61B157B48 /* ExpoModulesProvider.swift */,
-			);
-			name = lexseev3frontend;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				B855A8BA0C758B9D4161CD1A /* libPods-lexseev3frontend.a */,
+				9D1208A40A84A444F0C5A659 /* libPods-lexseev3frontend.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		5E74829F8BCE06988A49E55A /* ExpoModulesProviders */ = {
+		7069B060476EC0897FD1ABAD /* lexseev3frontend */ = {
 			isa = PBXGroup;
 			children = (
-				2203F439CFFDBF7709A853A9 /* lexseev3frontend */,
+				B914224ACD3AE6C2886052B9 /* ExpoModulesProvider.swift */,
 			);
-			name = ExpoModulesProviders;
+			name = lexseev3frontend;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -107,8 +99,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				154DE003177DFA7636E21E2B /* Pods */,
-				5E74829F8BCE06988A49E55A /* ExpoModulesProviders */,
+				2B94EC1516F555A3AD855873 /* Pods */,
+				C9A588103BDC55F6DDDA8CA5 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -132,6 +124,14 @@
 			path = lexseev3frontend/Supporting;
 			sourceTree = "<group>";
 		};
+		C9A588103BDC55F6DDDA8CA5 /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				7069B060476EC0897FD1ABAD /* lexseev3frontend */,
+			);
+			name = ExpoModulesProviders;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -140,13 +140,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "lexseev3frontend" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				773A74BBDB53B1B37F091F4B /* [Expo] Configure project */,
+				CA40CB57E785133C4544966B /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				39F79EC757B1DFCF9565D682 /* [CP] Embed Pods Frameworks */,
+				E4C32D7ABF6EA84D4E922BFF /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -196,7 +196,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				65A0A4A39D641EF279060C18 /* PrivacyInfo.xcprivacy in Resources */,
+				51550C5A2495178AE04EC537 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -240,43 +240,6 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		39F79EC757B1DFCF9565D682 /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-lexseev3frontend/Pods-lexseev3frontend-frameworks.sh",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-lexseev3frontend/Pods-lexseev3frontend-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		773A74BBDB53B1B37F091F4B /* [Expo] Configure project */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "[Expo] Configure project";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-lexseev3frontend/expo-configure-project.sh\"\n";
-		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -296,6 +259,8 @@
 				"${PODS_CONFIGURATION_BUILD_DIR}/React-cxxreact/React-cxxreact_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/boost/boost_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/glog/glog_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/lottie-ios/LottiePrivacyInfo.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/lottie-react-native/Lottie_React_Native_Privacy.bundle",
 			);
 			name = "[CP] Copy Pods Resources";
 			outputPaths = (
@@ -311,10 +276,49 @@
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/React-cxxreact_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/boost_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/glog_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/LottiePrivacyInfo.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/Lottie_React_Native_Privacy.bundle",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-lexseev3frontend/Pods-lexseev3frontend-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		CA40CB57E785133C4544966B /* [Expo] Configure project */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "[Expo] Configure project";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-lexseev3frontend/expo-configure-project.sh\"\n";
+		};
+		E4C32D7ABF6EA84D4E922BFF /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-lexseev3frontend/Pods-lexseev3frontend-frameworks.sh",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-lexseev3frontend/Pods-lexseev3frontend-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -325,7 +329,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				6C82C353FBF3CB60523E3B9E /* ExpoModulesProvider.swift in Sources */,
+				2939B348005DD6430CEAC2CF /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -334,7 +338,7 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 62A326191BA0C1C203362E9A /* Pods-lexseev3frontend.debug.xcconfig */;
+			baseConfigurationReference = 8C96F9C801C883A7E4602A53 /* Pods-lexseev3frontend.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -370,7 +374,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = FFA6C5D17C611C67B1910A32 /* Pods-lexseev3frontend.release.xcconfig */;
+			baseConfigurationReference = 99B538933C05C8599D62A9CC /* Pods-lexseev3frontend.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;

@@ -55,3 +55,56 @@ export function getNextReview(input: ReviewInput): ReviewOutput {
     ease_factor: newEase,
   };
 }
+
+export function calculateStreak(allSchedules: any) {
+  // Guard
+  if (!Array.isArray(allSchedules) || allSchedules.length === 0) return 0;
+
+  // allSchedules is expected sorted from latest -> oldest
+  const todayStr = new Date().toISOString().split("T")[0];
+  let streak = 0;
+
+  for (let i = 0; i < allSchedules.length; i++) {
+    const s = allSchedules[i];
+    if (!s) continue;
+
+    // fully reviewed day increments streak
+    if (s.reviewedCount === s.totalWords) {
+      streak++;
+      continue;
+    }
+
+    // if the latest entry is today's schedule and it's not reviewed yet,
+    // keep counting past it (do not treat today's unreviewed as a break).
+    if (s.scheduleDate === todayStr) {
+      // skip today's unreviewed schedule and continue checking previous days
+      continue;
+    }
+
+    // any past (non-today) non-complete schedule breaks the streak
+    break;
+  }
+
+  return streak;
+}
+
+/**
+ * Calculate learning score from completion and accuracy using
+ * a weighted geometric mean.
+ *
+ * WHY geometric mean?
+ * - Both completion AND accuracy must be good to get a high score
+ * - One high value cannot fully compensate for the other being low
+ * - This matches real learning: guessing through everything ≠ mastery
+ *
+ * completion, accuracy: numbers in range [0, 100]
+ * wAcc: weight of accuracy importance (0.6–0.8 recommended)
+ */
+export function score_geo(completion: number, accuracy: number, wAcc = 0.7) {
+  const c = Math.max(0, Math.min(1, completion / 100));
+  const a = Math.max(0, Math.min(1, accuracy / 100));
+  const wComp = 1 - wAcc;
+
+  const s = Math.pow(a, wAcc) * Math.pow(c, wComp);
+  return Math.round(100 * s);
+}

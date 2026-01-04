@@ -8,12 +8,13 @@ import outputs from "../amplify_outputs.json";
 import "../global.css";
 import { useEffect, useState, useRef } from "react";
 import { client } from "./client";
-import { useAppDispatch } from "../store/hooks";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
   setWords,
   setSynced,
   setLoading,
   setError,
+  cleanWords,
 } from "../store/slices/wordsListSlice";
 import { clearUser, fetchUserInfo } from "../store/slices/userSlice";
 import { getCurrentUser } from "aws-amplify/auth";
@@ -22,9 +23,11 @@ import {
   setProfile,
   setProfileError,
   setProfileLoading,
+  cleanUserProfile,
 } from "../store/slices/profileSlice";
 import * as Notifications from "expo-notifications";
 import { useCheckChina } from "../hooks/useCheckChina";
+import { setTodaySchedule } from "../store/slices/reviewScheduleSlice";
 
 Amplify.configure(outputs);
 
@@ -51,6 +54,9 @@ function AppContent() {
     [key: string]: ReturnType<typeof setTimeout>;
   }>({});
 
+  const userProfile = useAppSelector((state) => state.profile.profile);
+  const [scheduleSubscription, setScheduleSubscription] = useState<any>(null);
+
   async function requestNotificationPermissions() {
     const { status } = await Notifications.requestPermissionsAsync();
     if (status !== "granted") {
@@ -72,27 +78,6 @@ function AppContent() {
     requestNotificationPermissions();
   }, []);
 
-  // Move your profile helper functions here
-  const serializeProfile = async (profile: any) => {
-    const { wordsList, ...cleanProfile } = profile;
-
-    try {
-      const wordsList_res = await wordsList();
-      const wordsListData = wordsList_res.data;
-
-      return {
-        ...cleanProfile,
-        wordsListId: wordsListData?.id || null,
-      };
-    } catch (error) {
-      console.error("Error fetching wordsList:", error);
-      return {
-        ...cleanProfile,
-        wordsListId: null,
-      };
-    }
-  };
-
   const checkUserProfile = async (userId: string): Promise<boolean> => {
     dispatch(setProfileLoading(true));
 
@@ -101,13 +86,14 @@ function AppContent() {
         filter: { userId: { eq: userId } },
       });
 
-      if (profileResult.data.length > 0) {
+      if (profileResult.data && profileResult.data.length > 0) {
         const profile = profileResult.data[0];
+        console.log("✅ Profile found:", profile);
 
-        const serializedProfile = await serializeProfile(profile);
+        // FIX: Clean the profile BEFORE dispatching
+        const serializedProfile = await cleanUserProfile(profile);
         dispatch(setProfile(serializedProfile));
 
-        // Clear any pending creation for this user
         if (profileCreationTimeout.current[userId]) {
           clearTimeout(profileCreationTimeout.current[userId]);
           delete profileCreationTimeout.current[userId];
@@ -116,7 +102,6 @@ function AppContent() {
 
         return true;
       } else {
-        // Check if we're already creating a profile for this user
         if (profileCreationInProgress.current[userId]) {
           console.log(
             "⏳ Profile creation already in progress for user:",
@@ -126,8 +111,6 @@ function AppContent() {
         }
 
         console.log("No profile found, creating new profile...");
-
-        // Mark profile creation as in progress
         profileCreationInProgress.current[userId] = true;
 
         let newProfileResult;
@@ -135,38 +118,63 @@ function AppContent() {
           newProfileResult = await (client as any).models.UserProfile.create({
             userId: userId,
             username: "user",
+            ifChineseUser: false,
           });
-          console.log("✅ created new profile", newProfileResult.data?.id);
-        } catch (error) {
-          console.error("❌ Error creating new profile:", error);
-          delete profileCreationInProgress.current[userId];
-          return false;
-        }
 
-        if (newProfileResult.data) {
-          try {
-            await (client as any).models.WordsList.create({
-              userProfileId: newProfileResult.data.id,
-            });
-            console.log("✅ created new words list");
-          } catch (error) {
-            console.error("❌ Error creating words list:", error);
+          console.log(
+            "📋 Full profile result:",
+            JSON.stringify(newProfileResult, null, 2)
+          );
+
+          const createdProfile = newProfileResult.data || newProfileResult;
+          const profileId = createdProfile?.id;
+
+          if (!profileId) {
+            console.error("❌ No profile ID returned:", newProfileResult);
+            throw new Error(
+              `Profile creation failed: ${JSON.stringify(newProfileResult.errors)}`
+            );
           }
 
-          const serializedProfile = await serializeProfile(
-            newProfileResult.data
-          );
+          console.log("✅ Created new profile with ID:", profileId);
+
+          // Create WordsList after profile
+          try {
+            const wordsListResult = await (
+              client as any
+            ).models.WordsList.create({
+              userProfileId: profileId,
+            });
+            console.log("✅ Created new words list:", wordsListResult.data?.id);
+          } catch (wordsListError) {
+            console.warn(
+              "⚠️ WordsList creation failed (non-blocking):",
+              wordsListError
+            );
+          }
+
+          // FIX: Clean the profile BEFORE dispatching
+          const serializedProfile = await cleanUserProfile(createdProfile);
           dispatch(setProfile(serializedProfile));
 
-          // Clear creation flag after success with a timeout to prevent race conditions
+          console.log("✅ Profile setup complete for user:", userId);
+
           profileCreationTimeout.current[userId] = setTimeout(() => {
             delete profileCreationInProgress.current[userId];
           }, 2000);
 
           return true;
-        } else {
-          dispatch(setProfileError("Failed to create profile"));
+        } catch (error) {
+          console.error("❌ Error creating new profile:", error);
+          console.error("Error message:", (error as any).message);
+          console.error("Full error:", JSON.stringify(error, null, 2));
+
           delete profileCreationInProgress.current[userId];
+          dispatch(
+            setProfileError(
+              `Failed to create profile: ${(error as Error).message}`
+            )
+          );
           return false;
         }
       }
@@ -175,6 +183,8 @@ function AppContent() {
       dispatch(setProfileError("Error checking user profile"));
       delete profileCreationInProgress.current[userId];
       return false;
+    } finally {
+      dispatch(setProfileLoading(false));
     }
   };
 
@@ -189,20 +199,24 @@ function AppContent() {
 
     const sub = (client.models as any).Word.observeQuery().subscribe({
       next: ({ items, isSynced }: any) => {
-        const cleanWords = [...items].map((word) => {
-          const { wordsList, ...cleanWord } = word;
-          return cleanWord;
-        });
-        dispatch(setWords(cleanWords));
+        // Clean words before dispatching
+        const cleanedWords = cleanWords(items);
+
+        console.log(
+          `📋 Subscription update: ${cleanedWords.length} words, synced: ${isSynced}`
+        );
+
+        dispatch(setWords(cleanedWords));
         dispatch(setSynced(isSynced));
       },
       error: (error: any) => {
-        console.error("WordsList subscription error:", error);
+        console.error("❌ Words subscription error:", error);
         dispatch(setError(error.message || "Failed to sync words"));
       },
     });
 
     setWordsSubscription(sub);
+    console.log("✅ Words subscription started successfully");
   };
 
   // Function to stop words subscription
@@ -333,6 +347,66 @@ function AppContent() {
     };
   }, [dispatch]);
 
+  // Add helper function
+  const cleanSchedule = (schedule: any) => ({
+    id: schedule.id,
+    userProfileId: schedule.userProfileId,
+    scheduleDate: schedule.scheduleDate,
+    notificationId: schedule.notificationId || null,
+    successRate: schedule.successRate || null,
+    totalWords: schedule.totalWords || null,
+    reviewedCount: schedule.reviewedCount || null,
+    toBeReviewedCount: schedule.toBeReviewedCount || null,
+    scheduleInfo: schedule.scheduleInfo || null,
+    createdAt: schedule.createdAt,
+    updatedAt: schedule.updatedAt,
+  });
+
+  // Subscribe to today's schedule
+  useEffect(() => {
+    if (!userProfile?.id) {
+      console.log("⚠️ No profile for schedule subscription");
+      return;
+    }
+
+    console.log("🔄 Setting up schedule subscription");
+
+    const currentDate = new Date().toISOString().split("T")[0];
+
+    const sub = (client.models as any).ReviewSchedule.observeQuery({
+      filter: {
+        and: [
+          { userProfileId: { eq: userProfile.id } },
+          { scheduleDate: { eq: currentDate } },
+        ],
+      },
+    }).subscribe({
+      next: ({ items, isSynced }: any) => {
+        console.log(
+          `📋 Schedule subscription update: ${items.length} items, synced: ${isSynced}`
+        );
+
+        if (items.length > 0) {
+          const cleanedSchedule = cleanSchedule(items[0]);
+          console.log("✅ Schedule cleaned and dispatched:", cleanedSchedule);
+          dispatch(setTodaySchedule(cleanedSchedule));
+        }
+      },
+      error: (error: any) => {
+        console.error("❌ Schedule subscription error:", error);
+      },
+    });
+
+    setScheduleSubscription(sub);
+
+    return () => {
+      if (sub) {
+        sub.unsubscribe();
+        console.log("🔕 Schedule subscription unsubscribed");
+      }
+    };
+  }, [userProfile?.id, dispatch]);
+
   return (
     <Stack>
       <Stack.Screen
@@ -363,6 +437,10 @@ function AppContent() {
       <Stack.Screen
         name="(reviewQueue)"
         options={{ headerShown: false, animation: "fade" }}
+      />
+      <Stack.Screen
+        name="(progress)"
+        options={{ headerShown: false, animation: "slide_from_right" }}
       />
       <Stack.Screen name="+not-found" options={{ title: "Not Found" }} />
     </Stack>

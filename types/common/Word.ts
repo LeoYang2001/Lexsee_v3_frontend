@@ -1,8 +1,10 @@
+export type WordStatus = "COLLECTED" | "LEARNED";
+
 export type Word = {
   id?: string;
   word: string;
   imgUrl?: string;
-  status?: string;
+  status?: WordStatus;
   meanings: {
     definition: string;
     partOfSpeech: string;
