@@ -68,21 +68,20 @@ export default function HomeScreen() {
     if (collectedWords.length < 3) {
       setIfShowHeader(true);
       return;
-    } // Avoid measuring if not enough words)
-    let anchor1Y = 0;
-    let anchor2Y = 0;
-    anchor1Ref.current?.measure((x, y, width, height, pageX, pageY) => {
-      anchor1Y = pageY;
-    });
-    anchor2Ref.current?.measure((x, y, width, height, pageX, pageY) => {
-      anchor2Y = pageY;
-    });
-    let distance = (anchor2Y - anchor1Y) / screenHeight;
-    if (distance < anchorSnapPoints[0]) {
-      setIfShowHeader(false);
-    } else if (distance > anchorSnapPoints[1]) {
-      setIfShowHeader(true);
     }
+
+    // Measure both anchors and calculate distance inside the callbacks
+    anchor1Ref.current?.measureInWindow((x1, y1, width1, height1) => {
+      anchor2Ref.current?.measureInWindow((x2, y2, width2, height2) => {
+        const distance = (y2 - y1) / screenHeight;
+
+        if (distance < anchorSnapPoints[0]) {
+          setIfShowHeader(false);
+        } else if (distance > anchorSnapPoints[1]) {
+          setIfShowHeader(true);
+        }
+      });
+    });
   };
 
   // Animate header by its actual height
