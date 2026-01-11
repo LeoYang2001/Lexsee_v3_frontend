@@ -1,5 +1,9 @@
-import { View, Text, TouchableOpacity } from "react-native";
-import React from "react";
+import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
+import React, { useEffect, useState } from "react";
+import { AllTimeSchedule } from "../../types/common/AllTimeSchedule";
+import { useAppSelector } from "../../store/hooks";
+import { client } from "../../app/client";
+import { calculateStreak } from "../../lib/reviewAlgorithm";
 
 type ReviewStatus = "review_begin" | "review_in_progress" | "viewProgress";
 
@@ -20,6 +24,76 @@ const ReviewStatusDisplay: React.FC<ReviewStatusDisplayProps> = ({
   totalWords,
   onToggleExpand,
 }) => {
+    const userProfile = useAppSelector((state) => state.profile.profile);
+  
+ const [allSchedules, setAllSchedules] = useState<AllTimeSchedule[]>([]);
+
+ const [isCalculating, setIsCalculating] = useState(true);
+ const [streak, setStreak] = useState(0);
+
+
+
+   // Fetch all schedules
+   useEffect(() => {
+     const fetchAllSchedules = async () => {
+       try {
+         if (!userProfile?.id) {
+           console.warn("⚠️ No user profile for fetching schedules");
+           return;
+         }
+ 
+         console.log("🔄 Fetching all-time schedules...");
+ 
+         const result = await (client.models as any).ReviewSchedule.list({
+           filter: {
+             userProfileId: { eq: userProfile.id },
+           },
+         });
+ 
+         if (result.data && result.data.length > 0) {
+           const cleanedSchedules = result.data
+             .map((schedule: any) => ({
+               id: schedule.id,
+               scheduleDate: schedule.scheduleDate,
+               totalWords: schedule.totalWords || 0,
+               toBeReviewedCount: schedule.toBeReviewedCount || 0,
+               reviewedCount: schedule.reviewedCount || 0,
+               successRate: schedule.successRate || 0,
+               scheduleWords: schedule.scheduleWords || [],
+             }))
+             .sort(
+               (a: AllTimeSchedule, b: AllTimeSchedule) =>
+                 new Date(b.scheduleDate).getTime() -
+                 new Date(a.scheduleDate).getTime()
+             );
+ 
+        
+           setAllSchedules(cleanedSchedules);
+         } else {
+           console.log("📅 No schedules found");
+           setAllSchedules([]);
+         }
+       } catch (error) {
+         console.error("❌ Error fetching schedules:", error);
+       } finally {
+        //  setIsLoading(false);
+       }
+     };
+ 
+     fetchAllSchedules()
+   }, [userProfile?.id]);
+
+
+
+    useEffect(() => {
+       if (allSchedules.length > 0) {
+         const calculatedStreak = calculateStreak(allSchedules);
+         console.log('calculatedStreak:', calculatedStreak);
+         setStreak(calculatedStreak);
+         setIsCalculating(false);
+       }
+     }, [allSchedules]);
+   
   return (
     <TouchableOpacity
       className=" w-full h-full flex items-center justify-center px-6"
@@ -80,12 +154,16 @@ const ReviewStatusDisplay: React.FC<ReviewStatusDisplayProps> = ({
 
       {reviewStatus === "viewProgress" && (
         <View className=" flex flex-col w-full h-full  items-start justify-center">
-          <View className=" flex flex-row justify-center items-baseline gap-1">
+          {
+            isCalculating ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+             <View className=" flex flex-row justify-center items-baseline gap-1">
             <Text
               className="font-semibold"
               style={{ fontSize: 28, color: "white", lineHeight: 32 }}
             >
-              {totalWords}
+              {streak}
             </Text>
             <Text
               className="text-white opacity-80"
@@ -99,6 +177,8 @@ const ReviewStatusDisplay: React.FC<ReviewStatusDisplayProps> = ({
               days streak
             </Text>
           </View>
+            )
+          }
         </View>
       )}
     </TouchableOpacity>

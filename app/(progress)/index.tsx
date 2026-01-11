@@ -18,16 +18,7 @@ import Animated, {
 } from "react-native-reanimated";
 import Card1Content from "../../components/progress/Card1Content";
 import Card2Content from "../../components/progress/Card2Content";
-
-export interface AllTimeSchedule {
-  id: string;
-  scheduleDate: string;
-  totalWords: number;
-  toBeReviewedCount: number;
-  reviewedCount: number;
-  successRate: number;
-  scheduleWords?: string[];
-}
+import { AllTimeSchedule } from "../../types/common/AllTimeSchedule";
 
 type ViewMode = "default" | "card1Expanded" | "card2Expanded";
 

@@ -374,7 +374,7 @@ const profileSlice = createSlice({
       state.profile = cleanedProfile;
       state.isLoading = false;
       state.error = null;
-      console.log("✅ Profile updated:", cleanedProfile);
+      // console.log("✅ Profile updated:", cleanedProfile);
     },
     setProfileLoading: (state, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload;

@@ -3,7 +3,6 @@ import { Pressable, View, Text, Image, TouchableOpacity } from "react-native";
 import { Badge as BadgeIcon } from "lucide-react-native";
 import type { UnAchievedBadge } from "../../types/common/Badge";
 import Animated from "react-native-reanimated";
-import { Link } from "expo-router";
 
 type BadgeItemProps = {
   badge: UnAchievedBadge;

@@ -1,7 +1,7 @@
 import { View, Text, ActivityIndicator } from "react-native";
 import React, { useEffect, useState } from "react";
 import { ArcGauge } from "./ArcGauge";
-import { AllTimeSchedule } from "../../app/(progress)";
+import { AllTimeSchedule } from "../../types/common/AllTimeSchedule";
 
 interface ProgressReviewProps {
   selectedIso?: string | null;

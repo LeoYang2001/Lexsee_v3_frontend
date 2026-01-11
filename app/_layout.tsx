@@ -28,6 +28,7 @@ import {
 import * as Notifications from "expo-notifications";
 import { useCheckChina } from "../hooks/useCheckChina";
 import { setTodaySchedule } from "../store/slices/reviewScheduleSlice";
+import { AllTimeSchedule } from "../types/common/AllTimeSchedule";
 
 Amplify.configure(outputs);
 
@@ -88,7 +89,7 @@ function AppContent() {
 
       if (profileResult.data && profileResult.data.length > 0) {
         const profile = profileResult.data[0];
-        console.log("✅ Profile found:", profile);
+        // console.log("✅ Profile found:", profile);
 
         // FIX: Clean the profile BEFORE dispatching
         const serializedProfile = await cleanUserProfile(profile);
@@ -271,6 +272,80 @@ function AppContent() {
     router.replace("/(auth)/sign-in");
   };
 
+  //function to recover missed reviews 
+  const recoverMissedReviews = async (userProfileId: string) => {
+    //first fetch all review schedules for the user that are in the past and not completed
+    let allTimeSchedules: AllTimeSchedule[] = [];
+        try {
+          if (!userProfile?.id) {
+            console.warn("⚠️ No user profile for fetching schedules");
+            return;
+          }
+  
+          console.log("🔄 Fetching all-time schedules...");
+  
+          const result = await (client.models as any).ReviewSchedule.list({
+            filter: {
+              userProfileId: { eq: userProfile.id },
+            },
+          });
+  
+          if (result.data && result.data.length > 0) {
+            const cleanedSchedules = result.data
+              .map((schedule: any) => ({
+                id: schedule.id,
+                scheduleDate: schedule.scheduleDate,
+                totalWords: schedule.totalWords || 0,
+                toBeReviewedCount: schedule.toBeReviewedCount || 0,
+                reviewedCount: schedule.reviewedCount || 0,
+                successRate: schedule.successRate || 0,
+                scheduleWords: schedule.scheduleWords || [],
+              }))
+              .sort(
+                (a: AllTimeSchedule, b: AllTimeSchedule) =>
+                  new Date(b.scheduleDate).getTime() -
+                  new Date(a.scheduleDate).getTime()
+              );
+  
+          allTimeSchedules = cleanedSchedules;
+          } else {
+            console.log("📅 No schedules found");
+          }
+        } catch (error) {
+          console.error("❌ Error fetching schedules:", error);
+        } 
+        // only after we successfully fetch all-time schedules, we can attempt to recover missed reviews
+          if (allTimeSchedules.length > 0) {
+            // distill missed reviews from all-time schedules
+            const missedReviews = allTimeSchedules.filter(
+              (schedule) =>
+                new Date(schedule.scheduleDate).getTime() < new Date().getTime() &&
+                schedule.reviewedCount < schedule.totalWords
+            );
+            if (missedReviews.length > 0) {
+              console.log("🔄 Recovering missed reviews:", missedReviews);
+              
+              // Get today's date in YYYY-MM-DD format
+              const today = new Date().toISOString().split("T")[0];
+              
+              // Update each missed review's date to today
+              for (const missedReview of missedReviews) {
+                try {
+                  await (client.models as any).ReviewSchedule.update({
+                    id: missedReview.id,
+                    scheduleDate: today,
+                  });
+                  console.log(`✅ Recovered schedule ${missedReview.id} from ${missedReview.scheduleDate} to ${today}`);
+                } catch (error) {
+                  console.error(`❌ Failed to recover schedule ${missedReview.id}:`, error);
+                }
+              }
+              
+              console.log(`✅ Successfully recovered ${missedReviews.length} missed review(s) to today`);
+            }
+          }
+  }
+
   useEffect(() => {
     dispatch(setLoading(true));
 
@@ -398,6 +473,8 @@ function AppContent() {
     });
 
     setScheduleSubscription(sub);
+
+    recoverMissedReviews(userProfile?.id);
 
     return () => {
       if (sub) {

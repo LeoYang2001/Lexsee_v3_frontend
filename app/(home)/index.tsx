@@ -73,6 +73,11 @@ export default function HomeScreen() {
     // Measure both anchors and calculate distance inside the callbacks
     anchor1Ref.current?.measureInWindow((x1, y1, width1, height1) => {
       anchor2Ref.current?.measureInWindow((x2, y2, width2, height2) => {
+        // Ignore invalid measurements (layout not complete yet)
+        if (y1 === 0 && y2 === 0) {
+          return;
+        }
+
         const distance = (y2 - y1) / screenHeight;
 
         if (distance < anchorSnapPoints[0]) {
@@ -115,23 +120,30 @@ export default function HomeScreen() {
           >
             <CustomHeader />
             <View className="flex-col gap-6 items-center mt-6">
-              <TouchableOpacity
+              <Animated.View 
+                sharedTransitionTag="search-bar"
                 style={{
-                  height: 49,
-                  backgroundColor: "#2b2c2d",
-                  borderRadius: 12,
-                  paddingHorizontal: 16,
+                  width: "100%",
                 }}
-                className=" w-full flex  justify-center"
-                onPress={() => router.push("/(home)/search")}
               >
-                <AntDesign
-                  color={"white"}
-                  style={{ opacity: 0.6 }}
-                  name="search1"
-                  size={22}
-                />
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    height: 49,
+                    backgroundColor: "#2b2c2d",
+                    borderRadius: 12,
+                    paddingHorizontal: 16,
+                  }}
+                  className=" w-full flex  justify-center"
+                  onPress={() => router.push("/(home)/search")}
+                >
+                  <AntDesign
+                    color={"white"}
+                    style={{ opacity: 0.6 }}
+                    name="search1"
+                    size={22}
+                  />
+                </TouchableOpacity>
+              </Animated.View>
               {/* Press DashCard to navigate to a new screen ("/home/reviewQueue") */}
               <DashCard />
             </View>
