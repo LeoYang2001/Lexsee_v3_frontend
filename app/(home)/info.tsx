@@ -41,7 +41,7 @@ export default function InfoScreen() {
   );
 
   return (
-    <ScrollView className="flex-1 bg-gray-50">
+    <ScrollView className="flex-1 bg-gray-500 py-12">
       <View className="px-6 py-6">
         {/* App Info Header */}
         <View className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-6 mb-6">

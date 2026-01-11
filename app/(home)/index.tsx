@@ -120,23 +120,30 @@ export default function HomeScreen() {
           >
             <CustomHeader />
             <View className="flex-col gap-6 items-center mt-6">
-              <TouchableOpacity
+              <Animated.View 
+                sharedTransitionTag="search-bar"
                 style={{
-                  height: 49,
-                  backgroundColor: "#2b2c2d",
-                  borderRadius: 12,
-                  paddingHorizontal: 16,
+                  width: "100%",
                 }}
-                className=" w-full flex  justify-center"
-                onPress={() => router.push("/(home)/search")}
               >
-                <AntDesign
-                  color={"white"}
-                  style={{ opacity: 0.6 }}
-                  name="search1"
-                  size={22}
-                />
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    height: 49,
+                    backgroundColor: "#2b2c2d",
+                    borderRadius: 12,
+                    paddingHorizontal: 16,
+                  }}
+                  className=" w-full flex  justify-center"
+                  onPress={() => router.push("/(home)/search")}
+                >
+                  <AntDesign
+                    color={"white"}
+                    style={{ opacity: 0.6 }}
+                    name="search1"
+                    size={22}
+                  />
+                </TouchableOpacity>
+              </Animated.View>
               {/* Press DashCard to navigate to a new screen ("/home/reviewQueue") */}
               <DashCard />
             </View>

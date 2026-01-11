@@ -7,12 +7,15 @@ import {
 } from "@react-navigation/drawer";
 import ThemeToggleButton from "../../components/home/ThemeToggleButton";
 
-import { TouchableOpacity, Text, Alert, View } from "react-native";
+import { TouchableOpacity, Text, Alert, View, Dimensions, ScrollView, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { signOut as amplifySignOut } from "aws-amplify/auth";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../store";
 import { setIfChina } from "../../store/slices/ifChinaSlice";
+import appConfig from "../../app.json";
+
+const screenWidth = Dimensions.get("window").width;
 
 export default function HomeLayout() {
   const router = useRouter();
@@ -20,6 +23,7 @@ export default function HomeLayout() {
   const dispatch = useDispatch();
 
   const ifChina = useSelector((state: RootState) => state.ifChina.ifChina);
+  const user = useSelector((state: RootState) => state.user.user);
 
   const handleSignOut = async () => {
     try {
@@ -46,218 +50,175 @@ export default function HomeLayout() {
           drawerPosition: "right",
           headerShown: false,
           drawerStyle: {
-            backgroundColor: "#1a1b23", // Dark background
-            width: 300, // Slightly wider
+            backgroundColor: "#1a1b23",
+            width: screenWidth * 0.6,
             borderLeftWidth: 1,
             borderLeftColor: "#2a2b35",
           },
-          drawerActiveTintColor: "#E44814", // Orange accent
-          drawerInactiveTintColor: "#9CA3AF", // Light gray
-          drawerActiveBackgroundColor: "#E44814", // Orange background for active
+          drawerActiveTintColor: "#E44814",
+          drawerInactiveTintColor: "#9CA3AF",
+          drawerActiveBackgroundColor: "#E44814",
           drawerInactiveBackgroundColor: "transparent",
         }}
         drawerContent={(props) => (
-          <DrawerContentScrollView
-            {...props}
-            style={{ backgroundColor: "#191d24" }}
-            contentContainerStyle={{ paddingTop: 48 }}
-          >
-            {/* Header Section */}
-            <View className=" p-6">
-              <Text
-                style={{
-                  color: "#9CA3AF",
-                  fontSize: 14,
-                  opacity: 0.8,
-                }}
-              >
-                {/* placeholder for user email */}
-                {"User Email" /* Replace with actual user email */}
-              </Text>
-            </View>
-
-            {/* Navigation Items */}
-            <View style={{ marginBottom: 20 }}>
-              <DrawerItemList {...props} />
-            </View>
-
-            {/* Theme Toggle Section */}
-            <View
-              style={{
-                paddingVertical: 16,
-                borderTopWidth: 1,
-                borderTopColor: "#2a2b35",
-                borderBottomWidth: 1,
-                borderBottomColor: "#2a2b35",
-                marginBottom: 20,
-              }}
+          <View style={{ flex: 1, backgroundColor: "#191d24" }}>
+            <ScrollView 
+              style={{ flex: 1 }}
+              contentContainerStyle={{ flexGrow: 1, paddingTop: 68 }}
+              showsVerticalScrollIndicator={false}
             >
-              <ThemeToggleButton />
-            </View>
+              {/* User Email Section */}
+              <View className="flex relative justify-center items-center my-3 "  style={{ height:44}}>
+                <View style={{
+                  opacity: 0.03
+                }} className=" absolute w-full h-full z-10 bg-white " />
+                <Text
+                  style={{
+                    color: "#FFFFFF",
+                    fontSize: 12,
+                    opacity: 0.7
+                  }}
+                >
+                  {user?.email || "No email available"}
+                </Text>
+              </View>
 
-            {/* Sign Out Button */}
-            <View
-              style={{
-                paddingHorizontal: 20,
-                marginTop: "auto",
-                paddingBottom: 30,
-              }}
-            >
+              {/* Home */}
               <TouchableOpacity
                 style={{
-                  backgroundColor: "#DC2626", // Red background
-                  borderRadius: 12,
-                  paddingVertical: 14,
-                  alignItems: "center",
+                  paddingHorizontal: 20,
+                  paddingVertical: 16,
                   flexDirection: "row",
-                  justifyContent: "center",
-                  shadowColor: "#DC2626",
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 8,
-                  elevation: 4,
+                  alignItems: "center",
+                  borderBottomWidth: 1,
+                  borderBottomColor: "#2a2b35",
+                }}
+                onPress={() => router.push("/(home)")}
+              >
+                <Feather name="home" size={20} color="#9CA3AF" style={{ marginRight: 16 }} />
+                <Text style={{ color: "#fff", fontSize: 14, opacity: 0.9 }}>Home</Text>
+              </TouchableOpacity>
+
+              {/* Guidance */}
+              <TouchableOpacity
+                style={{
+                  paddingHorizontal: 20,
+                  paddingVertical: 16,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  borderBottomWidth: 1,
+                  borderBottomColor: "#2a2b35",
+                }}
+                onPress={() => router.push("/(home)/info")}
+              >
+                <Feather name="book-open" size={20} color="#9CA3AF" style={{ marginRight: 16 }} />
+                <Text style={{ color: "#fff", fontSize: 14, opacity: 0.9 }}>Guidance</Text>
+              </TouchableOpacity>
+
+              {/* Contact Us */}
+              <TouchableOpacity
+                style={{
+                  paddingHorizontal: 20,
+                  paddingVertical: 16,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  borderBottomWidth: 1,
+                  borderBottomColor: "#2a2b35",
+                }}
+                onPress={() => router.push("/(home)/contact")}
+              >
+                <Feather name="phone" size={20} color="#9CA3AF" style={{ marginRight: 16 }} />
+                <Text style={{ color: "#fff", fontSize: 14, opacity: 0.9 }}>Contact Us</Text>
+              </TouchableOpacity>
+
+              {/* Sign Out Button */}
+              <TouchableOpacity
+                style={{
+                  paddingHorizontal: 20,
+                  paddingVertical: 16,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  borderBottomWidth: 1,
+                  borderBottomColor: "#2a2b35",
                 }}
                 onPress={handleSignOut}
-                activeOpacity={0.8}
               >
-                <Feather
-                  name="log-out"
-                  size={18}
-                  color="white"
-                  style={{ marginRight: 8 }}
-                />
+                <Feather name="log-out" size={20} color="#9CA3AF" style={{ marginRight: 16 }} />
+                <Text style={{ color: "#fff", fontSize: 14, opacity: 0.9 }}>Sign Out</Text>
+              </TouchableOpacity>
+
+              {/* Spacer to push Footer to bottom */}
+              <View style={{ flex: 1 }} />
+
+              {/* Footer */}
+              <View
+              className=" relative flex justify-center items-center" 
+                style={{
+                  width: '100%',
+                  borderTopWidth: 1,
+                  borderTopColor: "#2a2b35",
+                  height:28
+                }}
+              >
+                <View className=" absolute w-full h-full z-10  " style={{
+                  opacity: 0.03,
+                  backgroundColor: "#FFFFFF"
+                }} />
+              <View className=" relative flex justify-center items-center">
                 <Text
                   style={{
-                    color: "white",
-                    fontWeight: "600",
-                    fontSize: 16,
+                    color: "#6B7280",
+                    fontSize: 12,
+                    opacity: 0.6,
                   }}
                 >
-                  Sign Out
+                  LexSee Version {appConfig.expo.version}
                 </Text>
-              </TouchableOpacity>
-            </View>
+                <View className=" absolute top-2">
+                  <Image
+                    source={require('../../assets/lexsee_logo_notext.png')}
+                    style={{ width: 16, height: 16 }}
+                  />
+                </View>
 
-            {/* A toggle button to switch ifChina state for testing purposes. */}
-
-            {/* Location Toggle Button for Testing */}
-            <View
-              style={{
-                paddingHorizontal: 20,
-                marginBottom: 20,
-              }}
-            >
-              <TouchableOpacity
-                style={{
-                  backgroundColor: ifChina ? "#DC2626" : "#059669", // Red if China, green if not
-                  borderRadius: 12,
-                  paddingVertical: 12,
-                  alignItems: "center",
-                  flexDirection: "row",
-                  justifyContent: "center",
-                  shadowColor: ifChina ? "#DC2626" : "#059669",
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 8,
-                  elevation: 4,
-                }}
-                onPress={handleToggleIfChina}
-                activeOpacity={0.8}
-              >
-                <Feather
-                  name={ifChina ? "map-pin" : "globe"}
-                  size={18}
-                  color="white"
-                  style={{ marginRight: 8 }}
-                />
-                <Text
-                  style={{
-                    color: "white",
-                    fontWeight: "600",
-                    fontSize: 14,
-                  }}
-                >
-                  {ifChina ? "🇨🇳 In China (Test)" : "🌍 Outside China (Test)"}
-                </Text>
-              </TouchableOpacity>
-              <Text
-                style={{
-                  color: "#9CA3AF",
-                  fontSize: 11,
-                  marginTop: 8,
-                  opacity: 0.6,
-                  textAlign: "center",
-                }}
-              >
-                Tap to toggle location for testing
-              </Text>
-            </View>
-            {/* Footer */}
-            <View
-              style={{
-                paddingBottom: 20,
-                alignItems: "center",
-                backgroundColor: "#26282f",
-              }}
-              className="border border-red-500 w-full"
-            >
-              <Text
-                style={{
-                  color: "#6B7280",
-                  fontSize: 12,
-                  opacity: 0.6,
-                }}
-              >
-                LexSee Version 3.0
-              </Text>
-            </View>
-          </DrawerContentScrollView>
+              </View>
+              </View>
+            </ScrollView>
+          </View>
         )}
       >
         <Drawer.Screen
           name="index"
           options={{
-            drawerLabel: "Home",
+            drawerItemStyle: { display: 'none' },
             title: "LexSee",
-            drawerIcon: ({ color, size }) => (
-              <Feather name="home" size={size} color={color} />
-            ),
           }}
         />
         <Drawer.Screen
           name="settings"
           options={{
-            drawerLabel: "Settings",
+            drawerItemStyle: { display: 'none' },
             title: "Settings",
-            drawerIcon: ({ color, size }) => (
-              <Feather name="settings" size={size} color={color} />
-            ),
           }}
         />
         <Drawer.Screen
           name="contact"
           options={{
-            drawerLabel: "Contact",
+            drawerItemStyle: { display: 'none' },
             title: "Contact",
-            drawerIcon: ({ color, size }) => (
-              <Feather name="phone" size={size} color={color} />
-            ),
           }}
         />
         <Drawer.Screen
           name="info"
           options={{
-            drawerLabel: "App Info",
+            drawerItemStyle: { display: 'none' },
             title: "App Information",
-            drawerIcon: ({ color, size }) => (
-              <Feather name="info" size={size} color={color} />
-            ),
           }}
         />
         <Drawer.Screen
           name="profile"
           options={{
-            drawerLabel: "Profile",
+            drawerItemStyle: { display: 'none' },
             title: "Profile",
             drawerIcon: ({ color, size }) => (
               <Feather name="user" size={size} color={color} />

@@ -17,6 +17,7 @@ import { ScrollView } from "react-native-gesture-handler";
 import { getWordSuggestions } from "../../apis/getWordSuggestions";
 import { client } from "../client";
 import { useAppSelector } from "../../store/hooks";
+import Animated from "react-native-reanimated";
 
 export default function SearchPage() {
   const theme = useTheme();
@@ -324,7 +325,10 @@ export default function SearchPage() {
           </TouchableOpacity>
         </View>
         <View className=" w-full mt-3">
-          <View style={{ position: "relative", width: "100%", height: 49 }}>
+          <Animated.View 
+            sharedTransitionTag="search-bar"
+            style={{ position: "relative", width: "100%", height: 49 }}
+          >
             <TextInput
               ref={inputRef}
               autoFocus
@@ -383,7 +387,7 @@ export default function SearchPage() {
                 />
               </TouchableOpacity>
             )}
-          </View>
+          </Animated.View>
         </View>
 
         {/* SEARCH SUGGESTIONS OR HISTORY */}

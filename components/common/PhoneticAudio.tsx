@@ -12,6 +12,23 @@ interface PhoneticAudioProps {
 const PhoneticAudio = ({ phonetics, size = 14 }: PhoneticAudioProps) => {
   const soundRef = useRef<Audio.Sound | null>(null);
 
+  // Configure audio mode to play even in silent mode
+  useEffect(() => {
+    const configureAudio = async () => {
+      try {
+        await Audio.setAudioModeAsync({
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: false,
+          shouldDuckAndroid: true,
+        });
+      } catch (error) {
+        console.warn("Error configuring audio mode:", error);
+      }
+    };
+    
+    configureAudio();
+  }, []);
+
   // Cleanup sound on unmount or when audio URL changes
   useEffect(() => {
     return () => {
