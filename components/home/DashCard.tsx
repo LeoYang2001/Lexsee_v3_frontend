@@ -58,9 +58,6 @@ const DashCard = () => {
     const reviewedCount = todaySchedule.reviewedCount || 0;
     const totalToReview = toBeReviewedCount + reviewedCount;
 
-    console.log(
-      `📊 Today's stats - Total: ${totalToReview}, To Review: ${toBeReviewedCount}, Reviewed: ${reviewedCount}`
-    );
 
     // Determine review status
     let status: ReviewStatus;
