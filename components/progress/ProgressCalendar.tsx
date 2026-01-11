@@ -8,7 +8,7 @@ import Animated, {
   interpolate,
   Extrapolate,
 } from "react-native-reanimated";
-import { AllTimeSchedule } from "../../app/(progress)";
+import { AllTimeSchedule } from "../../types/common/AllTimeSchedule";
 
 type ParentViewMode = "default" | "card1Expanded" | "card2Expanded";
 

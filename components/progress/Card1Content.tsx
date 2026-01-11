@@ -2,9 +2,9 @@ import { View, Text, ScrollView } from "react-native";
 import React, { useEffect, useMemo, useState } from "react";
 import { Calendar, TrendingDown, TrendingUp } from "lucide-react-native";
 import { calculateStreak } from "../../lib/reviewAlgorithm";
-import { AllTimeSchedule } from "../../app/(progress)";
 import ProgressCalendar from "./ProgressCalendar";
 import ProgressReview from "./ProgressReview";
+import { AllTimeSchedule } from "../../types/common/AllTimeSchedule";
 
 interface Card1ContentProps {
   viewMode: "default" | "card1Expanded" | "card2Expanded";

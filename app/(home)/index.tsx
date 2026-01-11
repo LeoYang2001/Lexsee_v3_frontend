@@ -73,6 +73,11 @@ export default function HomeScreen() {
     // Measure both anchors and calculate distance inside the callbacks
     anchor1Ref.current?.measureInWindow((x1, y1, width1, height1) => {
       anchor2Ref.current?.measureInWindow((x2, y2, width2, height2) => {
+        // Ignore invalid measurements (layout not complete yet)
+        if (y1 === 0 && y2 === 0) {
+          return;
+        }
+
         const distance = (y2 - y1) / screenHeight;
 
         if (distance < anchorSnapPoints[0]) {

@@ -88,7 +88,7 @@ function AppContent() {
 
       if (profileResult.data && profileResult.data.length > 0) {
         const profile = profileResult.data[0];
-        console.log("✅ Profile found:", profile);
+        // console.log("✅ Profile found:", profile);
 
         // FIX: Clean the profile BEFORE dispatching
         const serializedProfile = await cleanUserProfile(profile);
