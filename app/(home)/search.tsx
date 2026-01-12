@@ -17,7 +17,7 @@ import { ScrollView } from "react-native-gesture-handler";
 import { getWordSuggestions } from "../../apis/getWordSuggestions";
 import { client } from "../client";
 import { useAppSelector } from "../../store/hooks";
-import Animated from "react-native-reanimated";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 
 export default function SearchPage() {
   const theme = useTheme();
@@ -391,7 +391,7 @@ export default function SearchPage() {
         </View>
 
         {/* SEARCH SUGGESTIONS OR HISTORY */}
-        <View className="w-full flex-1 mt-6">
+        <View   className="w-full flex-1 mt-6">
           <View className=" flex flex-row justify-between items-center">
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Text style={{ fontSize: 12 }} className=" text-white opacity-70">

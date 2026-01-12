@@ -251,8 +251,10 @@ function AppContent() {
         );
 
         if (userHasProfile) {
+          console.log("✅ Navigating to home");
           router.replace("/(home)");
         } else {
+          console.log("✅ Navigating to auth");
           router.replace("/(auth)");
         }
       } else {
@@ -261,6 +263,8 @@ function AppContent() {
     } catch (error) {
       console.error("Error handling successful auth:", error);
       handleAuthFailure();
+    } finally {
+      dispatch(setLoading(false));
     }
   };
 
@@ -407,12 +411,13 @@ function AppContent() {
       } catch (error) {
         console.log("❌ Initial auth check - user not authenticated");
         setIsAuthenticated(false);
+        dispatch(setLoading(false));
         router.replace("/(auth)/sign-in");
       }
     };
 
-    // Delay initial auth check to let splash screen show
-    const authCheckTimer = setTimeout(checkInitialAuth, 2500);
+    // Small delay to ensure components are mounted before navigation
+    const authCheckTimer = setTimeout(checkInitialAuth, 500);
 
     return () => {
       authListener();

@@ -5,6 +5,7 @@ import { Word } from "../../types/common/Word";
 import PhoneticAudio from "./PhoneticAudio";
 import { BlurView } from "expo-blur";
 import {
+  FadeInRight,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -16,9 +17,10 @@ interface FlexCardProps {
   word: Word;
   ifDetail: boolean;
   ifGraphic: boolean;
+  index: number;
 }
 
-const FlexCard = ({ word, ifDetail, ifGraphic }: FlexCardProps) => {
+const FlexCard = ({ word, ifDetail, ifGraphic, index }: FlexCardProps) => {
   const style = {
     height: 132, // height: 132 for normal viewMode, 207 for detail viewMode
     borderRadius: 12,
@@ -49,6 +51,7 @@ const FlexCard = ({ word, ifDetail, ifGraphic }: FlexCardProps) => {
   if (ifGraphic) {
     return (
       <Animated.View
+        entering={FadeInRight.delay(300 + index*140)}
         className="overflow-hidden  relative"
         style={[style, animatedStyle]}
       >

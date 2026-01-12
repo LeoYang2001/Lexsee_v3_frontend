@@ -5,6 +5,8 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
+  FadeInLeft,
+  FadeIn,
 } from "react-native-reanimated";
 
 import { useRouter } from "expo-router";
@@ -125,7 +127,7 @@ const DashCard = () => {
 
   return (
     <Pressable onPress={() => router.push("/(reviewQueue)")}>
-      <Animated.View style={[animatedStyle]} className="w-full relative">
+      <Animated.View entering={FadeIn} style={[animatedStyle]} className="w-full relative">
         <LinearGradient
           colors={["#FF511B", "#FF602F"]}
           start={{ x: 0, y: 0 }}

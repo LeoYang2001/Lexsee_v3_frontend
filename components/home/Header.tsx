@@ -42,7 +42,7 @@ export default function Header({
         style={{
           backgroundColor: theme.background,
         }}
-        className=" shadow-sm mt-16 "
+        className=" mt-16 "
       >
         <View className="flex-row items-center justify-between">
           {/* Logo on the left */}

@@ -189,6 +189,7 @@ export default function HomeScreen() {
                 >
                   <View className="relative my-2">
                     <FlexCard
+                    index={idx}
                       word={word}
                       ifDetail={activeCardId === word.id}
                       ifGraphic={true}

@@ -1,14 +1,26 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, ActivityIndicator } from "react-native";
+import React, { useEffect } from "react";
+import { View, ActivityIndicator } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as SplashScreen from "expo-splash-screen";
 import Logo from "../components/common/Logo";
-import CustomSplashScreen from "./splash";
 
 // Keep the native splash screen visible while we fetch fonts
 SplashScreen.preventAutoHideAsync();
 
 export default function IndexScreen() {
+  useEffect(() => {
+    // Hide the native splash screen once this component mounts
+    const hideSplash = async () => {
+      try {
+        await SplashScreen.hideAsync();
+      } catch (error) {
+        console.warn("Error hiding splash:", error);
+      }
+    };
+    
+    hideSplash();
+  }, []);
+
   // Show a simple loading screen while Hub listener handles auth
   return (
     <LinearGradient
