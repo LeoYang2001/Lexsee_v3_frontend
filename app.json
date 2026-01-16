@@ -10,7 +10,10 @@
     "scheme": "lexsee-v3",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.leoyang-2001.lexsee-v3-frontend"
+      "bundleIdentifier": "com.leoyang-2001.lexsee-v3-frontend",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -24,7 +27,9 @@
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "plugins": [
       "expo-router",
       [
@@ -44,6 +49,12 @@
           "supportsPictureInPicture": true
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "869eddf8-c7bf-4c1e-aa45-1ca742707208"
+      }
+    }
   }
 }
