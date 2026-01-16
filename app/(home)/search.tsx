@@ -325,8 +325,7 @@ export default function SearchPage() {
           </TouchableOpacity>
         </View>
         <View className=" w-full mt-3">
-          <Animated.View 
-            sharedTransitionTag="search-bar"
+          <View 
             style={{ position: "relative", width: "100%", height: 49 }}
           >
             <TextInput
@@ -387,7 +386,7 @@ export default function SearchPage() {
                 />
               </TouchableOpacity>
             )}
-          </Animated.View>
+          </View>
         </View>
 
         {/* SEARCH SUGGESTIONS OR HISTORY */}

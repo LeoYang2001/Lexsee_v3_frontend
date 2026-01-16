@@ -120,8 +120,7 @@ export default function HomeScreen() {
           >
             <CustomHeader />
             <View className="flex-col gap-6 items-center mt-6">
-              <Animated.View 
-                sharedTransitionTag="search-bar"
+              <View 
                 style={{
                   width: "100%",
                 }}
@@ -143,7 +142,7 @@ export default function HomeScreen() {
                     size={22}
                   />
                 </TouchableOpacity>
-              </Animated.View>
+              </View>
               {/* Press DashCard to navigate to a new screen ("/home/reviewQueue") */}
               <DashCard />
             </View>
