@@ -8,7 +8,7 @@ import Animated, {
   interpolate,
   Extrapolate,
 } from "react-native-reanimated";
-import { AllTimeSchedule } from "../../types/common/AllTimeSchedule";
+import { ReviewScheduleData } from "../../store/slices/reviewScheduleSlice";
 
 type ParentViewMode = "default" | "card1Expanded" | "card2Expanded";
 
@@ -21,7 +21,7 @@ export default function ProgressCalendar({
   viewMode?: ParentViewMode;
   selectedIso?: string | null;
   onSelectDate?: (iso: string | null) => void;
-  allSchedules?: AllTimeSchedule[];
+  allSchedules?: ReviewScheduleData[];
 }) {
   const COLLAPSED_H = 65;
   const EXPANDED_H = 230;

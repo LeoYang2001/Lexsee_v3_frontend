@@ -84,6 +84,7 @@ const parseWordData = (word: any): Word => {
         parsedData.timeStamp || word.timeStamp || new Date().toISOString(),
       review_interval: word.review_interval || 1,
       ease_factor: word.ease_factor || 2.0,
+      // scheduleWords: word.scheduleWords || [],
     };
   } catch (error) {
     console.error("Error parsing word data:", error);
@@ -134,7 +135,7 @@ const wordsListSlice = createSlice({
       state.isSynced = true;
       state.isLoading = false;
       state.error = null;
-      console.log(`✅ ${cleanedWords.length} words loaded and cleaned`);
+      console.log(`  └─ ✅ ${cleanedWords.length} words loaded`);
     },
     setSynced: (state, action: PayloadAction<boolean>) => {
       state.isSynced = action.payload;

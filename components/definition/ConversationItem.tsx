@@ -6,7 +6,6 @@ import Animated, {
   withSpring,
   withTiming,
   withDelay,
-  withRepeat,
 } from "react-native-reanimated";
 
 interface ConversationLine {

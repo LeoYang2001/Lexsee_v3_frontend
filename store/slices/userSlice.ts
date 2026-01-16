@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { getCurrentUser } from "aws-amplify/auth";
 
 // Types
-export interface UserProfile {
+export interface AuthUser {
   userId: string;
   username: string;
   email: string;
@@ -13,7 +13,7 @@ export interface UserProfile {
 export interface UserState {
   isAuthenticated: boolean;
   isLoading: boolean;
-  user: UserProfile | null;
+  user: AuthUser | null;
   error: string | null;
 }
 
@@ -32,15 +32,15 @@ export const fetchUserInfo = createAsyncThunk(
     try {
       const currentUser = await getCurrentUser();
 
-      // Transform the user data to our UserProfile interface
-      const userProfile: UserProfile = {
+      // Transform the user data to our AuthUser interface
+      const authUser: AuthUser = {
         userId: currentUser.userId,
         username: currentUser.username,
         email: currentUser.signInDetails?.loginId || "",
         displayName: currentUser.username, // Can be customized later
       };
 
-      return userProfile;
+      return authUser;
     } catch (error) {
       return rejectWithValue((error as Error).message);
     }
@@ -81,7 +81,7 @@ const userSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
-    updateUserProfile: (state, action: PayloadAction<Partial<UserProfile>>) => {
+    updateAuthUser: (state, action: PayloadAction<Partial<AuthUser>>) => {
       if (state.user) {
         state.user = { ...state.user, ...action.payload };
       }
@@ -125,7 +125,7 @@ const userSlice = createSlice({
 });
 
 // Export actions
-export const { clearUser, setError, clearError, updateUserProfile } =
+export const { clearUser, setError, clearError, updateAuthUser } =
   userSlice.actions;
 
 // Export reducer

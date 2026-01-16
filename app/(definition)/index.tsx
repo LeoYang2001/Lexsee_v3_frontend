@@ -645,8 +645,22 @@ export default function DefinitionPage() {
   };
 
   const handleUnsaveWord = async (wordInfo: Word) => {
+        // - [ ] UNCOLLECT A WORD
+        // 1. Get the review entity to get the review schedule based on date 
+        //     1. First,  get the id of entity based on word id 
+        //     2. Second, get the entity id to get schedule id 
+        // 2. If there’s only one entity
+        //     1. Cancel notification
+        //     2. Delete entity & schedule
+        // 3. If its not the only one
+        //     1. Delete entity
+        //     2. Update notification
+        // 4. Delete the word 
+        //     1. Remove from wordlist 
+        //     2. Delete the word 
     setSaveStatus("saving");
     try {
+      
       if (wordInfo.id) {
         const deleteData = {
           id: wordInfo.id,

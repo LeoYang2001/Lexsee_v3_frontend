@@ -15,6 +15,7 @@ export interface ReviewScheduleData {
   updatedAt: string;
 }
 
+
 interface ReviewScheduleState {
   todaySchedule: ReviewScheduleData | null;
   allSchedules: ReviewScheduleData[];
@@ -138,7 +139,11 @@ const reviewScheduleSlice = createSlice({
       state.todaySchedule = action.payload
         ? cleanSchedule(action.payload)
         : null;
-      console.log(`✅ Today's schedule updated:`, state.todaySchedule);
+      // Reduce log noise - only show count
+      if (state.todaySchedule) {
+        const { totalWords, reviewedCount, toBeReviewedCount } = state.todaySchedule;
+        console.log(`     ├─ ${totalWords || 0} words (${reviewedCount || 0} reviewed, ${toBeReviewedCount || 0} pending)`);
+      }
     },
 
     /**
@@ -171,6 +176,14 @@ const reviewScheduleSlice = createSlice({
     resetTodaySchedule: (state) => {
       state.todaySchedule = null;
       console.log(`🔄 Today's schedule reset`);
+    },
+
+    /**
+     * Set all-time schedules
+     */
+    setAllSchedules: (state, action: PayloadAction<ReviewScheduleData[]>) => {
+      state.allSchedules = action.payload.map(cleanSchedule);
+      console.log(`  └─ ✅ Stored ${state.allSchedules.length} schedule(s) in global state`);
     },
 
     /**
@@ -214,6 +227,7 @@ export const {
   setTodaySchedule,
   updateScheduleCounts,
   resetTodaySchedule,
+  setAllSchedules,
   setSynced,
   setError,
 } = reviewScheduleSlice.actions;

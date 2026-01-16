@@ -11,7 +11,7 @@ export const useCheckChina = () => {
 
   useEffect(() => {
     // Check connection when component mounts
-    console.log("🚀 Initializing China check on app mount...");
+    console.log("🌍 Checking region...");
     dispatch(checkOpenAIConnection() as any);
   }, []); // Empty dependency array - runs once on mount
 

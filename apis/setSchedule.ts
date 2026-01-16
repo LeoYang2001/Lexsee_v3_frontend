@@ -4,6 +4,7 @@ import { client } from "../app/client";
 
 /**
  * Create or get a ReviewSchedule for a specific date
+ * Return the ReviewSchedule object and a boolean indicating if it was created
  */
 const getOrCreateReviewSchedule = async (
   userProfileId: string,
@@ -22,7 +23,10 @@ const getOrCreateReviewSchedule = async (
 
     if (existing.data && existing.data.length > 0) {
       console.log(`✅ Found existing schedule for ${scheduleDate}`);
-      return existing.data[0];
+      return {
+        schedule: existing.data[0],
+        created: false,
+      };
     }
 
     // Create new schedule for this date
@@ -35,7 +39,10 @@ const getOrCreateReviewSchedule = async (
       totalWords: 0,
     });
 
-    return newSchedule.data;
+    return {
+      schedule: newSchedule.data,
+      created: true,
+    }
   } catch (error) {
     console.error(
       `❌ Error getting/creating schedule for ${scheduleDate}:`,
@@ -205,66 +212,142 @@ export const handleScheduleNotification = async (
     return false;
   }
 
+
+  // to schedule a word based the next_due date
+  // 1. create a reviewScheduleWord
+  // 2. push the reviewScheduleWord to the reviewSchedule of that date 
+  //.     2.1 if reviewSchedule of that date does not exist, create one
+                // set notification for that date
+  //.     2.2 if reviewScheduleWord already exists in that date, skip
+                // cancle old notification and set a new one with updated count
+
   try {
     const userProfileId = userProfile.profile.id;
     const nextDueDate = new Date(next_due).toISOString().split("T")[0];
 
     console.log(`📅 Scheduling word ${wordId} for ${nextDueDate}`);
+    console.log(`🔍 DEBUG - userProfileId: ${userProfileId}`);
+    console.log(`🔍 DEBUG - nextDueDate: ${nextDueDate}`);
 
-    // Step 1: Get or create ReviewSchedule for the next due date
-    const schedule = await getOrCreateReviewSchedule(
+    // Step 1: create a reviewScheduleWord
+     const scheduleWordEntity = await (client as any).models.ReviewScheduleWord.create(
+      {
+        reviewScheduleId: "to_be_set", // placeholder, will set later
+        wordId,
+        status: "TO_REVIEW",
+      }
+    );
+
+    console.log(`✅ Added word ${wordId} to schedule`);
+    console.log('scheduleWordEntity: ', JSON.stringify(scheduleWordEntity))
+    console.log(`🔍 DEBUG - scheduleWordEntity.data.id: ${scheduleWordEntity?.data?.id}`);
+
+    // Step 2:  push the reviewScheduleWord to the reviewSchedule of that date 
+    // 2.1 if reviewSchedule of that date does not exist, create one
+    // 2.2 if reviewScheduleWord already exists in that date, skip
+    // set notification for that date
+    // cancle old notification and set a new one with updated count
+
+
+    // 2.2 if reviewScheduleWord already exists in that date, skip
+    const { schedule, created } = await getOrCreateReviewSchedule(
       userProfileId,
       nextDueDate
-    );
-    if (!schedule) {
-      console.error("❌ Failed to create/get schedule");
-      return false;
-    }
+    ) as { schedule: any; created: boolean };
 
-    // Step 2: Check if word already exists in this schedule
-    const exists = await wordExistsInSchedule(schedule.id, wordId);
-    if (exists) {
-      console.warn(`⚠️ Word ${wordId} already scheduled for ${nextDueDate}`);
-      return true;
-    }
+    console.log(`🔍 DEBUG - schedule: ${JSON.stringify(schedule)}`);
+    console.log(`🔍 DEBUG - schedule.id: ${schedule?.id}`);
+    console.log(`🔍 DEBUG - created: ${created}`);
 
-    // Step 3: Add word to the schedule
-    const scheduleWord = await addWordToSchedule(schedule.id, wordId);
-    if (!scheduleWord) {
-      console.error("❌ Failed to add word to schedule");
-      return false;
-    }
-
-    // Step 4: Update schedule counts
-    await updateScheduleCounts(schedule.id);
-
-    // Step 5: Set/update notification for this date
-    const notificationId = await setSchedule(
-      schedule.toBeReviewedCount || 1,
-      next_due
-    );
-
-    if (notificationId) {
-      // Cancel old notification if it exists
+    // if existed, cancel original notification and set a new one
+    // if just created, set a notification
+    if (!created) {
+      // existed schedule,  cancel original notification and set a new one
+      const wordsCount = schedule.toBeReviewedCount - schedule.reviewedCount; // get current count
+      console.log(`🔍 DEBUG - wordsCount (existing): ${wordsCount}`);
+      
       if (schedule.notificationId) {
+        console.log(`🔍 DEBUG - Canceling notification: ${schedule.notificationId}`);
         await Notifications.cancelScheduledNotificationAsync(
           schedule.notificationId
         );
-        console.log("🔔 Cancelled old notification");
+        console.log(
+          `🔕 Canceled existing notification ${schedule.notificationId} for schedule on ${nextDueDate}`
+        );
       }
-
-      // Update schedule with new notification ID
+      const notificationId = await setSchedule(wordsCount + 1, next_due);
+      console.log(`🔍 DEBUG - New notificationId: ${notificationId}`);
+      
+      // update schedule with new notificationId
       await (client as any).models.ReviewSchedule.update({
         id: schedule.id,
-        notificationId: notificationId,
+        notificationId,
+        toBeReviewedCount: wordsCount + 1,
+        totalWords: schedule.totalWords + 1,
       });
-
-      console.log("✅ Scheduled notification for", nextDueDate);
+    }
+    else{
+      // just created schedule, set a notification
+      console.log(`🔍 DEBUG - Creating first notification for new schedule`);
+      const notificationId = await setSchedule(1, next_due);
+      console.log(`🔍 DEBUG - First notificationId: ${notificationId}`);
+      
+      // update schedule with new notificationId
+      await (client as any).models.ReviewSchedule.update({
+        id: schedule.id,
+        notificationId,
+        toBeReviewedCount: 1,
+        totalWords: 1,
+      });
     }
 
+    // last! push the reviewScheduleWord to the reviewSchedule of that date 
+    console.log(`🔍 DEBUG - Updating ReviewScheduleWord ${scheduleWordEntity.data.id} with reviewScheduleId: ${schedule.id}`);
+    await (client as any).models.ReviewScheduleWord.update({
+      id: scheduleWordEntity.data.id,
+      reviewScheduleId: schedule.id,
+    });
+    
+    console.log(`✅ Successfully completed scheduling for word ${wordId}`);
     return true;
   } catch (error) {
     console.error("❌ Error in handleScheduleNotification:", error);
+    return false;
+  }
+};
+
+
+ // - [ ] UNCOLLECT A WORD
+       
+        // 2. If there’s only one entity
+        //     1. Cancel notification
+        //     2. Delete entity & schedule
+        // 3. If its not the only one
+        //     1. Delete entity
+        //     2. Update notification
+        // 4. Delete the word 
+        //     1. Remove from wordlist 
+        //     2. Delete the word 
+
+/**
+ * Uncollect a word and update schedules/notifications accordingly
+ */
+
+export const uncollectWord = async (
+  wordId: string
+): Promise<boolean> => {
+
+  try {
+
+     // 1. Get the review entity to get the review schedule based on date 
+        //     1. First,  get the id of entity based on word id 
+        //     2. Second, get the entity id to get schedule id 
+
+    
+    console.log(`🗑️ Uncollecting word ${wordId}`) 
+    return true
+  } catch (error) {
+    console.error("❌ Error in uncollectWord:", error);
     return false;
   }
 };
@@ -323,7 +406,10 @@ export const setSchedule = async (
   next_due: Date
 ): Promise<string | null> => {
   try {
-    const identifier = await Notifications.scheduleNotificationAsync({
+    let identifier; 
+    if(wordsCount > 1)
+    {
+       identifier = await Notifications.scheduleNotificationAsync({
       content: {
         title: "Time to Review!",
         body: `You have ${wordsCount} word(s) to review.`,
@@ -333,6 +419,20 @@ export const setSchedule = async (
         date: next_due,
       },
     });
+    }
+    else{
+        identifier = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "Time to Review!",
+        body: `You have only one word to review today!`,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: next_due,
+      },
+    });
+    }
+   
 
     console.log(`🔔 Notification scheduled with ID: ${identifier}`);
     return identifier;

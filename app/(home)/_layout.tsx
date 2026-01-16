@@ -28,7 +28,7 @@ export default function HomeLayout() {
   const handleSignOut = async () => {
     try {
       await amplifySignOut();
-      router.replace("/(auth)/sign-in");
+      // router.replace("/(auth)/sign-in");
     } catch (error) {
       Alert.alert("Sign Out Error", (error as Error).message);
     }

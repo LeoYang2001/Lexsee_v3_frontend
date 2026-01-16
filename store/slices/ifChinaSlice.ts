@@ -20,7 +20,7 @@ export const checkOpenAIConnection = createAsyncThunk(
         apiKey: OPENAI_API_KEY,
       });
 
-      console.log("🌐 Testing OpenAI connection...");
+      console.log("  ├─ Testing OpenAI API...");
 
       // Send a simple test request with minimal tokens
       const response = await client.chat.completions.create(
@@ -39,7 +39,7 @@ export const checkOpenAIConnection = createAsyncThunk(
         }
       );
 
-      console.log("✅ OpenAI connection successful - User is NOT in China");
+      console.log("  └─ ✅ Region: Outside China");
       return { isAccessible: true, reason: "Connection successful" };
     } catch (error) {
       const errorMessage =
@@ -56,14 +56,11 @@ export const checkOpenAIConnection = createAsyncThunk(
 
       if (isChinaRestricted) {
         console.log(
-          "🇨🇳 OpenAI connection blocked - User likely in China or restricted region"
+          "  └─ 🇨🇳 Region: China (OpenAI blocked)"
         );
       }
 
-      console.warn(
-        "❌ OpenAI connection failed:",
-        errorMessage.substring(0, 100)
-      );
+      // Silent error - already logged in isChinaRestricted check
       return { isAccessible: false, reason: errorMessage };
     }
   }
@@ -113,14 +110,7 @@ const ifChinaSlice = createSlice({
         // If OpenAI is not accessible, user is likely in China (true)
         state.ifChina = !action.payload.isAccessible;
         state.lastChecked = new Date().toISOString();
-
-        if (action.payload.isAccessible) {
-          console.log("✅ Status: User is NOT in China");
-        } else {
-          console.log(
-            "🇨🇳 Status: User is likely in China or in a restricted region"
-          );
-        }
+        // Log is already handled in the async thunk
       })
       // Rejected state
       .addCase(checkOpenAIConnection.rejected, (state, action) => {
@@ -130,7 +120,7 @@ const ifChinaSlice = createSlice({
         state.ifChina = true;
         state.lastChecked = new Date().toISOString();
         console.warn(
-          "⚠️ Status: Cannot determine location, assuming China for safety"
+          "  └─ ⚠️  Cannot determine region, assuming China"
         );
       });
   },

@@ -1,9 +1,9 @@
 import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import React, { useEffect, useState } from "react";
-import { AllTimeSchedule } from "../../types/common/AllTimeSchedule";
 import { useAppSelector } from "../../store/hooks";
 import { client } from "../../app/client";
 import { calculateStreak } from "../../lib/reviewAlgorithm";
+import { ReviewScheduleData } from "../../store/slices/reviewScheduleSlice";
 
 type ReviewStatus = "review_begin" | "review_in_progress" | "viewProgress";
 
@@ -26,7 +26,7 @@ const ReviewStatusDisplay: React.FC<ReviewStatusDisplayProps> = ({
 }) => {
     const userProfile = useAppSelector((state) => state.profile.profile);
   
- const [allSchedules, setAllSchedules] = useState<AllTimeSchedule[]>([]);
+ const [allSchedules, setAllSchedules] = useState<ReviewScheduleData[]>([]);
 
  const [isCalculating, setIsCalculating] = useState(true);
  const [streak, setStreak] = useState(0);
@@ -42,7 +42,6 @@ const ReviewStatusDisplay: React.FC<ReviewStatusDisplayProps> = ({
            return;
          }
  
-         console.log("🔄 Fetching all-time schedules...");
  
          const result = await (client.models as any).ReviewSchedule.list({
            filter: {
@@ -62,7 +61,7 @@ const ReviewStatusDisplay: React.FC<ReviewStatusDisplayProps> = ({
                scheduleWords: schedule.scheduleWords || [],
              }))
              .sort(
-               (a: AllTimeSchedule, b: AllTimeSchedule) =>
+               (a: ReviewScheduleData, b: ReviewScheduleData) =>
                  new Date(b.scheduleDate).getTime() -
                  new Date(a.scheduleDate).getTime()
              );
