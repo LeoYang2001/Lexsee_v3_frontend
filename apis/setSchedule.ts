@@ -52,50 +52,7 @@ const getOrCreateReviewSchedule = async (
   }
 };
 
-/**
- * Create a ReviewScheduleWord entry
- */
-const addWordToSchedule = async (reviewScheduleId: string, wordId: string) => {
-  try {
-    const scheduleWord = await (client as any).models.ReviewScheduleWord.create(
-      {
-        reviewScheduleId,
-        wordId,
-        status: "TO_REVIEW",
-      }
-    );
 
-    console.log(`✅ Added word ${wordId} to schedule`);
-    return scheduleWord.data;
-  } catch (error) {
-    console.error(`❌ Error adding word ${wordId} to schedule:`, error);
-    return null;
-  }
-};
-
-/**
- * Check if word already exists in schedule
- */
-const wordExistsInSchedule = async (
-  reviewScheduleId: string,
-  wordId: string
-): Promise<boolean> => {
-  try {
-    const result = await (client as any).models.ReviewScheduleWord.list({
-      filter: {
-        and: [
-          { reviewScheduleId: { eq: reviewScheduleId } },
-          { wordId: { eq: wordId } },
-        ],
-      },
-    });
-
-    return result.data && result.data.length > 0;
-  } catch (error) {
-    console.error("❌ Error checking if word exists in schedule:", error);
-    return false;
-  }
-};
 
 /**
  * Remove word from today's schedule (after review)
@@ -319,12 +276,8 @@ export const handleScheduleNotification = async (
 
  // - [ ] UNCOLLECT A WORD
        
-        // 2. If there’s only one entity
-        //     1. Cancel notification
-        //     2. Delete entity & schedule
-        // 3. If its not the only one
-        //     1. Delete entity
-        //     2. Update notification
+      
+      
         // 4. Delete the word 
         //     1. Remove from wordlist 
         //     2. Delete the word 
@@ -332,7 +285,6 @@ export const handleScheduleNotification = async (
 /**
  * Uncollect a word and update schedules/notifications accordingly
  */
-
 export const uncollectWord = async (
   wordId: string
 ): Promise<boolean> => {
@@ -340,11 +292,110 @@ export const uncollectWord = async (
   try {
 
      // 1. Get the review entity to get the review schedule based on date 
-        //     1. First,  get the id of entity based on word id 
-        //     2. Second, get the entity id to get schedule id 
-
     
-    console.log(`🗑️ Uncollecting word ${wordId}`) 
+    console.log(`🗑️ Uncollecting word ${wordId}`);
+    console.log(`🔍 DEBUG - Input wordId: ${wordId}`);
+
+    // 1. First,  get the id of entity based on word id 
+    const reviewScheduleWords =  await (client as any).models.ReviewScheduleWord.list({
+      filter: { wordId: { eq: wordId } }
+    });
+
+    console.log(`🔍 DEBUG - reviewScheduleWords result: ${JSON.stringify(reviewScheduleWords)}`);
+
+    const reviewScheduleWordsData = reviewScheduleWords.data || [];
+    console.log(`🔍 DEBUG - reviewScheduleWordsData length: ${reviewScheduleWordsData.length}`);
+    console.log(`🔍 DEBUG - reviewScheduleWordsData: ${JSON.stringify(reviewScheduleWordsData)}`);
+    
+    const upcomingSchedule_entity = reviewScheduleWordsData.filter((rsw: any) => rsw.status === "TO_REVIEW")[0];
+    console.log(`🔍 DEBUG - upcomingSchedule_entity: ${JSON.stringify(upcomingSchedule_entity)}`);
+    console.log(`🔍 DEBUG - upcomingSchedule_entity.id: ${upcomingSchedule_entity?.id}`);
+    console.log(`🔍 DEBUG - upcomingSchedule_entity.reviewScheduleId: ${upcomingSchedule_entity?.reviewScheduleId}`);
+      
+    // 1.2  Second, get the review schedule id from the entity
+    if(upcomingSchedule_entity.id)
+    {
+      console.log(`🔍 DEBUG - Fetching schedule with id: ${upcomingSchedule_entity.reviewScheduleId}`);
+      
+      const schedule = await (client as any).models.ReviewSchedule.get({
+       id: upcomingSchedule_entity.reviewScheduleId
+      });
+      
+      console.log(`🔍 DEBUG - schedule result: ${JSON.stringify(schedule)}`);
+      console.log(`🔍 DEBUG - schedule.data: ${JSON.stringify(schedule.data)}`);
+      console.log(`🔍 DEBUG - schedule.data.id: ${schedule.data?.id}`);
+      console.log(`🔍 DEBUG - schedule.data.notificationId: ${schedule.data?.notificationId}`);
+      
+      // Get all words in this schedule to check count
+      const allScheduleWords = await (client as any).models.ReviewScheduleWord.list({
+        filter: { reviewScheduleId: { eq: upcomingSchedule_entity.reviewScheduleId } }
+      });
+      
+      const scheduleWordsCount = allScheduleWords.data?.length || 0;
+      console.log(`🔍 DEBUG - Total words in schedule: ${scheduleWordsCount}`);
+       // 2.1 If there’s only one entity
+        //     1. Cancel notification
+        //     2. Delete entity & schedule
+      if(scheduleWordsCount === 1){
+          console.log(`🔍 DEBUG - Only one word in schedule, deleting entire schedule`);
+          
+          if(schedule.data.notificationId){
+            console.log(`🔍 DEBUG - Canceling notification: ${schedule.data.notificationId}`);
+            await Notifications.cancelScheduledNotificationAsync(schedule.data.notificationId);
+            console.log(`🔕 Canceled notification ${schedule.data.notificationId} for schedule`);
+          }
+          
+          // delete entity
+          console.log(`🔍 DEBUG - Deleting ReviewScheduleWord entity: ${upcomingSchedule_entity.id}`);
+          await (client as any).models.ReviewScheduleWord.delete({
+            id: upcomingSchedule_entity.id,
+          });
+          console.log(`🗑️ Deleted ReviewScheduleWord entity ${upcomingSchedule_entity.id}`);
+          
+          // delete schedule
+          console.log(`🔍 DEBUG - Deleting ReviewSchedule: ${schedule.data.id}`);
+          await (client as any).models.ReviewSchedule.delete({
+            id: schedule.data.id,
+          });
+          console.log(`🗑️ Deleted ReviewSchedule ${schedule.data.id}`);
+      }
+      //2.2 If there’s more than one entity
+      else{
+        console.log(`🔍 DEBUG - More than one entity in schedule${JSON.stringify(schedule)}`);
+        // more than one entity, just delete the entity
+        await (client as any).models.ReviewScheduleWord.delete({
+          id: upcomingSchedule_entity.id,
+        });
+        console.log(`🗑️ Deleted ReviewScheduleWord entity ${upcomingSchedule_entity.id}`);
+        console.log('update schedule notification', JSON.stringify(schedule))
+        // update notification & schedule counts
+        const cur_totalWords = schedule.data.totalWords; 
+        const cur_tobeReviewedCount = schedule.data.toBeReviewedCount;
+        console.log(`🔍 DEBUG - Current totalWords: ${cur_totalWords}`);
+        console.log(`🔍 DEBUG - Current toBeReviewedCount: ${cur_tobeReviewedCount}`);
+        console.log(`🔍 DEBUG - New totalWords will be: ${cur_totalWords - 1}`);
+        console.log(`🔍 DEBUG - New toBeReviewedCount will be: ${cur_tobeReviewedCount - 1}`);
+        
+        await (client as any).models.ReviewSchedule.update({
+          id: schedule.data.id,
+          toBeReviewedCount: cur_tobeReviewedCount - 1,
+          totalWords: cur_totalWords - 1,
+        });
+        console.log(`✅ Updated schedule counts after uncollecting word`);
+        
+         // cancel old notification and set a new one with updated count at the original time
+        if(schedule.data.notificationId){
+          console.log(`🔍 DEBUG - Canceling old notification: ${schedule.data.notificationId}`);
+          await Notifications.cancelScheduledNotificationAsync(schedule.data.notificationId);
+          console.log(`🔕 Canceled notification ${schedule.data.notificationId} for schedule`);
+          
+          const newNotificationDate = new Date(schedule.data.scheduleDate);
+          console.log(`🔍 DEBUG - Setting new notification for ${cur_tobeReviewedCount - 1} words at ${newNotificationDate}`);
+          const newNotificationId = await setSchedule(cur_tobeReviewedCount - 1, newNotificationDate);
+          console.log(`🔍 DEBUG - New notification ID: ${newNotificationId}`);
+        }
+      }
+    }
     return true
   } catch (error) {
     console.error("❌ Error in uncollectWord:", error);

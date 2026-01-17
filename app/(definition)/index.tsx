@@ -35,7 +35,7 @@ import { fetchAudioUrl } from "../../apis/fetchPhonetics";
 
 import { client } from "../client";
 import ConversationView from "../../components/definition/ConversationView";
-import { handleScheduleNotification } from "../../apis/setSchedule";
+import { handleScheduleNotification, uncollectWord } from "../../apis/setSchedule";
 import { useDispatch } from "react-redux";
 import { setProfile, UserProfile } from "../../store/slices/profileSlice";
 
@@ -659,6 +659,7 @@ export default function DefinitionPage() {
         //     1. Remove from wordlist 
         //     2. Delete the word 
     setSaveStatus("saving");
+    await uncollectWord(wordInfo.id || "");
     try {
       
       if (wordInfo.id) {

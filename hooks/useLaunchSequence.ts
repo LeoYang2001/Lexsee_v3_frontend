@@ -104,6 +104,8 @@ export const useLaunchSequence = () => {
 
     const sub = (client.models as any).Word.observeQuery().subscribe({
       next: ({ items, isSynced }: any) => {
+    
+        
         const cleanedWords = cleanWords(items);
 
         console.log(

@@ -32,6 +32,7 @@ const parseWordData = (word: any): Word => {
   try {
     let parsedData;
 
+
     // Handle cases where word.data might be a string that needs parsing
     if (typeof word.data === "string") {
       try {
@@ -84,7 +85,6 @@ const parseWordData = (word: any): Word => {
         parsedData.timeStamp || word.timeStamp || new Date().toISOString(),
       review_interval: word.review_interval || 1,
       ease_factor: word.ease_factor || 2.0,
-      // scheduleWords: word.scheduleWords || [],
     };
   } catch (error) {
     console.error("Error parsing word data:", error);
