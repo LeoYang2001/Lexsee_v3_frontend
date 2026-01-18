@@ -27,6 +27,8 @@ export const useLaunchSequence = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [wordsSubscription, setWordsSubscription] = useState<any>(null);
   const [scheduleSubscription, setScheduleSubscription] = useState<any>(null);
+  const [hubAuthFail, setHubAuthFail] = useState(false);
+
   
   const userProfile = useAppSelector((state) => state.profile.profile);
   
@@ -40,18 +42,82 @@ export const useLaunchSequence = () => {
   const { ifChina, isLoading: chinaCheckLoading } = useCheckChina();
 
   /**
+   * Create a new user profile with related entities
+   */
+  const createUserProfile = async (userId: string): Promise<{ success: boolean; profileId?: string }> => {
+    console.log('🔨 Creating new user profile for userId:', userId);
+    try {
+      // 1. Create UserProfile
+      const newProfile = await (client as any).models.UserProfile.create({
+        userId: userId,
+        username: 'User', // Default username, can be updated later
+        ifChineseUser: ifChina, // Use the China check result
+      });
+
+      console.log('✅ UserProfile created:', {
+        profileId: newProfile.data.id,
+        userId: newProfile.data.userId,
+        ifChineseUser: newProfile.data.ifChineseUser,
+      });
+
+      // 2. Create WordsList for this profile
+      const wordsList = await (client as any).models.WordsList.create({
+        userProfileId: newProfile.data.id,
+      });
+      console.log('✅ WordsList created:', wordsList.data.id);
+
+      // 3. Create SearchHistory for this profile
+      const searchHistory = await (client as any).models.SearchHistory.create({
+        userProfileId: newProfile.data.id,
+        searchedWords: [],
+      });
+      console.log('✅ SearchHistory created:', searchHistory.data.id);
+
+      // 4. Create BadgeList for this profile
+      const badgeList = await (client as any).models.BadgeList.create({
+        userProfileId: newProfile.data.id,
+      });
+      console.log('✅ BadgeList created:', badgeList.data.id);
+      
+
+      // Clean and set the profile
+      const serializedProfile = await cleanUserProfile(newProfile.data);
+      dispatch(setProfile(serializedProfile));
+
+      console.log('✅ Profile setup complete with all related entities');
+      return { success: true, profileId: newProfile.data.id };
+    } catch (error) {
+      console.error('❌ Error creating user profile:', error);
+      console.error('❌ Error details:', error instanceof Error ? error.message : 'Unknown error');
+      console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      return { success: false };
+    }
+  };
+
+  /**
    * Check if user has a profile
    */
   const checkUserProfile = async (userId: string): Promise<{ hasProfile: boolean; profileId?: string }> => {
     dispatch(setProfileLoading(true));
-
+    console.log('🔍 Checking user profile for userId:', userId);
     try {
       const profileResult = await (client as any).models.UserProfile.list({
         filter: { userId: { eq: userId } },
       });
 
+      console.log('📊 Profile query result:', {
+        hasData: !!profileResult.data,
+        dataLength: profileResult.data?.length || 0,
+        rawResult: JSON.stringify(profileResult, null, 2)
+      });
+
       if (profileResult.data && profileResult.data.length > 0) {
         const profile = profileResult.data[0];
+        console.log('✅ Profile found:', {
+          profileId: profile.id,
+          userId: profile.userId,
+          createdAt: profile.createdAt
+        });
 
         // Clean the profile BEFORE dispatching
         const serializedProfile = await cleanUserProfile(profile);
@@ -64,28 +130,51 @@ export const useLaunchSequence = () => {
 
         delete profileCreationInProgress.current[userId];
         dispatch(setProfileLoading(false));
+        console.log('✅ User profile found and loaded');
         return { hasProfile: true, profileId: profile.id };
       } else {
-        console.log("⚠️ No profile found, may need to create one");
+        console.log("⚠️ No profile found for userId:", userId);
+        console.log("📋 Profile result data:", profileResult.data);
 
         if (profileCreationInProgress.current[userId]) {
-          console.log("⏳ Profile creation already in progress");
+          console.log("⏳ Profile creation already in progress for userId:", userId);
           dispatch(setProfileLoading(false));
           return { hasProfile: false };
         }
 
+        console.log("🚀 Setting profile creation in progress flag for userId:", userId);
         profileCreationInProgress.current[userId] = true;
 
         profileCreationTimeout.current[userId] = setTimeout(() => {
+          console.log("⏰ Profile creation timeout reached (30s) for userId:", userId);
           delete profileCreationInProgress.current[userId];
           delete profileCreationTimeout.current[userId];
         }, 30000);
 
+        console.log("🔨 Attempting to create profile...");
+        const createResult = await createUserProfile(userId);
+
+        // Clear the creation tracking
+        if (profileCreationTimeout.current[userId]) {
+          clearTimeout(profileCreationTimeout.current[userId]);
+          delete profileCreationTimeout.current[userId];
+        }
+        delete profileCreationInProgress.current[userId];
+
         dispatch(setProfileLoading(false));
-        return { hasProfile: false };
+        
+        if (createResult.success && createResult.profileId) {
+          console.log("✅ Profile created and loaded successfully");
+          return { hasProfile: true, profileId: createResult.profileId };
+        } else {
+          console.log("❌ Profile creation failed");
+          return { hasProfile: false };
+        }
       }
     } catch (error) {
-      console.error("❌ Error checking user profile:", error);
+      console.error("❌ Error checking user profile for userId:", userId);
+      console.error("❌ Error details:", error);
+      console.error("❌ Error stack:", error instanceof Error ? error.stack : 'No stack trace');
       dispatch(setProfileLoading(false));
       return { hasProfile: false };
     }
@@ -214,13 +303,14 @@ export const useLaunchSequence = () => {
       const resultAction = await dispatch(fetchUserInfo());
 
       if (fetchUserInfo.fulfilled.match(resultAction)) {
+        console.log('auth success and check profile...')
         const profileResult = await checkUserProfile(
           resultAction.payload.userId
         );
 
         if (profileResult.hasProfile && profileResult.profileId) {
-          // Only start subscriptions and fetch data if profile exists
-          console.log("  ├─ 📋 Profile found - loading user data...");
+          // Profile exists (found or created) - load user data
+          console.log("  ├─ 📋 Profile ready - loading user data...");
           
           // 2.1 Start words subscription
           startWordsSubscription();
@@ -231,8 +321,8 @@ export const useLaunchSequence = () => {
           console.log("\n🏠 Navigating to home...\n");
           router.replace("/(home)");
         } else {
-          // No profile found - don't fetch any data
-          console.log("⚠️ No profile found - redirecting to auth (no data fetch)");
+          // Profile creation failed
+          console.log("❌ Profile check/creation failed - redirecting to auth");
           setIsAuthenticated(false);
           router.replace("/(auth)");
         }
@@ -251,6 +341,8 @@ export const useLaunchSequence = () => {
    * Handle authentication failure
    */
   const handleAuthFailure = () => {
+    setHubAuthFail(true);
+    console.log('set hub auth fail to true')
     setIsAuthenticated(false);
     stopWordsSubscription();
     dispatch(clearUser());
@@ -331,6 +423,8 @@ export const useLaunchSequence = () => {
 
     // 2. Initial auth check (only once on app start)
     const checkInitialAuth = async () => {
+      console.log('hub auth fail value when its called:', hubAuthFail)
+      if(hubAuthFail) return;
       try {
         const user = await getCurrentUser();
         console.log("\n🔐 Checking authentication...");
@@ -344,7 +438,7 @@ export const useLaunchSequence = () => {
     };
 
     // Small delay to ensure components are mounted before navigation
-    const authCheckTimer = setTimeout(checkInitialAuth, 500);
+    const authCheckTimer = setTimeout(checkInitialAuth, 1000);
 
     return () => {
       authListener();

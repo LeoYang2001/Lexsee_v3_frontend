@@ -191,8 +191,6 @@ const ReviewFlexCard = ({
   const [isImageZoomed, setIsImageZoomed] = useState(false);
   const [contentHeight, setContentHeight] = useState(200);
 
-  console.log("conversationData:", conversationData);
-
   // Refs for measuring content
   const excellentRef = useRef<View>(null);
   const goodRef = useRef<View>(null);
