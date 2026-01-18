@@ -12,18 +12,10 @@ import type { Badge, UnAchievedBadge } from "../../types/common/Badge";
 import Animated from "react-native-reanimated";
 import { router } from "expo-router";
 
-interface AllTimeSchedule {
-  id: string;
-  scheduleDate: string;
-  totalWords: number;
-  toBeReviewedCount: number;
-  reviewedCount: number;
-  successRate: number;
-}
+
 
 interface Card2ContentProps {
   viewMode: "default" | "card1Expanded" | "card2Expanded";
-  allSchedules: AllTimeSchedule[];
   isLoading: boolean;
 }
 
@@ -121,7 +113,6 @@ const achievedBadgeIds: Badge[] = [
 
 const Card2Content: React.FC<Card2ContentProps> = ({
   viewMode,
-  allSchedules,
   isLoading,
 }) => {
   // Only render content when card2 is expanded

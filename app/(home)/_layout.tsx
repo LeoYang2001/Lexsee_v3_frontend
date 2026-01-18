@@ -15,6 +15,7 @@ import { RootState } from "../../store";
 import { setIfChina } from "../../store/slices/ifChinaSlice";
 import appConfig from "../../app.json";
 
+
 const screenWidth = Dimensions.get("window").width;
 
 export default function HomeLayout() {
@@ -22,13 +23,13 @@ export default function HomeLayout() {
 
   const dispatch = useDispatch();
 
+
   const ifChina = useSelector((state: RootState) => state.ifChina.ifChina);
   const user = useSelector((state: RootState) => state.user.user);
 
   const handleSignOut = async () => {
     try {
       await amplifySignOut();
-      router.replace("/(auth)/sign-in");
     } catch (error) {
       Alert.alert("Sign Out Error", (error as Error).message);
     }

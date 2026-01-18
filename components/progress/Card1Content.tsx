@@ -4,12 +4,12 @@ import { Calendar, TrendingDown, TrendingUp } from "lucide-react-native";
 import { calculateStreak } from "../../lib/reviewAlgorithm";
 import ProgressCalendar from "./ProgressCalendar";
 import ProgressReview from "./ProgressReview";
-import { AllTimeSchedule } from "../../types/common/AllTimeSchedule";
+import { ReviewScheduleData } from "../../store/slices/reviewScheduleSlice";
 
 interface Card1ContentProps {
   viewMode: "default" | "card1Expanded" | "card2Expanded";
   todaySchedule: any;
-  allSchedules: AllTimeSchedule[];
+  allSchedules: ReviewScheduleData[];
 }
 
 const Card1Content: React.FC<Card1ContentProps> = ({

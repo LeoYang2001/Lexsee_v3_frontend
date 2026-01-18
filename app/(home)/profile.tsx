@@ -8,7 +8,7 @@ import {
   TextInput,
 } from "react-native";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
-import { updateUserProfile } from "../../store/slices/userSlice";
+import { updateAuthUser } from "../../store/slices/userSlice";
 import { Feather } from "@expo/vector-icons";
 
 export default function ProfileScreen() {
@@ -22,7 +22,7 @@ export default function ProfileScreen() {
   const handleSaveProfile = () => {
     // Update profile in Redux store
     if (user) {
-      dispatch(updateUserProfile({ displayName }));
+      dispatch(updateAuthUser({ displayName }));
       Alert.alert(
         "Profile Updated",
         "Your profile has been updated successfully!"

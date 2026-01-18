@@ -18,8 +18,6 @@ import Animated, {
 } from "react-native-reanimated";
 import Card1Content from "../../components/progress/Card1Content";
 import Card2Content from "../../components/progress/Card2Content";
-import { AllTimeSchedule } from "../../types/common/AllTimeSchedule";
-
 type ViewMode = "default" | "card1Expanded" | "card2Expanded";
 
 // Constants
@@ -35,9 +33,10 @@ const ProgressPage = () => {
   const todaySchedule = useAppSelector(
     (state) => state.reviewSchedule.todaySchedule
   );
+  const allSchedules = useAppSelector(
+    (state) => state.reviewSchedule.allSchedules
+  );
 
-  const [allSchedules, setAllSchedules] = useState<AllTimeSchedule[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("default");
   const [containerHeight, setContainerHeight] = useState(0);
 
@@ -63,58 +62,6 @@ const ProgressPage = () => {
     containerHeight > 0
       ? (COLLAPSED_CARD_HEIGHT_PX / containerHeight) * 100
       : 20;
-
-  // Fetch all schedules
-  useEffect(() => {
-    const fetchAllSchedules = async () => {
-      try {
-        if (!userProfile?.id) {
-          console.warn("⚠️ No user profile for fetching schedules");
-          return;
-        }
-
-        console.log("🔄 Fetching all-time schedules...");
-
-        const result = await (client.models as any).ReviewSchedule.list({
-          filter: {
-            userProfileId: { eq: userProfile.id },
-          },
-        });
-
-        if (result.data && result.data.length > 0) {
-          const cleanedSchedules = result.data
-            .map((schedule: any) => ({
-              id: schedule.id,
-              scheduleDate: schedule.scheduleDate,
-              totalWords: schedule.totalWords || 0,
-              toBeReviewedCount: schedule.toBeReviewedCount || 0,
-              reviewedCount: schedule.reviewedCount || 0,
-              successRate: schedule.successRate || 0,
-              scheduleWords: schedule.scheduleWords || [],
-            }))
-            .sort(
-              (a: AllTimeSchedule, b: AllTimeSchedule) =>
-                new Date(b.scheduleDate).getTime() -
-                new Date(a.scheduleDate).getTime()
-            );
-
-          console.log(
-            `✅ Fetched schedules: ${JSON.stringify(cleanedSchedules)} `
-          );
-          setAllSchedules(cleanedSchedules);
-        } else {
-          console.log("📅 No schedules found");
-          setAllSchedules([]);
-        }
-      } catch (error) {
-        console.error("❌ Error fetching schedules:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchAllSchedules();
-  }, [userProfile?.id]);
 
   // Animated styles
   const card1AnimatedStyle = useAnimatedStyle(() => ({
@@ -395,8 +342,7 @@ const ProgressPage = () => {
           >
             <Card2Content
               viewMode={viewMode}
-              allSchedules={allSchedules}
-              isLoading={isLoading}
+              isLoading={false}
             />
           </Pressable>
         </Animated.View>

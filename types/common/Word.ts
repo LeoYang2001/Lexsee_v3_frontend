@@ -16,6 +16,7 @@ export type Word = {
   timeStamp?: string;
   review_interval: number;
   ease_factor: number;
+  scheduleWords?: string[];
 };
 
 export type Phonetics = {

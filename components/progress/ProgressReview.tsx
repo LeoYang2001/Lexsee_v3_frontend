@@ -1,11 +1,11 @@
 import { View, Text, ActivityIndicator } from "react-native";
 import React, { useEffect, useState } from "react";
 import { ArcGauge } from "./ArcGauge";
-import { AllTimeSchedule } from "../../types/common/AllTimeSchedule";
+import { ReviewScheduleData } from "../../store/slices/reviewScheduleSlice";
 
 interface ProgressReviewProps {
   selectedIso?: string | null;
-  allSchedules: AllTimeSchedule[];
+  allSchedules: ReviewScheduleData[];
 }
 
 export interface ProgressReviewData {
@@ -20,7 +20,7 @@ const ProgressReview: React.FC<ProgressReviewProps> = ({
   selectedIso,
 }) => {
   const [todaySchedule, setTodaySchedule] = useState<
-    AllTimeSchedule | undefined
+    ReviewScheduleData | undefined
   >(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [scheduleWords, setScheduleWords] = useState<any[] | null>(null);

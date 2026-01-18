@@ -4,6 +4,9 @@ import { router } from "expo-router";
 import { signOut } from "aws-amplify/auth";
 import { useAppDispatch } from "../../store/hooks";
 import { clearUser } from "../../store/slices/userSlice";
+import { clearProfile } from "../../store/slices/profileSlice";
+import { setWords, setSynced } from "../../store/slices/wordsListSlice";
+import { setAllSchedules, setTodaySchedule } from "../../store/slices/reviewScheduleSlice";
 import { Feather } from "@expo/vector-icons";
 
 export default function SettingsScreen() {
@@ -20,8 +23,16 @@ export default function SettingsScreen() {
         style: "destructive",
         onPress: async () => {
           try {
-            await signOut();
+            // Clear all Redux state before signing out
             dispatch(clearUser());
+            dispatch(clearProfile());
+            dispatch(setWords([]));
+            dispatch(setSynced(false));
+            dispatch(setAllSchedules([]));
+            dispatch(setTodaySchedule(null));
+            
+            // Sign out from AWS
+            await signOut();
             console.log("✅ User signed out successfully");
           } catch (error) {
             console.error("Error signing out:", error);

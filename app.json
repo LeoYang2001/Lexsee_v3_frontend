@@ -5,7 +5,6 @@
     "version": "3.0.0",
     "orientation": "portrait",
     "icon": "./assets/LexSeeAppLogo.png",
-    "userInterfaceStyle": "light",
     "newArchEnabled": false,
     "scheme": "lexsee-v3",
     "ios": {
@@ -37,6 +36,7 @@
         {
           "backgroundColor": "#1F2734",
           "image": "./assets/splashScreen.png",
+           "resizeMode": "contain", 
           "dark": {
             "backgroundColor": "#1F2734"
           }

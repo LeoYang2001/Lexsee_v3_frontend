@@ -32,6 +32,7 @@ const parseWordData = (word: any): Word => {
   try {
     let parsedData;
 
+
     // Handle cases where word.data might be a string that needs parsing
     if (typeof word.data === "string") {
       try {
@@ -134,7 +135,7 @@ const wordsListSlice = createSlice({
       state.isSynced = true;
       state.isLoading = false;
       state.error = null;
-      console.log(`✅ ${cleanedWords.length} words loaded and cleaned`);
+      console.log(`  └─ ✅ ${cleanedWords.length} words loaded`);
     },
     setSynced: (state, action: PayloadAction<boolean>) => {
       state.isSynced = action.payload;

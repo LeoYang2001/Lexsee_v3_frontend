@@ -56,12 +56,6 @@ export default function HomeScreen() {
 
   const theme = useTheme();
 
-  // Redirect to auth if not authenticated (shouldn't happen, but safety check)
-  React.useEffect(() => {
-    if (!isAuthenticated) {
-      router.replace("/(auth)");
-    }
-  }, [isAuthenticated]);
 
   // Dynamically update anchor positions while scrolling
   const handleScroll = () => {
