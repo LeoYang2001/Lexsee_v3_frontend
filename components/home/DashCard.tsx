@@ -33,10 +33,14 @@ const DashCard = () => {
 
   // Get from Redux
   const words = useAppSelector((state) => state.wordsList.words);
+  //todayReviewList
   const todaySchedule = useAppSelector(
-    (state) => state.reviewSchedule.todaySchedule
+    (state) => state.todayReviewList.words
   );
-
+  const isLoadingTodaySchedule = useAppSelector(
+    (state) => state.todayReviewList.isLoading
+  );
+  
   // Calculate statistics
   const totalWords = words.length;
   const savedWords = words.filter((word) => word.status === "COLLECTED").length;
@@ -46,6 +50,11 @@ const DashCard = () => {
 
   // Update review status when schedule changes
   useEffect(() => {
+    // If still loading, don't set status yet
+    if (isLoadingTodaySchedule) {
+      return;
+    }
+
     if (!todaySchedule) {
       setReviewStatus("viewProgress");
       setTodayStats({
@@ -56,8 +65,8 @@ const DashCard = () => {
       return;
     }
 
-    const toBeReviewedCount = todaySchedule.toBeReviewedCount || 0;
-    const reviewedCount = todaySchedule.reviewedCount || 0;
+    const toBeReviewedCount = todaySchedule.length || 0;
+    const reviewedCount = todaySchedule.filter((word: any) => word.reviewed).length || 0;
     const totalToReview = toBeReviewedCount + reviewedCount;
 
 
@@ -83,7 +92,7 @@ const DashCard = () => {
       reviewedCount,
       toBeReviewedCount,
     });
-  }, [todaySchedule]);
+  }, [todaySchedule, isLoadingTodaySchedule]);
 
   React.useEffect(() => {
     height.value = withTiming(ifReviewCard ? 191 : 104, { duration });
@@ -148,6 +157,7 @@ const DashCard = () => {
                 todayStats={todayStats}
                 totalWords={totalWords}
                 onToggleExpand={() => setIfReviewCard(!ifReviewCard)}
+                isLoadingTodaySchedule={isLoadingTodaySchedule}
               />
             </View>
 

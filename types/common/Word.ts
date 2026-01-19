@@ -17,6 +17,7 @@ export type Word = {
   review_interval: number;
   ease_factor: number;
   scheduleWords?: string[];
+  ifPastDue?: boolean;
 };
 
 export type Phonetics = {

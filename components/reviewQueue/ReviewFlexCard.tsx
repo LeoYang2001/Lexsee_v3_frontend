@@ -26,6 +26,7 @@ interface ReviewFlexCardProps {
   hintCount?: number;
   isLoading?: boolean;
   conversationData: ConversationResponse | null;
+  ifPastDue?: boolean;
 }
 
 const { width, height } = Dimensions.get("window");
@@ -187,6 +188,7 @@ const ReviewFlexCard = ({
   familiarityLevel,
   isLoading = false,
   conversationData,
+  ifPastDue
 }: ReviewFlexCardProps) => {
   const [isImageZoomed, setIsImageZoomed] = useState(false);
   const [contentHeight, setContentHeight] = useState(200);

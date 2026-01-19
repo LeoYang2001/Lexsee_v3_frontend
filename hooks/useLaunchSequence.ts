@@ -4,6 +4,7 @@ import { Hub } from "@aws-amplify/core";
 import { getCurrentUser } from "aws-amplify/auth";
 import { useDispatch } from "react-redux";
 import { useAppSelector } from "../store/hooks";
+import { AppState } from "react-native";
 import {
   setWords,
   setSynced,
@@ -19,8 +20,10 @@ import {
 } from "../store/slices/profileSlice";
 import { clearUser, fetchUserInfo } from "../store/slices/userSlice";
 import { setTodaySchedule, setAllSchedules } from "../store/slices/reviewScheduleSlice";
+import { setTodayReviewList, clearTodayReviewList, fetchTodaySchedule } from "../store/slices/todayReviewListSlice";
 import { client } from "../app/client";
 import { useCheckChina } from "./useCheckChina";
+import { getLocalDate } from "../util/utli";
 
 export const useLaunchSequence = () => {
   const dispatch = useDispatch() as any;
@@ -105,11 +108,7 @@ export const useLaunchSequence = () => {
         filter: { userId: { eq: userId } },
       });
 
-      console.log('📊 Profile query result:', {
-        hasData: !!profileResult.data,
-        dataLength: profileResult.data?.length || 0,
-        rawResult: JSON.stringify(profileResult, null, 2)
-      });
+     
 
       if (profileResult.data && profileResult.data.length > 0) {
         const profile = profileResult.data[0];
@@ -242,9 +241,6 @@ export const useLaunchSequence = () => {
         console.warn("⚠️ No user profile for fetching schedules");
         return;
       }
-
-      
-
       console.log("  ├─ 🔄 Fetching review schedules...");
 
       const result = await (client.models as any).ReviewSchedule.list({
@@ -278,9 +274,7 @@ export const useLaunchSequence = () => {
         dispatch(setAllSchedules(cleanedSchedules));
         
         
-        console.log(
-          `  ├─ ✅ Fetched ${JSON.stringify(cleanedSchedules)}`
-        );
+       
       } else {
         console.log("  └─ 📅 No schedules found");
         dispatch(setAllSchedules([]));
@@ -290,6 +284,7 @@ export const useLaunchSequence = () => {
       dispatch(setAllSchedules([]));
     }
   };
+
 
   /**
    * 2. Handle successful authentication
@@ -315,8 +310,11 @@ export const useLaunchSequence = () => {
           // 2.1 Start words subscription
           startWordsSubscription();
           
-          // 2.2 Fetch all schedules BEFORE navigation
+          // 2.2 Fetch all schedules BEFORE navigation 
           await fetchAllSchedules(profileResult.profileId);
+
+          // 2.3 Fetch today's schedule (including past due)
+          await dispatch(fetchTodaySchedule(profileResult.profileId));
           
           console.log("\n🏠 Navigating to home...\n");
           router.replace("/(home)");
@@ -349,25 +347,10 @@ export const useLaunchSequence = () => {
     dispatch(clearProfile());
     dispatch(setAllSchedules([]));
     dispatch(setTodaySchedule(null));
+    dispatch(clearTodayReviewList());
     router.replace("/(auth)/sign-in");
   };
 
-  /**
-   * Helper to clean schedule data
-   */
-  const cleanSchedule = (schedule: any) => ({
-    id: schedule.id,
-    userProfileId: schedule.userProfileId,
-    scheduleDate: schedule.scheduleDate,
-    notificationId: schedule.notificationId || null,
-    successRate: schedule.successRate || null,
-    totalWords: schedule.totalWords || null,
-    reviewedCount: schedule.reviewedCount || null,
-    toBeReviewedCount: schedule.toBeReviewedCount || null,
-    scheduleInfo: schedule.scheduleInfo || null,
-    createdAt: schedule.createdAt,
-    updatedAt: schedule.updatedAt,
-  });
 
   /**
    * 2. Initial auth check on app launch
@@ -448,53 +431,24 @@ export const useLaunchSequence = () => {
   }, [dispatch]);
 
   /**
-   * 3. Subscribe to today's schedule (runs after profile is loaded)
-   * Note: recoverMissedReviews is now called in handleSuccessfulAuth
+   * 3. Refetch today's schedule when app comes to foreground
    */
   useEffect(() => {
-    // Don't subscribe if not authenticated or no profile
     if (!isAuthenticated || !userProfile?.id) {
-      console.log("⚠️ No profile or not authenticated - skipping schedule subscription");
       return;
     }
 
-    console.log("� Setting up today's schedule subscription...");
+    const handleAppStateChange = (nextAppState: string) => {
+      if (nextAppState === "active") {
+        console.log("📱 App returned to foreground - refetching today's schedule...");
+        dispatch(fetchTodaySchedule(userProfile.id));
+      }
+    };
 
-    const currentDate = new Date().toISOString().split("T")[0];
-
-    const sub = (client.models as any).ReviewSchedule.observeQuery({
-      filter: {
-        and: [
-          { userProfileId: { eq: userProfile.id } },
-          { scheduleDate: { eq: currentDate } },
-        ],
-      },
-    }).subscribe({
-      next: ({ items, isSynced }: any) => {
-        // Reduce log noise - only log when items exist
-        if (items.length > 0 && isSynced) {
-          console.log(`  ✅ Today's schedule loaded (${items.length} schedule(s))`);
-        }
-
-        if (items.length > 0) {
-          const cleanedSchedule = cleanSchedule(items[0]);
-          dispatch(setTodaySchedule(cleanedSchedule));
-        } else {
-          dispatch(setTodaySchedule(null));
-        }
-      },
-      error: (error: any) => {
-        console.error("❌ Schedule subscription error:", error);
-      },
-    });
-
-    setScheduleSubscription(sub);
+    const subscription = AppState.addEventListener("change", handleAppStateChange);
 
     return () => {
-      if (sub) {
-        sub.unsubscribe();
-        console.log("🔕 Schedule subscription unsubscribed");
-      }
+      subscription.remove();
     };
   }, [userProfile?.id, isAuthenticated, dispatch]);
 

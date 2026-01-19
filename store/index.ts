@@ -4,6 +4,7 @@ import profileReducer from "./slices/profileSlice";
 import wordsListReducer from "./slices/wordsListSlice";
 import ifChinaReducer from "./slices/ifChinaSlice";
 import reviewScheduleReducer from "./slices/reviewScheduleSlice";
+import todayReviewListReducer from "./slices/todayReviewListSlice";
 
 export const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ export const store = configureStore({
     wordsList: wordsListReducer, // Add your wordsListReducer here
     ifChina: ifChinaReducer,
     reviewSchedule: reviewScheduleReducer,
+    todayReviewList: todayReviewListReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
