@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
 import { client } from "../../app/client";
+import { getLocalDate } from "../../util/utli";
 
 /**
  * ReviewScheduleWord represents a single word in a review session
@@ -208,18 +209,18 @@ export const fetchReviewInfo = createAsyncThunk(
         return null;
       }
 
-      const currentDate = new Date().toISOString().split("T")[0];
-      console.log(`📅 Fetching review schedule for ${currentDate}`);
+       const currentDate = getLocalDate();
 
       // Query for today's review schedule
       const scheduleResult = await (client as any).models.ReviewSchedule.list({
         filter: {
           and: [
             { userProfileId: { eq: profile.id } },
-            { scheduleDate: { eq: currentDate } },
+            { scheduleDate: { lt: currentDate } },
           ],
         },
       });
+
 
       if (!scheduleResult.data || scheduleResult.data.length === 0) {
         console.log(`📅 No schedule for today (${currentDate})`);

@@ -6,8 +6,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchReviewInfo,
-  setProfile,
-  UserProfile,
 } from "../../store/slices/profileSlice";
 import { RootState } from "../../store";
 import { Word } from "../../types/common/Word";
@@ -29,6 +27,8 @@ import {
   fetchQuickConversation,
 } from "../../apis/AIFeatures";
 import { handleScheduleNotification, setSchedule } from "../../apis/setSchedule";
+import { getLocalDate } from "../../util/utli";
+import { fetchTodaySchedule, setTodayReviewList, setTodayReviewListLoading } from "../../store/slices/todayReviewListSlice";
 
 const { width, height } = Dimensions.get("window");
 const BORDER_RADIUS = Math.min(width, height) * 0.06;
@@ -49,12 +49,15 @@ export default function ReviewQueueScreen() {
   const userProfile = useAppSelector((state) => state.profile);
   const currentWord = reviewQueue[currentWordIndex];
 
+  const todayAndPastDueWords = useAppSelector((state) => state.todayReviewList.words);
+
   const [conversationData, setConversationData] =
     useState<ConversationResponse | null>(null);
 
   useEffect(() => {
     //try to fetch existing conversation data from Redux store or local state
     if (currentWord) {
+
       const parsedConversation = JSON.parse(
         currentWord.exampleSentences as string
       );
@@ -110,7 +113,8 @@ export default function ReviewQueueScreen() {
     );
 
     try {
-      // Step 1: Calculate next review data
+      // Step 1: Calculate next review data, set loading to true
+      dispatch(setTodayReviewListLoading(true));
       const { next_due, review_interval, ease_factor } = getNextReview({
         review_interval: currentWord.review_interval,
         ease_factor: currentWord.ease_factor,
@@ -196,25 +200,21 @@ export default function ReviewQueueScreen() {
       }
       console.log("ℹ️ Step 2: ReviewScheduleWord.update available, will update after completed schedule is ready");
 
-      // Step 3: Locate today's schedule (we dont have to check existence as it should always exist) and update its counts
+      // Step 3: Locate today's schedule (we should check as it could be from a previous day) and update its counts
       console.log("Step 3/6: find today's schedule and update counts");
-      const scheduleDate = new Date().toISOString().split("T")[0];
-      console.log("🔎 scheduleDate:", scheduleDate);
-      if (!Models.ReviewSchedule || typeof Models.ReviewSchedule.list !== "function") {
-        console.error("❌ ReviewSchedule.list not available", { hasReviewSchedule: !!Models.ReviewSchedule });
+      // instead of finding todays schedule, we should find the schedule corresponding to the reviewWordEntity
+      console.log('reviewWord entity:', reviewWordEntity)
+
+      const scheduleData = await Models.ReviewSchedule.get({ id: reviewWordEntity.reviewScheduleId });
+      
+      const schedule = scheduleData?.data;
+      console.log('finding schedule by schedule Id:', reviewWordEntity.reviewScheduleId)
+      console.log('schedule: from step 3', schedule )
+      if (!schedule) {
+        console.error("❌ Step 3: No schedule found for reviewWordEntity", { reviewWordEntity });
         return false;
       }
-      const scheduleData = await Models.ReviewSchedule.list({
-        filter: {
-          and: [
-            { userProfileId: { eq: userProfile.profile.id } },
-            { scheduleDate: { eq: scheduleDate } },
-          ],
-        },
-      });
 
-      const schedule = scheduleData?.data?.[0];
-    
       console.log("✅ Step 3: found schedule", { scheduleId: schedule.id });
       if (typeof Models.ReviewSchedule.update !== "function") {
         console.error("❌ ReviewSchedule.update not available");
@@ -223,6 +223,7 @@ export default function ReviewQueueScreen() {
       // decrement toBeReviewedCount and increment reviewedCount
       const newToBe = Math.max(0, schedule.toBeReviewedCount - 1);
       const newReviewed = (schedule.reviewedCount || 0) + 1;
+      console.log(`newToBe:${newToBe} --- newReviewed:${newReviewed}`)
 
       if (newToBe === 0) {
         // If no remaining words to review, prefer to delete the schedule to keep data clean
@@ -249,6 +250,7 @@ export default function ReviewQueueScreen() {
         console.log("✅ Step 3 result:", { scheduleId: schedule.id, response: scheduleUpdateRes });
       }
     
+      const currentDate = getLocalDate()
 
       // Step 4: Create or update a CompletedReviewSchedule for today's completed reviews
       console.log("Step 4/6: upsert CompletedReviewSchedule for today");
@@ -260,7 +262,7 @@ export default function ReviewQueueScreen() {
         filter: {
           and: [
             { userProfileId: { eq: userProfile.profile.id } },
-            { scheduleDate: { eq: scheduleDate } },
+            { scheduleDate: { eq: currentDate } },
           ],
         },
       });
@@ -288,7 +290,7 @@ export default function ReviewQueueScreen() {
       } else {
         completedSchedule = await Models.CompletedReviewSchedule.create({
           userProfileId: userProfile.profile.id,
-          scheduleDate,
+          scheduleDate: currentDate,
           totalWords: 1,
           reviewedCount: 1,
           successRate: getScoreByHint(hintCount),
@@ -334,6 +336,11 @@ export default function ReviewQueueScreen() {
       });
       console.log("✅ Step 7 result:", { wordId: currentWord.id, response: wordUpdateRes });
       
+      //Step 8: update todays schedule 
+       await dispatch(fetchTodaySchedule(userProfile.profile.id));
+      dispatch(setTodayReviewListLoading(false));
+      
+     
       return true;
     } catch (error) {
       console.error("❌ updateReviewBackend error:", error);
@@ -384,61 +391,24 @@ export default function ReviewQueueScreen() {
 
   const getReviewQueueData = async () => {
     try {
-      const result = await dispatch(fetchReviewInfo());
-      console.log(
-        "review info fetched:",
-        JSON.stringify(result.payload, null, 2)
-      );
 
 
-      if (!result.payload) {
-        console.warn("⚠️ No review info available");
-        setReviewQueue([]);
-        return;
-      }
+      // get wordslist based on todayAndPastDueWords and wordslist 
+      const reviewWordsList = words
+        .filter((word) => 
+          todayAndPastDueWords.some((scheduleItem) => scheduleItem.wordId === word.id)
+        )
+        .map((word) => {
+          const scheduleItem = todayAndPastDueWords.find((item) => item.wordId === word.id);
+          return {
+            ...word,
+            ifPastDue: scheduleItem?.ifPastDue || false,
+          };
+        });
 
-      const { reviewQueue: reviewQueueData, scheduleWords } = result.payload;
-
-      // Filter only words with TO_REVIEW status
-      const toReviewWords =
-        scheduleWords
-          ?.filter((sw: any) => sw.status === "TO_REVIEW")
-          .map((sw: any) => sw.wordId) || [];
-
-      console.log(`📋 Words to review: ${toReviewWords.length}`, toReviewWords);
-
-      // Filter reviewQueue to only include TO_REVIEW words
-      const filteredReviewQueue =
-        reviewQueueData
-          ?.filter((word: any) => toReviewWords.includes(word.id))
-          .map((word: any) => {
-            // Find the full word data from words list
-            const fullWordData = words.find((w: Word) => w.id === word.id);
-
-            if (!fullWordData) {
-              console.warn(`⚠️ Word ${word.id} not found in words list`);
-              return null;
-            }
-
-            return {
-              ...fullWordData,
-              scheduleWordId: word.scheduleWordId,
-              scheduleStatus: word.scheduleStatus,
-              scheduleScore: word.scheduleScore,
-            };
-          })
-          .filter((word: any) => word !== null) || [];
-
-      console.log(
-        `✅ Filtered review queue: ${filteredReviewQueue.length} words`,
-        filteredReviewQueue.map((w: any) => ({
-          word: w.word,
-          scheduleStatus: w.scheduleStatus,
-        }))
-      );
-
-      setReviewWordEntities(scheduleWords);
-      setReviewQueue(filteredReviewQueue);
+      console.log('reviewWordsList: ',reviewWordsList)
+      setReviewWordEntities(todayAndPastDueWords);
+      setReviewQueue(reviewWordsList);
       setCurrentWordIndex(0);
     } catch (error) {
       console.error("❌ Error fetching review queue data:", error);
@@ -593,7 +563,13 @@ export default function ReviewQueueScreen() {
         className="flex-1 w-full"
       >
         {reviewQueue.length > 0 && currentWord ? (
-          <View className="flex-1">
+          <View className="flex-1 ">
+            {/* If past due badge  */}
+            {currentWord.ifPastDue && (
+              <View className="absolute top-4 bg-red-500 right-6 z-30 px-1 py-1 rounded">
+                <Text className="text-white text-xs">overdue</Text>
+              </View>
+            )}
             {/* Word Display */}
             <View className="flex-1 justify-start items-center">
               <ReviewFlexCard

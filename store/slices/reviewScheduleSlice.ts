@@ -141,9 +141,11 @@ const reviewScheduleSlice = createSlice({
         : null;
       // Reduce log noise - only show count
       if (state.todaySchedule) {
+        console.log('todaysSchedule not null here')
         const { totalWords, reviewedCount, toBeReviewedCount } = state.todaySchedule;
         console.log(`     ├─ ${totalWords || 0} words (${reviewedCount || 0} reviewed, ${toBeReviewedCount || 0} pending)`);
       }
+      
     },
 
     /**
