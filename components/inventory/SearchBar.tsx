@@ -36,7 +36,7 @@ const SearchBar = ({
 
   const searchInputAnimation = useAnimatedStyle(() => {
     return {
-      width: withTiming(ifInputComp ? "100%" : "10%", { duration: 200 }),
+      width: withTiming(ifInputComp ? "100%" : "40%", { duration: 200 }),
     };
   });
 
@@ -59,7 +59,7 @@ const SearchBar = ({
         },
         searchInputAnimation,
       ]}
-      className="h-full relative  flex justify-center items-start"
+      className="h-full relative rounded-lg flex justify-center items-start"
     >
       <TouchableOpacity
         style={{
@@ -69,8 +69,8 @@ const SearchBar = ({
         disabled={ifInputComp}
         onPress={() => {
           setIfInputComp(true);
-        }}
-        className="flex-row items-center px-3 py-2 absolute left-0"
+        }} 
+        className={`flex-row  items-center px-3 py-2 absolute left-0`}
       >
         <Search color={"#6B7280"} />
       </TouchableOpacity>

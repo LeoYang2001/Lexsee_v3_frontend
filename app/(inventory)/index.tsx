@@ -22,6 +22,11 @@ import {
 import FlexCard from "../../components/common/FlexCard";
 import GraphicToggleBtn from "../../components/inventory/GraphicToggleBtn";
 import SearchBar from "../../components/inventory/SearchBar";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+} from "react-native-reanimated";
 
 // Helper to format date as YYYY-MM-DD
 const formatDate = (isoString: string) => {
@@ -31,13 +36,52 @@ const formatDate = (isoString: string) => {
 
 const InventoryScreen = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const words = useSelector((state: RootState) => state.wordsList.words);
+  const wordsFromDB = useSelector((state: RootState) => state.wordsList.words);
 
   const router = useRouter();
   const [sortAsc, setSortAsc] = useState(false);
   const [ifGraphic, setIfGraphic] = useState(false);
   const [ifDetail, setIfDetail] = useState<string | null>(null);
   const [ifInputComp, setIfInputComp] = useState<boolean>(false);
+  const [filterMode, setFilterMode] = useState<"review" | "master">("review");
+  const [words, setWords] = useState<Word[]>(wordsFromDB);
+
+  const TABWIDTH = 63;
+  
+  // Animated value for slider position
+  const sliderPosition = useSharedValue(0);
+
+  // Filter words based on filterMode
+  useEffect(() => {
+    if (filterMode === "review") {
+      // Show words that are not mastered (status != "LEARNED")
+      const reviewWords = wordsFromDB.filter(
+        (word) => word.status !== "LEARNED"
+      );
+      setWords(reviewWords);
+    } else {
+      // Show mastered words (status == "LEARNED")
+      const masteredWords = wordsFromDB.filter(
+        (word) => word.status === "LEARNED"
+      );
+      setWords(masteredWords);
+    }
+  }, [filterMode, wordsFromDB]);
+
+  // Animated style for the slider indicator
+  const animatedSliderStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: sliderPosition.value }, { translateY: -1.5 }],
+    };
+  });
+
+  // Handle tab switch
+  const handleTabSwitch = (mode: "review" | "master", tabWidth: number) => {
+    setFilterMode(mode);
+    sliderPosition.value = withTiming(mode === "review" ? 0 : tabWidth, {
+      duration: 250,
+    });
+  };
 
   // Filter words based on search query
   const filteredWords = useMemo(() => {
@@ -68,7 +112,7 @@ const InventoryScreen = () => {
     }));
   }, [filteredWords, sortAsc]);
 
-  const renderWordItem = ({ item }: { item: Word }) => (
+  const renderWordItem = ({ item , index}: { item: Word, index: number }) => (
     <TouchableWithoutFeedback
       onPress={() => {
         if (!ifGraphic) return;
@@ -82,6 +126,7 @@ const InventoryScreen = () => {
           word={item}
           ifGraphic={ifGraphic}
           ifDetail={ifDetail === (item.id || item.word)}
+          index={index}
         />
       </View>
     </TouchableWithoutFeedback>
@@ -132,14 +177,104 @@ const InventoryScreen = () => {
             onPress={() => {
               router.back();
             }}
+            className={`${!ifInputComp ? "flex-1" : ""}`}
           >
             <ChevronLeft color={"#fff"} />
           </TouchableOpacity>
+          {/* Filter for review & mastered words  */}
+          {
+            !ifInputComp && (
+              <View className="flex-1 flex-row items-center justify-center">
+
+               
+                <View className="flex-row bg-transparent relative">
+                  {/* Slider track */}
+                  <View
+                  className=" absolute flex justify-center items-center w-full h-[7px]  -bottom-[7px]"
+                   >
+                      <View
+                      
+                 style={{
+                  width:2*TABWIDTH,
+                  height:7,
+                  backgroundColor:"#262729",
+                  borderRadius:44
+                }} 
+                      
+                      >
+                         {/* Animated Slider Indicator */}
+                  <Animated.View
+                    style={[
+                      animatedSliderStyle,
+                      {
+                        position: "absolute",
+                        top: "50%",
+                        // transform: [{ translateY: -1.5 }],
+                        left: 3,
+                        width: 60,
+                        height: 3,
+                        backgroundColor: "#fff",
+                        opacity:0.5,
+                        borderRadius: 33,
+                      },
+                    ]}
+                  />
+                        </View>
+
+                    </View>
+                  {/* Review Tab */}
+                  <TouchableOpacity
+
+                    onPress={() => handleTabSwitch("review", 60)}
+                    className="flex justify-center items-center"
+                    style={{ width: TABWIDTH, height:32}}
+                  >
+                    <Text
+                    numberOfLines={1}
+                    style={{
+                      fontSize:14
+                    }}
+                      className={` text-white   font-semibold ${
+                        filterMode === "review"
+                          ? " opacity-80 "
+                          : " opacity-50"
+                      }`}
+                    >
+                      Review
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Master Tab */}
+                  <TouchableOpacity
+                    onPress={() => handleTabSwitch("master", 60)}
+                    className="flex justify-center items-center"
+                    style={{ width: TABWIDTH, height:32 }}
+                  >
+                     <Text
+                    numberOfLines={1}
+                    style={{
+                      fontSize:14
+                    }}
+                      className={` text-white font-semibold ${
+                        filterMode === "master"
+                          ? " opacity-80 "
+                          : " opacity-50"
+                      }`}
+                    >
+                      Master
+                    </Text>
+                  </TouchableOpacity>
+
+                 
+                </View>
+              </View>
+            )
+          }
           <View
             style={{
               height: 49,
             }}
-            className=" flex-1  ml-6 flex items-end  h-3"
+            className=" flex-1   flex items-end  h-3"
           >
             <SearchBar
               setSearchQuery={setSearchQuery}
