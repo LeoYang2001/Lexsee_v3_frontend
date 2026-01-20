@@ -149,30 +149,6 @@ const reviewScheduleSlice = createSlice({
     },
 
     /**
-     * Update schedule counts (when word is reviewed)
-     */
-    updateScheduleCounts: (
-      state,
-      action: PayloadAction<{
-        reviewedCount: number;
-        toBeReviewedCount: number;
-        successRate?: number;
-      }>
-    ) => {
-      if (state.todaySchedule) {
-        state.todaySchedule.reviewedCount = action.payload.reviewedCount;
-        state.todaySchedule.toBeReviewedCount =
-          action.payload.toBeReviewedCount;
-        if (action.payload.successRate !== undefined) {
-          state.todaySchedule.successRate = action.payload.successRate;
-        }
-        console.log(
-          `📊 Schedule counts updated: ${action.payload.reviewedCount}/${action.payload.reviewedCount + action.payload.toBeReviewedCount}`
-        );
-      }
-    },
-
-    /**
      * Reset today's schedule
      */
     resetTodaySchedule: (state) => {
@@ -227,7 +203,6 @@ const reviewScheduleSlice = createSlice({
 
 export const {
   setTodaySchedule,
-  updateScheduleCounts,
   resetTodaySchedule,
   setAllSchedules,
   setSynced,

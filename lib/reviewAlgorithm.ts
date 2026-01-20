@@ -1,4 +1,5 @@
 import { RecallAccuracy } from "../types/common/RecallAccuracy";
+import { getLocalDate } from "../util/utli";
 
 interface ReviewInput {
   review_interval: number; // days
@@ -45,7 +46,7 @@ export function getNextReview(input: ReviewInput): ReviewOutput {
   }
 
   // Calculate next review date
-  const newNextDue = new Date();
+  const newNextDue = new Date(getLocalDate());
   newNextDue.setDate(newNextDue.getDate() + newInterval);
 
   // console.log removed for production

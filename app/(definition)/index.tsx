@@ -38,6 +38,7 @@ import ConversationView from "../../components/definition/ConversationView";
 import { handleScheduleNotification, uncollectWord } from "../../apis/setSchedule";
 import { useDispatch } from "react-redux";
 import { setProfile, UserProfile } from "../../store/slices/profileSlice";
+import { getLocalDate } from "../../util/utli";
 
 function CollectBtn({ saveStatus }: { saveStatus: string }) {
   const scale = useSharedValue(1);
@@ -288,7 +289,7 @@ export default function DefinitionPage() {
         const createData = {
           data: JSON.stringify({
             ...wordInfoToSave,
-            timeStamp: new Date().toISOString(),
+            timeStamp: getLocalDate(),
           }),
           wordsListId: profile?.wordsListId,
           status: "COLLECTED",
@@ -301,7 +302,8 @@ export default function DefinitionPage() {
     }
 
     //initiate scheduling notification update
-    const newNextDue = new Date();
+    const currentLocalDate = getLocalDate();
+    const newNextDue = new Date(currentLocalDate);
     newNextDue.setDate(newNextDue.getDate() + wordInfoToSave.review_interval);
     const ifSuccess = await handleScheduleNotification(
       userProfile,

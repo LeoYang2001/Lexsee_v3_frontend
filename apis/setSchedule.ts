@@ -51,101 +51,6 @@ const getOrCreateReviewSchedule = async (
     return null;
   }
 };
-
-
-
-/**
- * Remove word from today's schedule (after review)
- */
-const removeWordFromTodaysSchedule = async (
-  userProfileId: string,
-  wordId: string
-): Promise<boolean> => {
-  try {
-    const currentDate = new Date().toISOString().split("T")[0];
-
-    // Get today's schedule
-    const todaysSchedule = await (client as any).models.ReviewSchedule.list({
-      filter: {
-        and: [
-          { userProfileId: { eq: userProfileId } },
-          { scheduleDate: { eq: currentDate } },
-        ],
-      },
-    });
-
-    if (!todaysSchedule.data || todaysSchedule.data.length === 0) {
-      console.warn("⚠️ No schedule found for today");
-      return false;
-    }
-
-    const schedule = todaysSchedule.data[0];
-
-    // Find and delete the ReviewScheduleWord entry
-    const scheduleWords = await (client as any).models.ReviewScheduleWord.list({
-      filter: {
-        and: [
-          { reviewScheduleId: { eq: schedule.id } },
-          { wordId: { eq: wordId } },
-        ],
-      },
-    });
-
-    if (scheduleWords.data && scheduleWords.data.length > 0) {
-      const scheduleWord = scheduleWords.data[0];
-      await (client as any).models.ReviewScheduleWord.delete({
-        id: scheduleWord.id,
-      });
-
-      console.log(`✅ Removed word ${wordId} from today's schedule`);
-
-      // Update schedule counts
-      await updateScheduleCounts(schedule.id);
-      return true;
-    }
-
-    return false;
-  } catch (error) {
-    console.error("❌ Error removing word from schedule:", error);
-    return false;
-  }
-};
-
-/**
- * Update schedule counts (totalWords, toBeReviewedCount, reviewedCount)
- */
-const updateScheduleCounts = async (reviewScheduleId: string) => {
-  try {
-    const scheduleWords = await (client as any).models.ReviewScheduleWord.list({
-      filter: {
-        reviewScheduleId: { eq: reviewScheduleId },
-      },
-    });
-
-    const words = scheduleWords.data || [];
-    const toBeReviewedCount = words.filter(
-      (w: any) => w.status === "TO_REVIEW"
-    ).length;
-    const reviewedCount = words.filter(
-      (w: any) => w.status === "REVIEWED"
-    ).length;
-    const totalWords = words.length;
-
-    await (client as any).models.ReviewSchedule.update({
-      id: reviewScheduleId,
-      totalWords,
-      toBeReviewedCount,
-      reviewedCount,
-    });
-
-    console.log(
-      `✅ Updated schedule counts: ${toBeReviewedCount} to review, ${reviewedCount} reviewed`
-    );
-  } catch (error) {
-    console.error("❌ Error updating schedule counts:", error);
-  }
-};
-
 /**
  * Updated handleScheduleNotification for new schema
  * Schedules a word for a future review date
@@ -182,9 +87,7 @@ export const handleScheduleNotification = async (
     const userProfileId = userProfile.profile.id;
     const nextDueDate = new Date(next_due).toISOString().split("T")[0];
 
-    console.log(`📅 Scheduling word ${wordId} for ${nextDueDate}`);
-    console.log(`🔍 DEBUG - userProfileId: ${userProfileId}`);
-    console.log(`🔍 DEBUG - nextDueDate: ${nextDueDate}`);
+    
 
     // Step 1: create a reviewScheduleWord
      const scheduleWordEntity = await (client as any).models.ReviewScheduleWord.create(
@@ -399,52 +302,6 @@ export const uncollectWord = async (
     return true
   } catch (error) {
     console.error("❌ Error in uncollectWord:", error);
-    return false;
-  }
-};
-
-/**
- * Handle completing a word review and scheduling next review
- */
-export const handleScheduleAndCleanup = async (
-  userProfile: ProfileState,
-  wordId: string | undefined,
-  next_due: Date
-): Promise<boolean> => {
-  if (!wordId) {
-    console.error("❌ wordId is undefined");
-    return false;
-  }
-
-  if (!userProfile.profile || !userProfile.profile.id) {
-    console.error("❌ Missing profile data");
-    return false;
-  }
-
-  try {
-    const userProfileId = userProfile.profile.id;
-
-    console.log(`🔄 Handling review completion for word ${wordId}`);
-
-    // Step 1: Remove word from today's schedule
-    await removeWordFromTodaysSchedule(userProfileId, wordId);
-
-    // Step 2: Schedule for next review
-    const scheduled = await handleScheduleNotification(
-      userProfile,
-      wordId,
-      next_due
-    );
-
-    if (scheduled) {
-      console.log("✅ Word review completed and rescheduled");
-      return true;
-    } else {
-      console.error("❌ Failed to reschedule word");
-      return false;
-    }
-  } catch (error) {
-    console.error("❌ Error in handleScheduleAndCleanup:", error);
     return false;
   }
 };

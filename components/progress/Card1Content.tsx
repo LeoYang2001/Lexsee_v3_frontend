@@ -5,6 +5,7 @@ import { calculateStreak } from "../../lib/reviewAlgorithm";
 import ProgressCalendar from "./ProgressCalendar";
 import ProgressReview from "./ProgressReview";
 import { ReviewScheduleData } from "../../store/slices/reviewScheduleSlice";
+import { getLocalDate } from "../../util/utli";
 
 interface Card1ContentProps {
   viewMode: "default" | "card1Expanded" | "card2Expanded";
@@ -19,7 +20,7 @@ const Card1Content: React.FC<Card1ContentProps> = ({
   // selected date lifted here
   // default selected date to today (YYYY-MM-DD)
   const [selectedIso, setSelectedIso] = useState<string | null>(
-    new Date().toISOString().slice(0, 10)
+    getLocalDate()
   );
   // guard schedules to avoid undefined being passed into calculateStreak
   const [streak, setStreak] = useState(0);
