@@ -124,7 +124,7 @@ const FlexCard = ({ word, ifDetail, ifGraphic, index }: FlexCardProps) => {
         ]}
       >
         <View className="w-full h-full flex flex-row justify-between items-center  p-4  ">
-          <View className=" flex flex-col  items-center">
+          <View className=" flex flex-col  items-start">
             <Text style={{ fontSize: 20 }} className="text-white font-semibold">
               {word.word}
             </Text>

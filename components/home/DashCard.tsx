@@ -135,7 +135,7 @@ const DashCard = () => {
   const statusDisplay = getStatusDisplay();
 
   return (
-    <Pressable onPress={() => router.push("/(reviewQueue)")}>
+    <Pressable >
       <Animated.View entering={FadeIn} style={[animatedStyle]} className="w-full relative">
         <LinearGradient
           colors={["#FF511B", "#FF602F"]}
