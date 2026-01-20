@@ -198,6 +198,8 @@ export async function fetchDefinition(
 
     const data = await response.json();
 
+    console.log('Dictionary API response data:', JSON.stringify(data));
+
     if (!data || !Array.isArray(data) || data.length === 0) {
       console.log(
         `📝 No data received for word "${word}", trying AI fallback...`
@@ -853,4 +855,58 @@ export const fetchMultipleConversations = async (
         result.status === "fulfilled" && result.value !== null
     )
     .map((result) => result.value);
+};
+
+
+export const generatePhoneticText = async (
+  word: string, 
+  provider: AIProvider = DEFAULT_AI_PROVIDER
+): Promise<string> => {
+  const apiKey = getAPIKey(provider);
+
+  if (!apiKey || !word) {
+    console.warn(`❌ Missing ${!apiKey ? 'API Key' : 'Word'} for phonetic generation`);
+    return '';
+  }
+
+  const systemPrompt = `
+    You are a linguistic expert. 
+    The user will provide a word, and you must return its International Phonetic Alphabet (IPA) pronunciation.
+    Return the result strictly in JSON format with a single key "phonetic".
+    Example: { "phonetic": "/səˈleɪ.ʃəs/" }
+  `;
+
+  const client = getAIClient(provider);
+  if (!client) {
+
+    console.error("❌ AI client is not available. API key is missing.");
+
+    return '';
+
+    }
+
+  const model = getAIModel(provider);
+
+  try {
+    const response = await client.chat.completions.create({
+      model: model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: word },
+      ],
+      response_format: { type: "json_object" },
+    });
+
+    const raw = response.choices?.[0]?.message?.content;
+    if (!raw) return '';
+
+    const data = JSON.parse(raw);
+    
+    // Return only the string value of the phonetic key
+    return data.phonetic || '';
+    
+  } catch (error) {
+    console.error("❌ Error generating phonetic text:", error);
+    return '';
+  }
 };

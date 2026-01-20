@@ -17,7 +17,6 @@ import { ScrollView } from "react-native-gesture-handler";
 import { getWordSuggestions } from "../../apis/getWordSuggestions";
 import { client } from "../client";
 import { useAppSelector } from "../../store/hooks";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 
 export default function SearchPage() {
   const theme = useTheme();
@@ -37,46 +36,21 @@ export default function SearchPage() {
     const getSearchHistory = async () => {
       setIsHistoryLoading(true);
       try {
-        const history = await (client.models as any).SearchHistory.list({
+        const historyData = await (client.models as any).SearchHistory.list({
           filter: { userProfileId: { eq: userProfile?.id } },
         });
-        const rows = Array.isArray(history?.data)
-          ? history.data
-          : history || [];
-        // normalize to array of strings if stored as searchedWords json
-        const flat: string[] = rows
-          .map((r: any) => {
-            if (typeof r === "string") return r;
-            // if searchedWords already an array, use first element
-            if (Array.isArray(r?.searchedWords))
-              return r.searchedWords[0] ?? null;
-            // if searchedWords is a JSON string, parse it
-            if (typeof r?.searchedWords === "string") {
-              try {
-                const parsed = JSON.parse(r.searchedWords);
-                if (Array.isArray(parsed)) return parsed[0] ?? null;
-                return parsed ?? null;
-              } catch (e) {
-                // fallback to the raw string
-                console.warn(
-                  "parse searchedWords failed, using raw string:",
-                  e
-                );
-                return r.searchedWords;
-              }
-            }
-            return null;
-          })
-          .filter(Boolean);
+     
+     
+        // Parse searched words from JSON string
+        const parsedSearchedWords = historyData.data[0]?.searchedWords 
+          ? JSON.parse(historyData.data[0].searchedWords) 
+          : [];
 
-        // dedupe (preserve first occurrence) and keep newest 12
-        const deduped: string[] = flat
-          .filter((v, i, a) => a.indexOf(v) === i)
-          .slice(0, 12);
+          console.log('parsed search history:', parsedSearchedWords)
+          setSearchHistory(parsedSearchedWords);
 
+     
         // prefer storing the raw rows in state for later use, but UI expects strings:
-        setSearchHistory(deduped);
-        console.log("history got :", rows);
       } catch (error) {
         console.error("Error fetching search history:", error);
       } finally {
@@ -111,122 +85,19 @@ export default function SearchPage() {
   const appendSearchHistory = async (term: string) => {
     if (!term?.trim() || !userProfile?.id) return;
 
-    // update local state (dedupe, newest first) - limit to 12
-    setSearchHistory((prev) => {
-      const filtered = prev.filter((t: string) => t !== term);
-      const next = [term, ...filtered];
-      return next.slice(0, 12);
-    });
+    const updatedSearchHistory = [term, ...searchHistory.filter((t) => t !== term)].slice(0, 12);
+    setSearchHistory(updatedSearchHistory);
 
-    // persist to backend (best-effort, non-blocking)
     try {
-      const models = (client as any)?.models;
-      const SearchHistoryModel = models?.SearchHistory;
-      if (!SearchHistoryModel) {
-        console.log(
-          "appendSearchHistory: SearchHistory model not found on client.models"
-        );
-        return;
-      }
-
-      console.log(
-        "appendSearchHistory: found SearchHistoryModel, querying existing records for user:",
-        userProfile.id
-      );
-      let res: any;
-      try {
-        res = await SearchHistoryModel.list({
-          filter: { userProfileId: { eq: userProfile.id } },
+      if(updatedSearchHistory.length > 0) 
+      {
+        await (client.models as any).SearchHistory.update({
+          id: userProfile?.id,
+          searchedWords: JSON.stringify(updatedSearchHistory),
         });
-        console.log("appendSearchHistory: list response:", res);
-      } catch (listErr) {
-        console.error(
-          "appendSearchHistory: SearchHistory.list failed:",
-          listErr
-        );
-        return;
       }
-
-      const rows = Array.isArray(res?.data)
-        ? res.data
-        : res?.data
-          ? [res.data]
-          : [];
-      const row = rows[0];
-      console.log("appendSearchHistory: existing row (first):", row);
-
-      const existing = Array.isArray(row?.searchedWords)
-        ? row.searchedWords
-        : [];
-      // if stored as JSON string, parse it
-      if (typeof row?.searchedWords === "string") {
-        try {
-          const parsed = JSON.parse(row.searchedWords);
-          if (Array.isArray(parsed)) {
-            // override existing with parsed array
-            // eslint-disable-next-line no-unused-vars
-            // @ts-ignore
-            existing.length = 0;
-            // @ts-ignore
-            parsed.forEach((p: string) => existing.push(p));
-          }
-        } catch (e) {
-          console.warn(
-            "appendSearchHistory: failed to parse existing searchedWords JSON",
-            e
-          );
-        }
-      }
-
-      const merged = [
-        term,
-        ...existing.filter((w: string) => w !== term),
-      ].slice(0, 12);
-      console.log("appendSearchHistory: merged searchedWords:", merged);
-
-      if (row && typeof SearchHistoryModel.update === "function") {
-        try {
-          // send JSON string for a.json() field
-          const updateRes = await SearchHistoryModel.update({
-            id: row.id,
-            searchedWords: JSON.stringify(merged),
-          });
-          console.log(
-            "appendSearchHistory: updated row id:",
-            row.id,
-            "updateRes:",
-            updateRes
-          );
-        } catch (updateErr) {
-          console.error(
-            "appendSearchHistory: SearchHistory.update failed:",
-            updateErr
-          );
-        }
-      } else if (typeof SearchHistoryModel.create === "function") {
-        try {
-          // send JSON string for a.json() field
-          const createRes = await SearchHistoryModel.create({
-            userProfileId: userProfile.id,
-            searchedWords: JSON.stringify(merged),
-          });
-          console.log(
-            "appendSearchHistory: created new SearchHistory row:",
-            createRes
-          );
-        } catch (createErr) {
-          console.error(
-            "appendSearchHistory: SearchHistory.create failed:",
-            createErr
-          );
-        }
-      } else {
-        console.warn(
-          "appendSearchHistory: neither update nor create is available on SearchHistoryModel"
-        );
-      }
-    } catch (err) {
-      console.warn("append search history failed", err);
+    } catch (error) {
+      console.error("Error updating search history:", error);
     }
   };
 
@@ -396,13 +267,6 @@ export default function SearchPage() {
               <Text style={{ fontSize: 12 }} className=" text-white opacity-70">
                 {searchQuery.trim().length > 0 ? "Suggestions" : "History"}
               </Text>
-              {isHistoryLoading && searchQuery.trim().length === 0 && (
-                <ActivityIndicator
-                  size="small"
-                  color="#fff"
-                  style={{ marginLeft: 8 }}
-                />
-              )}
             </View>
             {searchQuery.trim().length === 0 && (
               <TouchableOpacity

@@ -29,7 +29,7 @@ import Animated, {
   withTiming,
   interpolateColor,
 } from "react-native-reanimated";
-import { fetchDefinition, fetchQuickConversation } from "../../apis/AIFeatures";
+import { fetchDefinition, fetchQuickConversation, generatePhoneticText } from "../../apis/AIFeatures";
 import type { ConversationResponse } from "../../apis/AIFeatures";
 import { fetchAudioUrl } from "../../apis/fetchPhonetics";
 
@@ -239,6 +239,7 @@ export default function DefinitionPage() {
 
   // Separate phonetics state with persistence
   const [phonetics, setPhonetics] = useState<Phonetics | undefined>(undefined);
+  const [isLoadingPhonetics, setIsLoadingPhonetics] = useState(false);
   const [phoneticsCached, setPhoneticsCached] = useState<{
     [key: string]: Phonetics;
   }>({});
@@ -409,16 +410,26 @@ export default function DefinitionPage() {
       if (wordInfo) {
         // If audio is missing, fetch it
         if (!wordInfo.phonetics?.audioUrl) {
+          setIsLoadingPhonetics(true);
           const audioUrl = await fetchAudioUrl(wordInfo.word);
+          let phoneticText;
+          if(!wordInfo.phonetics?.text)
+          {
+             console.log('No phonetics! No phonetic text available for word:', wordInfo.word)
+              phoneticText = await generatePhoneticText(wordInfo.word);
+             console.log('Generated phonetic text:', phoneticText);
+          }
           // Ensure text is always a string to satisfy Phonetics type (fallback to empty string)
           const existing = wordInfo.phonetics || { text: "" };
           const safePhonetics = {
             ...existing,
-            text: existing.text ?? "",
+            text: existing.text || phoneticText || "",
             audioUrl,
           };
+          console.log('Safe phonetics object:', JSON.stringify(safePhonetics));
           // Use the safe phonetics object
           setPhonetics(safePhonetics);
+          setIsLoadingPhonetics(false);
         } else {
           // Ensure phonetics state reflects wordInfo if already present
           // also ensure text is a string
@@ -879,7 +890,7 @@ export default function DefinitionPage() {
                   )}
 
                   {/* Phonetics - Skeleton or Real */}
-                  {isLoadingDefinition || !phonetics ? (
+                  {isLoadingDefinition || !phonetics || isLoadingPhonetics ? (
                     <SkeletonBox
                       width={150}
                       height={24}
@@ -892,6 +903,7 @@ export default function DefinitionPage() {
                         phonetics={phonetics}
                         key={`${currentWord}-${phonetics.audioUrl}`}
                       />
+                     
                     )
                   )}
                 </View>
