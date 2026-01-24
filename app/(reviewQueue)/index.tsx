@@ -164,6 +164,7 @@ useEffect(() => {
     ease_factor: any
   ) => {
 
+
     
      if (!userProfile || !userProfile.id) {
       return false;
@@ -192,6 +193,7 @@ useEffect(() => {
       // Step 3: Locate today's schedule (we should check as it could be from a previous day) and update its counts
       // instead of finding todays schedule, we should find the schedule corresponding to the reviewWordEntity
       const schedule = schedules.find((s: any) => s.id === currentWord.reviewScheduleId);
+    
 
       if(!schedule) return console.log("❌ Missing schedule for the current word");
      
@@ -218,8 +220,9 @@ useEffect(() => {
           reviewedCount: newReviewed,
         });
       }
-    
-      const currentDate = getLocalDate()
+
+      // instead of getting currentDate, get the date corresponding to the schedule
+      const currentDate = schedule.scheduleDate || getLocalDate();
 
       // Step 4: Create or update a CompletedReviewSchedule for today's completed reviews
       if (!Models.CompletedReviewSchedule || typeof Models.CompletedReviewSchedule.list !== "function") {
@@ -234,12 +237,24 @@ useEffect(() => {
         completedSchedule = existing;
         // Ensure update method exists on the returned object
         if (typeof Models.CompletedReviewSchedule.update === "function") {
-          await Models.CompletedReviewSchedule.update({
-            id: completedSchedule.id,
-            totalWords: (completedSchedule.totalWords || 0) + 1,
-            reviewedCount: (completedSchedule.reviewedCount || 0) + 1,
-            successRate: ((completedSchedule.successRate || 0) + getScoreByHint(hintCount)),
-          });
+         // overdue word should not increment the reviewedCount
+         if(!currentWord.ifPastDue){
+           await Models.CompletedReviewSchedule.update({
+             id: completedSchedule.id,
+             totalWords: (completedSchedule.totalWords || 0) + 1,
+             reviewedCount: (completedSchedule.reviewedCount || 0) + 1,
+             successRate: ((completedSchedule.successRate || 0) + getScoreByHint(hintCount)),
+           });
+         }
+         else{
+          console.log(`❌ Current word is past due, not incrementing reviewedCount for CompletedReviewSchedule`);
+           await Models.CompletedReviewSchedule.update({
+             id: completedSchedule.id,
+             totalWords: (completedSchedule.totalWords || 0) + 1,
+             reviewedCount: (completedSchedule.reviewedCount || 0),
+             successRate: ((completedSchedule.successRate || 0) + getScoreByHint(hintCount)),
+           });
+         }
         }
       } else {
         completedSchedule = await Models.CompletedReviewSchedule.create({

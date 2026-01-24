@@ -8,11 +8,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Animated,
   Image,
+  Button,
 } from "react-native";
-import { Link, router } from "expo-router";
-import { signIn, signInWithRedirect } from "aws-amplify/auth";
+import { Link } from "expo-router";
+import { signIn, signInWithRedirect, signOut } from "aws-amplify/auth";
 import { useAppDispatch } from "../../store/hooks";
 import { fetchUserInfo } from "../../store/slices/userSlice";
 import GradientBackground from "../../components/common/GradientBackground";
@@ -279,6 +279,7 @@ export default function SignInScreen() {
                   </TouchableOpacity>
                 </Link>
               </View>
+              <Button title="Reset Auth State" onPress={() => signOut()} />
             </View>
           </View>
         </ScrollView>

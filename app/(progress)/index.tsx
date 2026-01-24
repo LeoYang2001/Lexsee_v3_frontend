@@ -32,12 +32,7 @@ const ProgressPage = () => {
   const [viewMode, setViewMode] = useState<ViewMode>("default");
   const [containerHeight, setContainerHeight] = useState(0);
 
-   const incomingSchedules = useAppSelector(state => state.reviewSchedule.items)
-      const pastSchedules = useAppSelector(state => state.completedReviewSchedules.items)
-  
-    // Combine incoming and past schedules and sort them by scheduleDate from latest to earliest
-    const allTimeSchedules = [...incomingSchedules, ...pastSchedules].sort((a, b) => new Date(b.scheduleDate).getTime() - new Date(a.scheduleDate).getTime())
-  
+   
     const {collectedList, masteredList} = useAppSelector(wordsListSelector);
 
   // Animated values for card heights
@@ -314,7 +309,6 @@ const ProgressPage = () => {
           >
             <Card1Content
               viewMode={viewMode}
-              allSchedules={allTimeSchedules}
             />
           </Pressable>
         </Animated.View>
