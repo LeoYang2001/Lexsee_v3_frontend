@@ -47,31 +47,38 @@ export const fetchTodaySchedule = createAsyncThunk(
 
       let todayAndPastDueWords = [];
 
-      const pastDueSchedules = await (client.models as any).ReviewSchedule.list({
-        filter: {
-          and: [
-            { userProfileId: { eq: userProfileId } },
-            { scheduleDate: { lt: currentDate } },
-          ],
+      const pastDueSchedules = await (client.models as any).ReviewSchedule.list(
+        {
+          filter: {
+            and: [
+              { userProfileId: { eq: userProfileId } },
+              { scheduleDate: { lt: currentDate } },
+            ],
+          },
+          limit: 1000,
         },
-      });
+      );
 
-      const pastDueScheduleIds = pastDueSchedules.data ? pastDueSchedules.data.map((schedule: any) => schedule.id) : [];
-     
+      const pastDueScheduleIds = pastDueSchedules.data
+        ? pastDueSchedules.data.map((schedule: any) => schedule.id)
+        : [];
+
       let pastDueWordEntities = { data: [] };
       if (pastDueScheduleIds.length > 0) {
         const orConditions = pastDueScheduleIds.map((id: string) => ({
-          reviewScheduleId: { eq: id }
+          reviewScheduleId: { eq: id },
         }));
-       
-        pastDueWordEntities = await (client.models as any).ReviewScheduleWord.list({
+
+        pastDueWordEntities = await (
+          client.models as any
+        ).ReviewScheduleWord.list({
           filter: {
             or: orConditions,
           },
+          limit: 1000,
         });
       }
       const pastDueWords = pastDueWordEntities.data || [];
-
 
       // Clean the review words data to remove non-serializable functions
       // Filter out REVIEWED words, only keep TO_REVIEW
@@ -92,7 +99,6 @@ export const fetchTodaySchedule = createAsyncThunk(
           ifPastDue: true,
         }));
 
-
       // Fetch today's schedule
       const todaySchedule = await (client.models as any).ReviewSchedule.list({
         filter: {
@@ -101,29 +107,35 @@ export const fetchTodaySchedule = createAsyncThunk(
             { scheduleDate: { eq: currentDate } },
           ],
         },
+        limit: 1000,
       });
-    
+
       if (todaySchedule.data && todaySchedule.data.length > 0) {
         // today's schedule exists, merge past due words into today's schedule
-       
-        const todayScheduleIds = todaySchedule.data ? todaySchedule.data.map((schedule: any) => schedule.id) : [];
-        
+
+        const todayScheduleIds = todaySchedule.data
+          ? todaySchedule.data.map((schedule: any) => schedule.id)
+          : [];
+
         let todayWordEntities = { data: [] };
 
         if (todayScheduleIds.length > 0) {
           const orConditions = todayScheduleIds.map((id: string) => ({
-            reviewScheduleId: { eq: id }
+            reviewScheduleId: { eq: id },
           }));
-        
-          todayWordEntities = await (client.models as any).ReviewScheduleWord.list({
+
+          todayWordEntities = await (
+            client.models as any
+          ).ReviewScheduleWord.list({
             filter: {
               or: orConditions,
             },
+            limit: 1000,
           });
         }
 
         const todayWords = todayWordEntities.data || [];
-      
+
         // Clean the review words data to remove non-serializable functions
         // Filter out REVIEWED words, only keep TO_REVIEW
         const cleanedTodayReviewWords = todayWords
@@ -143,25 +155,35 @@ export const fetchTodaySchedule = createAsyncThunk(
             ifPastDue: false,
           }));
 
-        todayAndPastDueWords = [...cleanedPastDueReviewWords, ...cleanedTodayReviewWords];
+        todayAndPastDueWords = [
+          ...cleanedPastDueReviewWords,
+          ...cleanedTodayReviewWords,
+        ];
       } else {
         // No schedule exists for today, create a local schedule with past due words
         todayAndPastDueWords = [...cleanedPastDueReviewWords];
       }
-     
+
       return todayAndPastDueWords;
     } catch (error) {
       console.error("  └─ ❌ Error fetching today's schedule:", error);
-      return rejectWithValue(error instanceof Error ? error.message : "Failed to fetch today's schedule");
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch today's schedule",
+      );
     }
-  }
+  },
 );
 
 const todayReviewListSlice = createSlice({
   name: "todayReviewList",
   initialState,
   reducers: {
-    setTodayReviewList: (state, action: PayloadAction<ReviewScheduleWord[]>) => {
+    setTodayReviewList: (
+      state,
+      action: PayloadAction<ReviewScheduleWord[]>,
+    ) => {
       state.words = action.payload;
       state.isLoading = false;
       state.error = null;
@@ -178,8 +200,16 @@ const todayReviewListSlice = createSlice({
       state.isLoading = false;
       state.error = null;
     },
-    updateWordStatus: (state, action: PayloadAction<{ wordId: string; status: "TO_REVIEW" | "REVIEWED"; score?: number; answeredAt?: string }>) => {
-      const word = state.words.find(w => w.wordId === action.payload.wordId);
+    updateWordStatus: (
+      state,
+      action: PayloadAction<{
+        wordId: string;
+        status: "TO_REVIEW" | "REVIEWED";
+        score?: number;
+        answeredAt?: string;
+      }>,
+    ) => {
+      const word = state.words.find((w) => w.wordId === action.payload.wordId);
       if (word) {
         word.status = action.payload.status;
         if (action.payload.score !== undefined) {
@@ -204,7 +234,8 @@ const todayReviewListSlice = createSlice({
       })
       .addCase(fetchTodaySchedule.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload as string || "Failed to fetch today's schedule";
+        state.error =
+          (action.payload as string) || "Failed to fetch today's schedule";
       });
   },
 });

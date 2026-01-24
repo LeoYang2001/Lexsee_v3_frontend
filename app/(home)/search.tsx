@@ -38,18 +38,17 @@ export default function SearchPage() {
       try {
         const historyData = await (client.models as any).SearchHistory.list({
           filter: { userProfileId: { eq: userProfile?.id } },
+          limit: 1000,
         });
-     
-     
+
         // Parse searched words from JSON string
-        const parsedSearchedWords = historyData.data[0]?.searchedWords 
-          ? JSON.parse(historyData.data[0].searchedWords) 
+        const parsedSearchedWords = historyData.data[0]?.searchedWords
+          ? JSON.parse(historyData.data[0].searchedWords)
           : [];
 
-          console.log('parsed search history:', parsedSearchedWords)
-          setSearchHistory(parsedSearchedWords);
+        console.log("parsed search history:", parsedSearchedWords);
+        setSearchHistory(parsedSearchedWords);
 
-     
         // prefer storing the raw rows in state for later use, but UI expects strings:
       } catch (error) {
         console.error("Error fetching search history:", error);
@@ -85,12 +84,14 @@ export default function SearchPage() {
   const appendSearchHistory = async (term: string) => {
     if (!term?.trim() || !userProfile?.id) return;
 
-    const updatedSearchHistory = [term, ...searchHistory.filter((t) => t !== term)].slice(0, 12);
+    const updatedSearchHistory = [
+      term,
+      ...searchHistory.filter((t) => t !== term),
+    ].slice(0, 12);
     setSearchHistory(updatedSearchHistory);
 
     try {
-      if(updatedSearchHistory.length > 0) 
-      {
+      if (updatedSearchHistory.length > 0) {
         await (client.models as any).SearchHistory.update({
           id: userProfile?.id,
           searchedWords: JSON.stringify(updatedSearchHistory),
@@ -124,6 +125,7 @@ export default function SearchPage() {
       // find existing row(s) for this user
       const res = await SearchHistoryModel.list({
         filter: { userProfileId: { eq: userProfile.id } },
+        limit: 1000,
       });
       console.log("clearAllHistory: list response:", res);
       const rows = Array.isArray(res?.data)
@@ -147,7 +149,7 @@ export default function SearchPage() {
             console.log("clearAllHistory: deleted row id:", r.id, delRes);
           } else {
             console.warn(
-              "clearAllHistory: neither update nor delete available on model"
+              "clearAllHistory: neither update nor delete available on model",
             );
           }
         } catch (rowErr) {
@@ -196,9 +198,7 @@ export default function SearchPage() {
           </TouchableOpacity>
         </View>
         <View className=" w-full mt-3">
-          <View 
-            style={{ position: "relative", width: "100%", height: 49 }}
-          >
+          <View style={{ position: "relative", width: "100%", height: 49 }}>
             <TextInput
               ref={inputRef}
               autoFocus
@@ -261,7 +261,7 @@ export default function SearchPage() {
         </View>
 
         {/* SEARCH SUGGESTIONS OR HISTORY */}
-        <View   className="w-full flex-1 mt-6">
+        <View className="w-full flex-1 mt-6">
           <View className=" flex flex-row justify-between items-center">
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Text style={{ fontSize: 12 }} className=" text-white opacity-70">
