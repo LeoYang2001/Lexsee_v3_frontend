@@ -6,12 +6,8 @@
     "identity_pool_id": "us-east-2:65559298-7a7e-44da-aa2d-071266b40989",
     "mfa_methods": [],
     "standard_required_attributes": [],
-    "username_attributes": [
-      "email"
-    ],
-    "user_verification_types": [
-      "email"
-    ],
+    "username_attributes": ["email"],
+    "user_verification_types": ["email"],
     "groups": [],
     "mfa_configuration": "NONE",
     "password_policy": {
@@ -22,16 +18,9 @@
       "require_uppercase": true
     },
     "oauth": {
-      "identity_providers": [
-        "GOOGLE",
-        "SIGN_IN_WITH_APPLE"
-      ],
-      "redirect_sign_in_uri": [
-        "myapp://"
-      ],
-      "redirect_sign_out_uri": [
-        "myapp://"
-      ],
+      "identity_providers": ["GOOGLE", "SIGN_IN_WITH_APPLE"],
+      "redirect_sign_in_uri": ["myapp://"],
+      "redirect_sign_out_uri": ["myapp://"],
       "response_type": "code",
       "scopes": [
         "phone",
@@ -48,9 +37,7 @@
     "url": "https://kblrhxcrmrdrhc4edve5q4azmu.appsync-api.us-east-2.amazonaws.com/graphql",
     "aws_region": "us-east-2",
     "default_authorization_type": "AMAZON_COGNITO_USER_POOLS",
-    "authorization_types": [
-      "AWS_IAM"
-    ],
+    "authorization_types": ["AWS_IAM"],
     "model_introspection": {
       "version": 1,
       "models": {
@@ -88,9 +75,7 @@
               "attributes": [],
               "association": {
                 "connectionType": "HAS_ONE",
-                "associatedWith": [
-                  "userProfileId"
-                ],
+                "associatedWith": ["userProfileId"],
                 "targetNames": []
               }
             },
@@ -112,9 +97,7 @@
               "isArrayNullable": true,
               "association": {
                 "connectionType": "HAS_MANY",
-                "associatedWith": [
-                  "userProfileId"
-                ]
+                "associatedWith": ["userProfileId"]
               }
             },
             "completedReviewSchedules": {
@@ -128,9 +111,7 @@
               "isArrayNullable": true,
               "association": {
                 "connectionType": "HAS_MANY",
-                "associatedWith": [
-                  "userProfileId"
-                ]
+                "associatedWith": ["userProfileId"]
               }
             },
             "searchHistories": {
@@ -144,9 +125,7 @@
               "isArrayNullable": true,
               "association": {
                 "connectionType": "HAS_MANY",
-                "associatedWith": [
-                  "userProfileId"
-                ]
+                "associatedWith": ["userProfileId"]
               }
             },
             "badgeLists": {
@@ -160,9 +139,7 @@
               "isArrayNullable": true,
               "association": {
                 "connectionType": "HAS_MANY",
-                "associatedWith": [
-                  "userProfileId"
-                ]
+                "associatedWith": ["userProfileId"]
               }
             },
             "userBadges": {
@@ -176,9 +153,7 @@
               "isArrayNullable": true,
               "association": {
                 "connectionType": "HAS_MANY",
-                "associatedWith": [
-                  "userProfileId"
-                ]
+                "associatedWith": ["userProfileId"]
               }
             },
             "createdAt": {
@@ -214,12 +189,7 @@
                     "ownerField": "owner",
                     "allow": "owner",
                     "identityClaim": "cognito:username",
-                    "operations": [
-                      "create",
-                      "update",
-                      "delete",
-                      "read"
-                    ]
+                    "operations": ["create", "update", "delete", "read"]
                   }
                 ]
               }
@@ -258,9 +228,7 @@
               "attributes": [],
               "association": {
                 "connectionType": "BELONGS_TO",
-                "targetNames": [
-                  "userProfileId"
-                ]
+                "targetNames": ["userProfileId"]
               }
             },
             "words": {
@@ -274,9 +242,7 @@
               "isArrayNullable": true,
               "association": {
                 "connectionType": "HAS_MANY",
-                "associatedWith": [
-                  "wordsListId"
-                ]
+                "associatedWith": ["wordsListId"]
               }
             },
             "createdAt": {
@@ -312,12 +278,7 @@
                     "ownerField": "owner",
                     "allow": "owner",
                     "identityClaim": "cognito:username",
-                    "operations": [
-                      "create",
-                      "update",
-                      "delete",
-                      "read"
-                    ]
+                    "operations": ["create", "update", "delete", "read"]
                   }
                 ]
               }
@@ -372,9 +333,7 @@
               "attributes": [],
               "association": {
                 "connectionType": "BELONGS_TO",
-                "targetNames": [
-                  "wordsListId"
-                ]
+                "targetNames": ["wordsListId"]
               }
             },
             "scheduleWords": {
@@ -388,9 +347,7 @@
               "isArrayNullable": true,
               "association": {
                 "connectionType": "HAS_MANY",
-                "associatedWith": [
-                  "wordId"
-                ]
+                "associatedWith": ["wordId"]
               }
             },
             "createdAt": {
@@ -426,12 +383,7 @@
                     "ownerField": "owner",
                     "allow": "owner",
                     "identityClaim": "cognito:username",
-                    "operations": [
-                      "create",
-                      "update",
-                      "delete",
-                      "read"
-                    ]
+                    "operations": ["create", "update", "delete", "read"]
                   }
                 ]
               }
@@ -470,9 +422,7 @@
               "attributes": [],
               "association": {
                 "connectionType": "BELONGS_TO",
-                "targetNames": [
-                  "userProfileId"
-                ]
+                "targetNames": ["userProfileId"]
               }
             },
             "scheduleDate": {
@@ -535,9 +485,7 @@
               "isArrayNullable": true,
               "association": {
                 "connectionType": "HAS_MANY",
-                "associatedWith": [
-                  "reviewScheduleId"
-                ]
+                "associatedWith": ["reviewScheduleId"]
               }
             },
             "createdAt": {
@@ -573,12 +521,7 @@
                     "ownerField": "owner",
                     "allow": "owner",
                     "identityClaim": "cognito:username",
-                    "operations": [
-                      "create",
-                      "update",
-                      "delete",
-                      "read"
-                    ]
+                    "operations": ["create", "update", "delete", "read"]
                   }
                 ]
               }
@@ -617,9 +560,7 @@
               "attributes": [],
               "association": {
                 "connectionType": "BELONGS_TO",
-                "targetNames": [
-                  "reviewScheduleId"
-                ]
+                "targetNames": ["reviewScheduleId"]
               }
             },
             "completedReviewScheduleId": {
@@ -639,9 +580,7 @@
               "attributes": [],
               "association": {
                 "connectionType": "BELONGS_TO",
-                "targetNames": [
-                  "completedReviewScheduleId"
-                ]
+                "targetNames": ["completedReviewScheduleId"]
               }
             },
             "wordId": {
@@ -661,9 +600,7 @@
               "attributes": [],
               "association": {
                 "connectionType": "BELONGS_TO",
-                "targetNames": [
-                  "wordId"
-                ]
+                "targetNames": ["wordId"]
               }
             },
             "status": {
@@ -729,12 +666,7 @@
                     "ownerField": "owner",
                     "allow": "owner",
                     "identityClaim": "cognito:username",
-                    "operations": [
-                      "create",
-                      "update",
-                      "delete",
-                      "read"
-                    ]
+                    "operations": ["create", "update", "delete", "read"]
                   }
                 ]
               }
@@ -773,9 +705,7 @@
               "attributes": [],
               "association": {
                 "connectionType": "BELONGS_TO",
-                "targetNames": [
-                  "userProfileId"
-                ]
+                "targetNames": ["userProfileId"]
               }
             },
             "searchedWords": {
@@ -818,12 +748,7 @@
                     "ownerField": "owner",
                     "allow": "owner",
                     "identityClaim": "cognito:username",
-                    "operations": [
-                      "create",
-                      "update",
-                      "delete",
-                      "read"
-                    ]
+                    "operations": ["create", "update", "delete", "read"]
                   }
                 ]
               }
@@ -862,9 +787,7 @@
               "attributes": [],
               "association": {
                 "connectionType": "BELONGS_TO",
-                "targetNames": [
-                  "userProfileId"
-                ]
+                "targetNames": ["userProfileId"]
               }
             },
             "userBadges": {
@@ -878,9 +801,7 @@
               "isArrayNullable": true,
               "association": {
                 "connectionType": "HAS_MANY",
-                "associatedWith": [
-                  "badgeListId"
-                ]
+                "associatedWith": ["badgeListId"]
               }
             },
             "createdAt": {
@@ -916,12 +837,7 @@
                     "ownerField": "owner",
                     "allow": "owner",
                     "identityClaim": "cognito:username",
-                    "operations": [
-                      "create",
-                      "update",
-                      "delete",
-                      "read"
-                    ]
+                    "operations": ["create", "update", "delete", "read"]
                   }
                 ]
               }
@@ -960,9 +876,7 @@
               "attributes": [],
               "association": {
                 "connectionType": "BELONGS_TO",
-                "targetNames": [
-                  "userProfileId"
-                ]
+                "targetNames": ["userProfileId"]
               }
             },
             "globalAwardId": {
@@ -982,9 +896,7 @@
               "attributes": [],
               "association": {
                 "connectionType": "BELONGS_TO",
-                "targetNames": [
-                  "globalAwardId"
-                ]
+                "targetNames": ["globalAwardId"]
               }
             },
             "acquiredAt": {
@@ -1011,9 +923,7 @@
               "attributes": [],
               "association": {
                 "connectionType": "BELONGS_TO",
-                "targetNames": [
-                  "badgeListId"
-                ]
+                "targetNames": ["badgeListId"]
               }
             },
             "isActive": {
@@ -1063,12 +973,7 @@
                     "ownerField": "owner",
                     "allow": "owner",
                     "identityClaim": "cognito:username",
-                    "operations": [
-                      "create",
-                      "update",
-                      "delete",
-                      "read"
-                    ]
+                    "operations": ["create", "update", "delete", "read"]
                   }
                 ]
               }
@@ -1143,9 +1048,7 @@
               "isArrayNullable": true,
               "association": {
                 "connectionType": "HAS_MANY",
-                "associatedWith": [
-                  "globalAwardId"
-                ]
+                "associatedWith": ["globalAwardId"]
               }
             },
             "createdAt": {
@@ -1178,9 +1081,7 @@
                 "rules": [
                   {
                     "allow": "private",
-                    "operations": [
-                      "read"
-                    ]
+                    "operations": ["read"]
                   }
                 ]
               }
@@ -1219,9 +1120,7 @@
               "attributes": [],
               "association": {
                 "connectionType": "BELONGS_TO",
-                "targetNames": [
-                  "userProfileId"
-                ]
+                "targetNames": ["userProfileId"]
               }
             },
             "scheduleDate": {
@@ -1284,9 +1183,7 @@
               "isArrayNullable": true,
               "association": {
                 "connectionType": "HAS_MANY",
-                "associatedWith": [
-                  "completedReviewScheduleId"
-                ]
+                "associatedWith": ["completedReviewScheduleId"]
               }
             },
             "createdAt": {
@@ -1322,12 +1219,7 @@
                     "ownerField": "owner",
                     "allow": "owner",
                     "identityClaim": "cognito:username",
-                    "operations": [
-                      "create",
-                      "update",
-                      "delete",
-                      "read"
-                    ]
+                    "operations": ["create", "update", "delete", "read"]
                   }
                 ]
               }
@@ -1343,17 +1235,11 @@
       "enums": {
         "WordStatus": {
           "name": "WordStatus",
-          "values": [
-            "COLLECTED",
-            "LEARNED"
-          ]
+          "values": ["COLLECTED", "LEARNED"]
         },
         "ReviewScheduleWordStatus": {
           "name": "ReviewScheduleWordStatus",
-          "values": [
-            "TO_REVIEW",
-            "REVIEWED"
-          ]
+          "values": ["TO_REVIEW", "REVIEWED"]
         }
       },
       "nonModels": {}
