@@ -52,7 +52,7 @@ export default function SignInScreen() {
           // Failed to fetch user info, show error but user is still signed in
           Alert.alert(
             "Warning",
-            "Signed in successfully but failed to load user data. Please restart the app."
+            "Signed in successfully but failed to load user data. Please restart the app.",
           );
           // router.replace("/(home)");
         }
@@ -279,7 +279,8 @@ export default function SignInScreen() {
                   </TouchableOpacity>
                 </Link>
               </View>
-              <Button title="Reset Auth State" onPress={() => signOut()} />
+
+              {/* <Button title="Reset Auth State" onPress={() => signOut()} /> */}
             </View>
           </View>
         </ScrollView>

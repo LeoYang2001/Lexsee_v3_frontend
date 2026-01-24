@@ -17,7 +17,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#1F2734"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.leoyang_2001.lexsee_v3_frontend"
@@ -26,22 +26,10 @@
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "plugins": [
       "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "backgroundColor": "#1F2734",
-          "image": "./assets/splashScreen.png",
-           "resizeMode": "contain", 
-          "dark": {
-            "backgroundColor": "#1F2734"
-          }
-        }
-      ],
+
       [
         "expo-video",
         {
