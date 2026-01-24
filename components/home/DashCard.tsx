@@ -13,12 +13,15 @@ import { useAppSelector } from "../../store/hooks";
 import ReviewStatusDisplay from "./ReviewStatusDisplay";
 import ReviewActionButton from "./ReviewActionButton";
 import { getReviewWordsForToday } from "../../store/selectors/todayReviewSelectors";
-
-  const duration = 200;
+import { wordsListSelector } from "../../store/selectors/wordsListSelector";
+const duration = 200;
 
 const DashCard = () => {
+
+  const {collectedList, masteredList} = useAppSelector(wordsListSelector);
+
   const [ifReviewCard, setIfReviewCard] = useState(true);
-  
+
   
   const {
       stats,
@@ -26,7 +29,7 @@ const DashCard = () => {
     } = useAppSelector(getReviewWordsForToday);
 
 
-
+  
   const height = useSharedValue(104);
   const reviewOpacity = useSharedValue(0);
 
@@ -91,7 +94,7 @@ const DashCard = () => {
           }}
         >
           <View className="w-full h-full flex flex-row justify-between items-center">
-            <View className=" flex-1 border">
+            <View className=" flex-1">
               {/* Review Status Display */}
               <ReviewStatusDisplay
               reviewStatus={status}
@@ -156,7 +159,7 @@ const DashCard = () => {
                     fontWeight: "600",
                   }}
                 >
-                  {stats?.pastCount || 0}
+                  {collectedList.length}
                 </Text>
                 <Text
                   style={{
@@ -189,7 +192,7 @@ const DashCard = () => {
                     fontWeight: "600",
                   }}
                 >
-                  {stats?.todayCount || 0}
+                  {masteredList.length}
                 </Text>
                 <Text
                   style={{

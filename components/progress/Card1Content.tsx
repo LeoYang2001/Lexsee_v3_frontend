@@ -4,13 +4,12 @@ import { Calendar, TrendingDown, TrendingUp } from "lucide-react-native";
 import { calculateStreak } from "../../lib/reviewAlgorithm";
 import ProgressCalendar from "./ProgressCalendar";
 import ProgressReview from "./ProgressReview";
-import { ReviewScheduleData } from "../../store/slices/reviewScheduleSlice";
 import { getLocalDate } from "../../util/utli";
+import useStreak from "../../hooks/useStreak";
 
 interface Card1ContentProps {
   viewMode: "default" | "card1Expanded" | "card2Expanded";
-  todaySchedule: any;
-  allSchedules: ReviewScheduleData[];
+  allSchedules: any[];
 }
 
 const Card1Content: React.FC<Card1ContentProps> = ({
@@ -23,14 +22,10 @@ const Card1Content: React.FC<Card1ContentProps> = ({
     getLocalDate()
   );
   // guard schedules to avoid undefined being passed into calculateStreak
-  const [streak, setStreak] = useState(0);
+  const streak =useStreak();
 
-  useEffect(() => {
-    if (allSchedules.length > 0) {
-      const calculatedStreak = calculateStreak(allSchedules);
-      setStreak(calculatedStreak);
-    }
-  }, [allSchedules]);
+
+  console.log('allSchedules got from Card1Content', JSON.stringify(allSchedules))
 
   // Only render content when card1 is expanded (or compact row for card2Expanded)
   if (viewMode === "card2Expanded") {
