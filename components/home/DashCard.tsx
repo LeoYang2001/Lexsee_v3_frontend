@@ -1,11 +1,10 @@
 import { View, Text, TouchableOpacity, Pressable } from "react-native";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
-  FadeInLeft,
   FadeIn,
 } from "react-native-reanimated";
 
@@ -13,86 +12,28 @@ import { useRouter } from "expo-router";
 import { useAppSelector } from "../../store/hooks";
 import ReviewStatusDisplay from "./ReviewStatusDisplay";
 import ReviewActionButton from "./ReviewActionButton";
+import { getReviewWordsForToday } from "../../store/selectors/todayReviewSelectors";
 
-type ReviewStatus = "review_begin" | "review_in_progress" | "viewProgress";
+  const duration = 200;
 
 const DashCard = () => {
   const [ifReviewCard, setIfReviewCard] = useState(true);
-  const [reviewStatus, setReviewStatus] =
-    useState<ReviewStatus>("viewProgress");
-  const [todayStats, setTodayStats] = useState({
-    totalToReview: 0,
-    reviewedCount: 0,
-    toBeReviewedCount: 0,
-  });
+  
+  
+  const {
+      stats,
+      status
+    } = useAppSelector(getReviewWordsForToday);
+
+
 
   const height = useSharedValue(104);
   const reviewOpacity = useSharedValue(0);
 
   const router = useRouter();
 
-  // Get from Redux
-  const words = useAppSelector((state) => state.wordsList.words);
-  //todayReviewList
-  const todaySchedule = useAppSelector(
-    (state) => state.todayReviewList.words
-  );
-  const isLoadingTodaySchedule = useAppSelector(
-    (state) => state.todayReviewList.isLoading
-  );
   
-  // Calculate statistics
-  const totalWords = words.length;
-  const savedWords = words.filter((word) => word.status === "COLLECTED").length;
-  const learnedWords = words.filter((word) => word.status === "LEARNED").length;
-
-  const duration = 200;
-
-  // Update review status when schedule changes
-  useEffect(() => {
-    // If still loading, don't set status yet
-    if (isLoadingTodaySchedule) {
-      return;
-    }
-
-    if (!todaySchedule) {
-      setReviewStatus("viewProgress");
-      setTodayStats({
-        totalToReview: 0,
-        reviewedCount: 0,
-        toBeReviewedCount: 0,
-      });
-      return;
-    }
-
-    const toBeReviewedCount = todaySchedule.length || 0;
-    const reviewedCount = todaySchedule.filter((word: any) => word.reviewed).length || 0;
-    const totalToReview = toBeReviewedCount + reviewedCount;
-
-
-    // Determine review status
-    let status: ReviewStatus;
-
-    if (totalToReview === 0) {
-      status = "viewProgress";
-    } else if (reviewedCount === 0) {
-      status = "review_begin";
-    } else if (reviewedCount < totalToReview) {
-      status = "review_in_progress";
-    } else {
-      status = "viewProgress";
-    }
-
-    console.log(`🎯 Review status: ${status}`);
-
-    setReviewStatus(status);
-
-    setTodayStats({
-      totalToReview,
-      reviewedCount,
-      toBeReviewedCount,
-    });
-  }, [todaySchedule, isLoadingTodaySchedule]);
+  
 
   React.useEffect(() => {
     height.value = withTiming(ifReviewCard ? 191 : 104, { duration });
@@ -109,7 +50,7 @@ const DashCard = () => {
 
   // Get status label and color
   const getStatusDisplay = () => {
-    switch (reviewStatus) {
+    switch (status) {
       case "review_begin":
         return {
           label: "Review Begin",
@@ -150,14 +91,11 @@ const DashCard = () => {
           }}
         >
           <View className="w-full h-full flex flex-row justify-between items-center">
-            <View className=" flex-1">
+            <View className=" flex-1 border">
               {/* Review Status Display */}
               <ReviewStatusDisplay
-                reviewStatus={reviewStatus}
-                todayStats={todayStats}
-                totalWords={totalWords}
-                onToggleExpand={() => setIfReviewCard(!ifReviewCard)}
-                isLoadingTodaySchedule={isLoadingTodaySchedule}
+              reviewStatus={status}
+              stats= {stats}
               />
             </View>
 
@@ -174,7 +112,7 @@ const DashCard = () => {
             <View className=" flex-1">
               {/* Review Action Button */}
               <ReviewActionButton
-                reviewStatus={reviewStatus}
+                reviewStatus={status}
                 statusColor={statusDisplay.color}
                 statusBgColor={statusDisplay.bgColor}
                 statusLabel={statusDisplay.label}
@@ -218,7 +156,7 @@ const DashCard = () => {
                     fontWeight: "600",
                   }}
                 >
-                  {savedWords}
+                  {stats?.pastCount || 0}
                 </Text>
                 <Text
                   style={{
@@ -251,7 +189,7 @@ const DashCard = () => {
                     fontWeight: "600",
                   }}
                 >
-                  {learnedWords}
+                  {stats?.todayCount || 0}
                 </Text>
                 <Text
                   style={{

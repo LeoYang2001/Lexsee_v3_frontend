@@ -1,19 +1,23 @@
 import { configureStore } from "@reduxjs/toolkit";
 import userReducer from "./slices/userSlice";
-import profileReducer from "./slices/profileSlice";
-import wordsListReducer from "./slices/wordsListSlice";
-import ifChinaReducer from "./slices/ifChinaSlice";
-import reviewScheduleReducer from "./slices/reviewScheduleSlice";
 import todayReviewListReducer from "./slices/todayReviewListSlice";
+import profileReducer from './slices/profileSlice'
+import wordsListReducer from './slices/wordsListSlice'
+import reviewScheduleReducer from './slices/reviewScheduleSlice'
+import completedReviewSchedulesReducer from './slices/completedReviewScheduleSlice'
+import ifChinaReducer from './slices/ifChinaSlice'
+import reviewScheduleWordsReducer from './slices/reviewScheduleWordsSlice'
 
 export const store = configureStore({
   reducer: {
     user: userReducer,
-    profile: profileReducer, // Ensure profileReducer is imported and added here
-    wordsList: wordsListReducer, // Add your wordsListReducer here
-    ifChina: ifChinaReducer,
+    profile: profileReducer, 
+    wordsList: wordsListReducer,
     reviewSchedule: reviewScheduleReducer,
     todayReviewList: todayReviewListReducer,
+    reviewScheduleWords: reviewScheduleWordsReducer,
+    completedReviewSchedules: completedReviewSchedulesReducer,
+    ifChina: ifChinaReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

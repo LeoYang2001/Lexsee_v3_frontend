@@ -29,7 +29,7 @@ const EXPANDED_BORDER_RADIUS = BORDER_RADIUS * 2;
 
 const ProgressPage = () => {
   const words = useAppSelector((state) => state.wordsList.words);
-  const userProfile = useAppSelector((state) => state.profile.profile);
+  const userProfile = useAppSelector((state) => state.profile.data);
   const todaySchedule = useAppSelector(
     (state) => state.reviewSchedule.todaySchedule
   );

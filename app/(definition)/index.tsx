@@ -36,8 +36,6 @@ import { fetchAudioUrl } from "../../apis/fetchPhonetics";
 import { client } from "../client";
 import ConversationView from "../../components/definition/ConversationView";
 import { handleScheduleNotification, uncollectWord } from "../../apis/setSchedule";
-import { useDispatch } from "react-redux";
-import { setProfile, UserProfile } from "../../store/slices/profileSlice";
 import { getLocalDate } from "../../util/utli";
 
 function CollectBtn({ saveStatus }: { saveStatus: string }) {
@@ -228,7 +226,11 @@ export default function DefinitionPage() {
   const theme = useTheme();
   const params = useLocalSearchParams();
   const { words } = useAppSelector((state) => state.wordsList);
-  const { profile } = useAppSelector((state) => state.profile);
+ const profile = useAppSelector((state) => state.profile.data);
+
+ const reviewScheduleWords = useAppSelector((state) => state.reviewScheduleWords.items);
+ const reviewSchedules = useAppSelector((state) => state.reviewSchedule.items);
+
 
   const [wordInfo, setWordInfo] = useState<Word | undefined>(undefined);
 
@@ -256,7 +258,8 @@ export default function DefinitionPage() {
   const [showConversationView, setShowConversationView] = useState(false);
   const [playMessageAnimation, setPlayMessageAnimation] = useState(false); // New state for animation
 
-  const userProfile = useAppSelector((state) => state.profile);
+  const userProfile = useAppSelector((state) => state.profile.data);
+
 
   const ifChina = useAppSelector((state) => state.ifChina.ifChina);
 
@@ -269,13 +272,13 @@ export default function DefinitionPage() {
     };
 
     setSaveStatus("saving");
-
     try {
       //step1: check if the word exist
       const existingWord = words.find(
         (word) => word.word === wordInfoToSave.word
       );
       if (existingWord) {
+        console.log('word exists, do not create but just update')
         const updateData = {
           id: existingWord.id,
           data: JSON.stringify(wordInfoToSave),
@@ -301,17 +304,30 @@ export default function DefinitionPage() {
     } catch (error) {
       console.log(error);
     }
-
+    // initiate sheduling only when theres no shceduleWord that exists for this word and still has TO_REVIEW status
+    const existingScheduleWord = reviewScheduleWords.find(
+      (sw) => sw.wordId === wordInfoToSave.id && sw.status === "TO_REVIEW"
+    );
+    
+   if(!existingScheduleWord) {
     //initiate scheduling notification update
     const currentLocalDate = getLocalDate();
+    console.log('currentLocalDate:', currentLocalDate)
+    // newNextDue should be the day after currentLocalDate
     const newNextDue = new Date(currentLocalDate);
+    console.log("newNextDue:", newNextDue)
     newNextDue.setDate(newNextDue.getDate() + wordInfoToSave.review_interval);
-    const ifSuccess = await handleScheduleNotification(
-      userProfile,
-      wordInfoToSave.id,
-      newNextDue
-    );
-    console.log("Handle schedule notification success:", ifSuccess);
+    console.log('wordInfoToSave.reviewInternval:', wordInfoToSave.review_interval)
+    console.log("newNextDue after adding review_interval:", newNextDue)
+    if (userProfile) {
+      const ifSuccess = await handleScheduleNotification(
+        userProfile,
+        wordInfoToSave.id,
+        newNextDue
+      );
+      console.log("Handle schedule notification success:", ifSuccess);
+    }
+   }
     // 4. Force refresh to get accurate state
     setSaveStatus("saved");
   };
@@ -671,8 +687,20 @@ export default function DefinitionPage() {
         // 4. Delete the word 
         //     1. Remove from wordlist 
         //     2. Delete the word 
+
     setSaveStatus("saving");
-    await uncollectWord(wordInfo.id || "");
+
+    const unreviewScheduleWords = reviewScheduleWords.filter((rsw: any) => rsw.status === "TO_REVIEW");
+    const correspondingScheduleWord = unreviewScheduleWords.find((rsw: any) => rsw.wordId === wordInfo.id);
+    const correspondingSchedule = reviewSchedules.find((rs: any) => rs.id === correspondingScheduleWord?.reviewScheduleId);
+    if(!wordInfo.id || !correspondingScheduleWord?.id || !correspondingSchedule?.id) {
+      console.error("❌ Missing required IDs for unsaving word");
+      setSaveStatus("unsaved");
+      return;
+    }
+    else{
+      await uncollectWord(wordInfo.id, correspondingScheduleWord, correspondingSchedule);
+    }
     try {
       
       if (wordInfo.id) {

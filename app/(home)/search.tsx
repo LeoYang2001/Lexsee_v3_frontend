@@ -26,7 +26,7 @@ export default function SearchPage() {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const inputRef = useRef<TextInput>(null);
-  const userProfile = useAppSelector((state) => state.profile.profile);
+  const userProfile = useAppSelector((state) => state.profile.data);
 
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
 

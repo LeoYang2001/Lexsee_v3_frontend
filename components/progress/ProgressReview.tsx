@@ -1,7 +1,6 @@
 import { View, Text, ActivityIndicator } from "react-native";
 import React, { useEffect, useState } from "react";
 import { ArcGauge } from "./ArcGauge";
-import { ReviewScheduleData } from "../../store/slices/reviewScheduleSlice";
 
 interface ProgressReviewProps {
   selectedIso?: string | null;
@@ -28,13 +27,6 @@ const ProgressReview: React.FC<ProgressReviewProps> = ({
     null
   );
 
-  useEffect(() => {
-    // Find schedule for selectedIso
-    const schedule = allSchedules.find(
-      (sched) => sched.scheduleDate === selectedIso
-    );
-    setTodaySchedule(schedule);
-  }, [allSchedules, selectedIso]);
 
   // resolve scheduleWords (may be array, promise, or function returning promise)
   useEffect(() => {

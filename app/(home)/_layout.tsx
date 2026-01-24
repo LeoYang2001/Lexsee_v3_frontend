@@ -1,18 +1,12 @@
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Drawer } from "expo-router/drawer";
 import { Feather } from "@expo/vector-icons";
-import {
-  DrawerContentScrollView,
-  DrawerItemList,
-} from "@react-navigation/drawer";
-import ThemeToggleButton from "../../components/home/ThemeToggleButton";
 
 import { TouchableOpacity, Text, Alert, View, Dimensions, ScrollView, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { signOut as amplifySignOut } from "aws-amplify/auth";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import { RootState } from "../../store";
-import { setIfChina } from "../../store/slices/ifChinaSlice";
 import appConfig from "../../app.json";
 
 
@@ -21,10 +15,7 @@ const screenWidth = Dimensions.get("window").width;
 export default function HomeLayout() {
   const router = useRouter();
 
-  const dispatch = useDispatch();
-
-
-  const ifChina = useSelector((state: RootState) => state.ifChina.ifChina);
+  
   const user = useSelector((state: RootState) => state.user.user);
 
   const handleSignOut = async () => {
@@ -35,14 +26,6 @@ export default function HomeLayout() {
     }
   };
 
-  // Toggle ifChina state for testing
-  const handleToggleIfChina = () => {
-    dispatch(setIfChina(!ifChina));
-    Alert.alert(
-      "Location Status Changed",
-      `Testing mode: User is now ${!ifChina ? "🇨🇳 in China" : "🌍 outside China"}`
-    );
-  };
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

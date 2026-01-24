@@ -1,6 +1,7 @@
 import * as Notifications from "expo-notifications";
-import { ProfileState } from "../store/slices/profileSlice";
 import { client } from "../app/client";
+import { UserProfile } from "../store/slices/profileSlice";
+
 
 /**
  * Create or get a ReviewSchedule for a specific date
@@ -56,7 +57,7 @@ const getOrCreateReviewSchedule = async (
  * Schedules a word for a future review date
  */
 export const handleScheduleNotification = async (
-  userProfile: ProfileState,
+  userProfile: UserProfile,
   wordId: string | undefined,
   next_due: Date
 ): Promise<boolean> => {
@@ -66,9 +67,9 @@ export const handleScheduleNotification = async (
   }
 
   if (
-    !userProfile.profile ||
-    !userProfile.profile.userId ||
-    !userProfile.profile.id
+    !userProfile ||
+    !userProfile.userId ||
+    !userProfile.id
   ) {
     console.error("❌ Missing profile data");
     return false;
@@ -84,9 +85,8 @@ export const handleScheduleNotification = async (
                 // cancle old notification and set a new one with updated count
 
   try {
-    const userProfileId = userProfile.profile.id;
+    const userProfileId = userProfile.id;
     const nextDueDate = new Date(next_due).toISOString().split("T")[0];
-
     
 
     // Step 1: create a reviewScheduleWord
@@ -124,10 +124,8 @@ export const handleScheduleNotification = async (
     if (!created) {
       // existed schedule,  cancel original notification and set a new one
       const wordsCount = schedule.toBeReviewedCount - schedule.reviewedCount; // get current count
-      console.log(`🔍 DEBUG - wordsCount (existing): ${wordsCount}`);
       
       if (schedule.notificationId) {
-        console.log(`🔍 DEBUG - Canceling notification: ${schedule.notificationId}`);
         await Notifications.cancelScheduledNotificationAsync(
           schedule.notificationId
         );
@@ -135,6 +133,7 @@ export const handleScheduleNotification = async (
           `🔕 Canceled existing notification ${schedule.notificationId} for schedule on ${nextDueDate}`
         );
       }
+      console.log('try to schedule on next_due', next_due)
       const notificationId = await setSchedule(wordsCount + 1, next_due);
       console.log(`🔍 DEBUG - New notificationId: ${notificationId}`);
       
@@ -189,52 +188,22 @@ export const handleScheduleNotification = async (
  * Uncollect a word and update schedules/notifications accordingly
  */
 export const uncollectWord = async (
-  wordId: string
+  wordId: string,
+  scheduleWord: any,
+  schedule: any
 ): Promise<boolean> => {
 
   try {
 
+
      // 1. Get the review entity to get the review schedule based on date 
-    
-    console.log(`🗑️ Uncollecting word ${wordId}`);
-    console.log(`🔍 DEBUG - Input wordId: ${wordId}`);
-
-    // 1. First,  get the id of entity based on word id 
-    const reviewScheduleWords =  await (client as any).models.ReviewScheduleWord.list({
-      filter: { wordId: { eq: wordId } }
-    });
-
-    console.log(`🔍 DEBUG - reviewScheduleWords result: ${JSON.stringify(reviewScheduleWords)}`);
-
-    const reviewScheduleWordsData = reviewScheduleWords.data || [];
-    console.log(`🔍 DEBUG - reviewScheduleWordsData length: ${reviewScheduleWordsData.length}`);
-    console.log(`🔍 DEBUG - reviewScheduleWordsData: ${JSON.stringify(reviewScheduleWordsData)}`);
-    
-    const upcomingSchedule_entity = reviewScheduleWordsData.filter((rsw: any) => rsw.status === "TO_REVIEW")[0];
-    console.log(`🔍 DEBUG - upcomingSchedule_entity: ${JSON.stringify(upcomingSchedule_entity)}`);
-    console.log(`🔍 DEBUG - upcomingSchedule_entity.id: ${upcomingSchedule_entity?.id}`);
-    console.log(`🔍 DEBUG - upcomingSchedule_entity.reviewScheduleId: ${upcomingSchedule_entity?.reviewScheduleId}`);
-      
+  
     // 1.2  Second, get the review schedule id from the entity
-    if(upcomingSchedule_entity.id)
+    if(scheduleWord.id)
     {
-      console.log(`🔍 DEBUG - Fetching schedule with id: ${upcomingSchedule_entity.reviewScheduleId}`);
+      console.log(`🔍 DEBUG - Fetching schedule with id: ${scheduleWord.reviewScheduleId}`);
       
-      const schedule = await (client as any).models.ReviewSchedule.get({
-       id: upcomingSchedule_entity.reviewScheduleId
-      });
-      
-      console.log(`🔍 DEBUG - schedule result: ${JSON.stringify(schedule)}`);
-      console.log(`🔍 DEBUG - schedule.data: ${JSON.stringify(schedule.data)}`);
-      console.log(`🔍 DEBUG - schedule.data.id: ${schedule.data?.id}`);
-      console.log(`🔍 DEBUG - schedule.data.notificationId: ${schedule.data?.notificationId}`);
-      
-      // Get all words in this schedule to check count
-      const allScheduleWords = await (client as any).models.ReviewScheduleWord.list({
-        filter: { reviewScheduleId: { eq: upcomingSchedule_entity.reviewScheduleId } }
-      });
-      
-      const scheduleWordsCount = allScheduleWords.data?.length || 0;
+      const scheduleWordsCount = schedule.totalWords
       console.log(`🔍 DEBUG - Total words in schedule: ${scheduleWordsCount}`);
        // 2.1 If there’s only one entity
         //     1. Cancel notification
@@ -242,57 +211,57 @@ export const uncollectWord = async (
       if(scheduleWordsCount === 1){
           console.log(`🔍 DEBUG - Only one word in schedule, deleting entire schedule`);
           
-          if(schedule.data.notificationId){
-            console.log(`🔍 DEBUG - Canceling notification: ${schedule.data.notificationId}`);
-            await Notifications.cancelScheduledNotificationAsync(schedule.data.notificationId);
-            console.log(`🔕 Canceled notification ${schedule.data.notificationId} for schedule`);
+          if(schedule?.notificationId){
+            console.log(`🔍 DEBUG - Canceling notification: ${schedule.notificationId}`);
+            await Notifications.cancelScheduledNotificationAsync(schedule.notificationId);
+            console.log(`🔕 Canceled notification ${schedule.notificationId} for schedule`);
           }
           
           // delete entity
-          console.log(`🔍 DEBUG - Deleting ReviewScheduleWord entity: ${upcomingSchedule_entity.id}`);
+          console.log(`🔍 DEBUG - Deleting ReviewScheduleWord entity: ${scheduleWord.id}`);
           await (client as any).models.ReviewScheduleWord.delete({
-            id: upcomingSchedule_entity.id,
+            id: scheduleWord.id,
           });
-          console.log(`🗑️ Deleted ReviewScheduleWord entity ${upcomingSchedule_entity.id}`);
+          console.log(`🗑️ Deleted ReviewScheduleWord entity ${scheduleWord.id}`);
           
           // delete schedule
-          console.log(`🔍 DEBUG - Deleting ReviewSchedule: ${schedule.data.id}`);
+          console.log(`🔍 DEBUG - Deleting ReviewSchedule: ${schedule.id}`);
           await (client as any).models.ReviewSchedule.delete({
-            id: schedule.data.id,
+            id: schedule.id,
           });
-          console.log(`🗑️ Deleted ReviewSchedule ${schedule.data.id}`);
+          console.log(`🗑️ Deleted ReviewSchedule ${schedule.id}`);
       }
       //2.2 If there’s more than one entity
       else{
         console.log(`🔍 DEBUG - More than one entity in schedule${JSON.stringify(schedule)}`);
         // more than one entity, just delete the entity
         await (client as any).models.ReviewScheduleWord.delete({
-          id: upcomingSchedule_entity.id,
+          id: scheduleWord.id,
         });
-        console.log(`🗑️ Deleted ReviewScheduleWord entity ${upcomingSchedule_entity.id}`);
+        console.log(`🗑️ Deleted ReviewScheduleWord entity ${scheduleWord.id}`);
         console.log('update schedule notification', JSON.stringify(schedule))
         // update notification & schedule counts
-        const cur_totalWords = schedule.data.totalWords; 
-        const cur_tobeReviewedCount = schedule.data.toBeReviewedCount;
+        const cur_totalWords = schedule.totalWords; 
+        const cur_tobeReviewedCount = schedule.toBeReviewedCount;
         console.log(`🔍 DEBUG - Current totalWords: ${cur_totalWords}`);
         console.log(`🔍 DEBUG - Current toBeReviewedCount: ${cur_tobeReviewedCount}`);
         console.log(`🔍 DEBUG - New totalWords will be: ${cur_totalWords - 1}`);
         console.log(`🔍 DEBUG - New toBeReviewedCount will be: ${cur_tobeReviewedCount - 1}`);
         
         await (client as any).models.ReviewSchedule.update({
-          id: schedule.data.id,
+          id: schedule.id,
           toBeReviewedCount: cur_tobeReviewedCount - 1,
           totalWords: cur_totalWords - 1,
         });
         console.log(`✅ Updated schedule counts after uncollecting word`);
         
          // cancel old notification and set a new one with updated count at the original time
-        if(schedule.data.notificationId){
-          console.log(`🔍 DEBUG - Canceling old notification: ${schedule.data.notificationId}`);
-          await Notifications.cancelScheduledNotificationAsync(schedule.data.notificationId);
-          console.log(`🔕 Canceled notification ${schedule.data.notificationId} for schedule`);
+        if(schedule.notificationId){
+          console.log(`🔍 DEBUG - Canceling old notification: ${schedule.notificationId}`);
+          await Notifications.cancelScheduledNotificationAsync(schedule.notificationId);
+          console.log(`🔕 Canceled notification ${schedule.notificationId} for schedule`);
           
-          const newNotificationDate = new Date(schedule.data.scheduleDate);
+          const newNotificationDate = new Date(schedule.scheduleDate);
           console.log(`🔍 DEBUG - Setting new notification for ${cur_tobeReviewedCount - 1} words at ${newNotificationDate}`);
           const newNotificationId = await setSchedule(cur_tobeReviewedCount - 1, newNotificationDate);
           console.log(`🔍 DEBUG - New notification ID: ${newNotificationId}`);
@@ -313,43 +282,50 @@ export const setSchedule = async (
   wordsCount: number,
   next_due: Date
 ): Promise<string | null> => {
+  
+  if (!next_due || !(next_due instanceof Date) || isNaN(next_due.getTime())) {
+    console.error("❌ [setSchedule] Invalid date provided:", next_due);
+    return null;
+  }
+  
   try {
-    let identifier; 
-    if(wordsCount > 1)
-    {
-       identifier = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "Time to Review!",
-        body: `You have ${wordsCount} word(s) to review.`,
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: next_due,
-      },
-    });
-    }
-    else{
-        identifier = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "Time to Review!",
-        body: `You have only one word to review today!`,
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: next_due,
-      },
-    });
-    }
-   
+    const notificationContent = {
+      title: "Time to Review!",
+      body: wordsCount > 1 
+        ? `You have ${wordsCount} words to review.` 
+        : `You have one word to review today!`,
+    };
 
-    console.log(`🔔 Notification scheduled with ID: ${identifier}`);
+    const scheduledYear = next_due.getFullYear();
+    const scheduledMonth = next_due.getMonth() + 1;
+    const scheduledDay = next_due.getDate();
+    const scheduledHour = 9;
+    const scheduledMinute = 0;
+
+    const trigger: Notifications.CalendarTriggerInput = {
+      type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+      year: scheduledYear,
+      month: scheduledMonth,
+      day: scheduledDay,
+      hour: scheduledHour,
+      minute: scheduledMinute,
+      repeats: false,
+    };
+
+    // --- LOGGING THE LOCAL TIME ---
+    console.log(`⏰ [setSchedule] Notification scheduled for local time: ${scheduledYear}-${scheduledMonth}-${scheduledDay} at ${scheduledHour}:00`);
+
+    const identifier = await Notifications.scheduleNotificationAsync({
+      content: notificationContent,
+      trigger,
+    });
+
     return identifier;
-  } catch (error) {
-    console.error("❌ Error scheduling notification:", error);
+  } catch (error: any) {
+    console.error("❌ [setSchedule] Error:", error.message);
     return null;
   }
 };
-
 /**
  * Update word's spaced repetition metrics
  */
@@ -399,5 +375,34 @@ export const updateWordSpacedRepetition = async (
   } catch (error) {
     console.error("❌ Error updating spaced repetition:", error);
     return false;
+  }
+};
+
+
+export const checkScheduledNotifications = async () => {
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  
+  if (scheduled.length === 0) {
+    console.log("📭 No notifications scheduled.");
+    return;
+  }
+
+  console.log(`📅 Found ${scheduled.length} scheduled notification(s):`);
+  
+  scheduled.forEach((notif, index) => {
+    console.log(`--- Notification #${index + 1} ---`);
+    console.log(`ID: ${notif.identifier}`);
+    console.log(`Title: ${notif.content.title}`);
+    console.log(`Trigger:`, JSON.stringify(notif.trigger, null, 2));
+  });
+};
+
+export const cleanAllNotifications = async () => {
+  try {
+    console.log("🧹 [Notifications] Clearing all scheduled notifications...");
+    await Notifications.cancelAllScheduledNotificationsAsync();
+    console.log("✅ [Notifications] All notifications cleared.");
+  } catch (error) {
+    console.error("❌ [Notifications] Failed to clear notifications:", error);
   }
 };
