@@ -2,8 +2,8 @@ import { View, Text, TouchableOpacity } from "react-native";
 import React from "react";
 import { ArrowRight, ChevronRight } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import { ReviewStatus } from "../../store/selectors/todayReviewSelectors";
 
-type ReviewStatus = "review_begin" | "review_in_progress" | "viewProgress";
 
 interface ReviewActionButtonProps {
   reviewStatus: ReviewStatus;

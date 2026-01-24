@@ -6,7 +6,6 @@ import {
   ImageBackground,
 } from "react-native";
 import React, { useState, useEffect, useRef } from "react";
-import { Word } from "../../types/common/Word";
 import PhoneticAudio from "../common/PhoneticAudio";
 import ImageZoomModal from "../common/ImageZoomModal";
 // Add Reanimated imports
@@ -19,18 +18,20 @@ import Animated, {
 } from "react-native-reanimated";
 import { ConversationResponse } from "../../apis/AIFeatures";
 
+
+
 interface ReviewFlexCardProps {
-  word: Word;
+  word: any;
   familiarityLevel: string;
   onHintPressed?: () => void;
   hintCount?: number;
   isLoading?: boolean;
   conversationData: ConversationResponse | null;
-  ifPastDue?: boolean;
 }
 
 const { width, height } = Dimensions.get("window");
 const BORDER_RADIUS = Math.min(width, height) * 0.06;
+
 
 const AnimatedLoadingMessages = () => {
   const messages = [
@@ -188,7 +189,6 @@ const ReviewFlexCard = ({
   familiarityLevel,
   isLoading = false,
   conversationData,
-  ifPastDue
 }: ReviewFlexCardProps) => {
   const [isImageZoomed, setIsImageZoomed] = useState(false);
   const [contentHeight, setContentHeight] = useState(200);
@@ -309,7 +309,7 @@ const ReviewFlexCard = ({
             <PhoneticAudio size={32} phonetics={word.phonetics} />
           </View>
           <View className="mt-4 flex-row flex-wrap gap-2">
-            {word?.meanings.map((meaning, index) => (
+            {word?.meanings.map((meaning: any, index: number) => (
               <View
                 style={{
                   borderRadius: 12,
@@ -351,7 +351,7 @@ const ReviewFlexCard = ({
             <PhoneticAudio size={18} phonetics={word.phonetics} />
           </View>
           <View className="mt-4 flex-row flex-wrap gap-2">
-            {word?.meanings.map((meaning, index) => (
+            {word?.meanings.map((meaning: any, index: number) => (
               <View
                 style={{
                   borderRadius: 12,
@@ -451,7 +451,7 @@ const ReviewFlexCard = ({
         </View>
 
         <View className="mt-0 flex-row flex-wrap gap-2">
-          {word?.meanings.map((meaning, index) => (
+          {word?.meanings.map((meaning: any, index: number) => (
             <View
               style={{
                 borderRadius: 12,
@@ -614,7 +614,7 @@ const ReviewFlexCard = ({
             <PhoneticAudio size={18} phonetics={word.phonetics} />
           </View>
           <View className="mt-4 flex-row flex-wrap gap-2">
-            {word?.meanings.map((meaning, index) => (
+            {word?.meanings.map((meaning: any, index: number) => (
               <View
                 style={{
                   borderRadius: 12,
@@ -671,7 +671,7 @@ const ReviewFlexCard = ({
             </View>
           )}
           <View className="mt-4 px-2 w-full">
-            {word?.meanings.map((meaning, index) => (
+            {word?.meanings.map((meaning: any, index: number  ) => (
               <View key={index} className="mb-3 flex flex-col">
                 <Text
                   style={{ fontSize: 14 }}

@@ -1,192 +1,38 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { Word } from "../../types/common/Word";
 
-export interface WordPhonetics {
-  audioUrl: string;
-  text: string;
-}
-
-export interface WordMeaning {
-  synonyms: string[];
-  partOfSpeech: string;
-  antonyms: string[];
-  definition: string;
-}
-
 interface WordsListState {
   words: Word[];
-  isLoading: boolean;
   isSynced: boolean;
+  isLoading: boolean;
   error: string | null;
 }
 
 const initialState: WordsListState = {
   words: [],
-  isLoading: false,
   isSynced: false,
+  isLoading: true, // Start true so UI shows loading until first emit
   error: null,
-};
-
-// Helper function to parse word data
-const parseWordData = (word: any): Word => {
-  try {
-    let parsedData;
-
-    // Handle cases where word.data might be a string that needs parsing
-    if (typeof word.data === "string") {
-      try {
-        parsedData = JSON.parse(word.data);
-      } catch (parseError) {
-        console.warn("Failed to parse word.data as JSON:", parseError);
-        parsedData = {};
-      }
-    } else {
-      parsedData = word.data || {};
-    }
-    // Safely extract phonetics data
-    const getPhonetics = () => {
-      const parsedPhonetics = parsedData.phonetics;
-      const originalPhonetics = word.phonetics;
-
-      // If we have parsed phonetics data
-      if (parsedPhonetics && typeof parsedPhonetics === "object") {
-        return {
-          text: parsedPhonetics.text || "",
-          audioUrl: parsedPhonetics.audioUrl || undefined,
-        };
-      }
-
-      // If we have original phonetics data
-      if (originalPhonetics && typeof originalPhonetics === "object") {
-        return {
-          text: originalPhonetics.text || "",
-          audioUrl: originalPhonetics.audioUrl || undefined,
-        };
-      }
-
-      // Default fallback
-      return {
-        text: "",
-        audioUrl: undefined,
-      };
-    };
-
-    return {
-      id: word.id,
-      word: parsedData.word || word.word || "",
-      imgUrl: parsedData.imgUrl || word.imgUrl || null,
-      status: parsedData.status || word.status || "COLLECTED",
-      meanings: parsedData.meanings || word.meanings || [],
-      phonetics: getPhonetics(),
-      exampleSentences:
-        word.exampleSentences || parsedData.exampleSentences || null,
-      timeStamp:
-        parsedData.timeStamp || word.timeStamp || new Date().toISOString(),
-      review_interval: parsedData.review_interval || word.review_interval || 1,
-      ease_factor: parsedData.ease_factor || word.ease_factor || 2.0,
-    };
-  } catch (error) {
-    console.error("Error parsing word data:", error);
-    console.error("Problematic word object:", word);
-
-    // Return a safe fallback object
-    return {
-      id: word.id || crypto.randomUUID(),
-      word: word.word || "Unknown Word",
-      imgUrl: word.imgUrl || null,
-      status: word.status || "COLLECTED",
-      meanings: word.meanings || [],
-      phonetics: {
-        text: "",
-        audioUrl: undefined,
-      },
-      exampleSentences: word.exampleSentences || null,
-      timeStamp: word.timeStamp || new Date().toISOString(),
-      review_interval: word.review_interval || 1,
-      ease_factor: word.ease_factor || 2.0,
-    };
-  }
-};
-
-/**
- * Helper to clean Word objects - remove function relationships
- */
-export const cleanWord = (word: any): Word => {
-  // Parse word data to extract the actual word properties
-  return parseWordData(word);
-};
-
-/**
- * Helper to clean multiple words
- */
-export const cleanWords = (words: any[]): Word[] => {
-  return words.map((word) => cleanWord(word));
 };
 
 const wordsListSlice = createSlice({
   name: "wordsList",
   initialState,
   reducers: {
-    setWords: (state, action: PayloadAction<any[]>) => {
-      // Clean words before storing
-      const cleanedWords = cleanWords(action.payload);
-      state.words = cleanedWords;
-      state.isSynced = true;
-      state.isLoading = false;
-      state.error = null;
-      console.log(`  └─ ✅ ${cleanedWords.length} words loaded`);
-    },
+    // This is your "Main Gate" for data
+  setWords: (state, action: PayloadAction<Word[]>) => {
+    state.words = action.payload; // No cleaning here! Just saving.
+    state.isLoading = false;
+    state.error = null;
+  },
+    // This tracks the Amplify background sync status
     setSynced: (state, action: PayloadAction<boolean>) => {
       state.isSynced = action.payload;
     },
-    setLoading: (state, action: PayloadAction<boolean>) => {
-      state.isLoading = action.payload;
-    },
-    addWord: (state, action: PayloadAction<Word>) => {
-      const parsedWord = parseWordData(action.payload);
-      const existingIndex = state.words.findIndex(
-        (word) => word.id === parsedWord.id
-      );
-      if (existingIndex >= 0) {
-        // Update existing word
-        state.words[existingIndex] = parsedWord;
-      } else {
-        // Add new word
-        state.words.push(parsedWord);
-      }
-    },
-    removeWord: (state, action: PayloadAction<string>) => {
-      state.words = state.words.filter((word) => word.id !== action.payload);
-    },
-    updateWord: (state, action: PayloadAction<Word>) => {
-      const parsedWord = parseWordData(action.payload);
-      const index = state.words.findIndex((word) => word.id === parsedWord.id);
-      if (index !== -1) {
-        state.words[index] = parsedWord;
-      }
-    },
-    clearWords: (state) => {
-      state.words = [];
-      state.isSynced = false;
-      state.isLoading = false;
-      state.error = null;
-    },
-    setError: (state, action: PayloadAction<string>) => {
-      state.error = action.payload;
-      state.isLoading = false;
-    },
+    // Clear everything on logout
+    clearWords: () => initialState,
   },
 });
 
-export const {
-  setWords,
-  setSynced,
-  setLoading,
-  addWord,
-  removeWord,
-  updateWord,
-  clearWords,
-  setError,
-} = wordsListSlice.actions;
-
+export const { setWords, setSynced, clearWords } = wordsListSlice.actions;
 export default wordsListSlice.reducer;

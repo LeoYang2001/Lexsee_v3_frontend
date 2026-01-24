@@ -3,9 +3,7 @@ import { View, Text, TouchableOpacity, Dimensions } from "react-native";
 import { router } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useDispatch, useSelector } from "react-redux";
-import { RootState } from "../../store";
-import { Word } from "../../types/common/Word";
+import { useDispatch } from "react-redux";
 // Add Reanimated imports
 import Animated, {
   useSharedValue,
@@ -25,58 +23,61 @@ import {
 } from "../../apis/AIFeatures";
 import { handleScheduleNotification } from "../../apis/setSchedule";
 import { getLocalDate } from "../../util/utli";
-import { fetchTodaySchedule, setTodayReviewListLoading } from "../../store/slices/todayReviewListSlice";
+import { getReviewWordsForToday } from "../../store/selectors/todayReviewSelectors";
 
 const { width, height } = Dimensions.get("window");
 const BORDER_RADIUS = Math.min(width, height) * 0.06;
 const reviewIntervalMax = 180;
 
+
 export default function ReviewQueueScreen() {
   // instead of fetching words directly,
   //  we fetch the review entities first and fork a list
   //  so that we can update locally to optimize performance 
-  const [reviewWordEntities, setReviewWordEntities] = useState<any[]>([]);
-  const [reviewQueue, setReviewQueue] = useState<Word[]>([]);
+ const schedules = useAppSelector((state) => state.reviewSchedule.items);
+ const completedReviewSchedules = useAppSelector((state) => state.completedReviewSchedules.items);
+  
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
-  const words = useSelector((state: RootState) => state.wordsList.words);
 
   const [hintCount, setHintCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const ifChina = useAppSelector((state) => state.ifChina.ifChina);
 
-  const userProfile = useAppSelector((state) => state.profile);
-  const currentWord = reviewQueue[currentWordIndex];
+  const userProfile = useAppSelector((state) => state.profile.data);
 
-  const todayAndPastDueWords = useAppSelector((state) => state.todayReviewList.words);
+  const todayAndPastDueWords = useAppSelector(getReviewWordsForToday);
+  
+  const [reviewQueue, setReviewQueue] = useState(todayAndPastDueWords.words)
+  const [currentWord, setCurrentWord] = useState(reviewQueue[currentWordIndex]);
+
 
   const [conversationData, setConversationData] =
     useState<ConversationResponse | null>(null);
 
-  useEffect(() => {
-    //try to fetch existing conversation data from Redux store or local state
-    if (currentWord) {
 
-      const parsedConversation = JSON.parse(
-        currentWord.exampleSentences as string
-      );
-      if (parsedConversation && parsedConversation.conversation) {
-        setConversationData(parsedConversation);
-      }
-    }
-  }, [currentWord]);
 
-  useEffect(() => {
-    //fetch exampleSentences when hintCount gets to 3
-    if (hintCount === 2 && !conversationData) {
-      console.log(
-        "start fetching example sentences for word:",
-        currentWord.word
-      );
-      setLoading(true);
+    
 
-      // Fetch example sentences from the API or any other source
-      const fetchExampleSentences = async () => {
+    // Keep ONLY the Animation Effect
+useEffect(() => {
+  setCurrentWord(reviewQueue[currentWordIndex]);
+  if (reviewQueue.length > 0) {
+    const newProgress = ((currentWordIndex + 1) / reviewQueue.length) * 100;
+    progressWidth.value = withTiming(newProgress, {
+      duration: 500,
+      easing: Easing.out(Easing.cubic),
+    });
+  }
+}, [currentWordIndex, reviewQueue.length]);
+
+  
+  
+  // Fetch example sentences from the API or any other source
+  const fetchExampleSentences = async () => {
+    if(!currentWord?.word) return;
+
         try {
+          setLoading(true);
           const conversation = await fetchQuickConversation(
             currentWord.word,
             ifChina ? "deepseek" : "openai"
@@ -84,8 +85,8 @@ export default function ReviewQueueScreen() {
 
           if (conversation) {
             setConversationData(conversation);
-            console.log("✅ New conversation generated (with animation)");
-            console.log("conversation:", conversation);
+            // update current word's conversation data
+            setCurrentWord((prev) => ({ ...prev, exampleSentences: JSON.stringify(conversation) }));
           }
         } catch (error) {
           console.error("Error fetching example sentences:", error);
@@ -94,13 +95,18 @@ export default function ReviewQueueScreen() {
         }
       };
 
-      fetchExampleSentences();
-    }
-  }, [hintCount]);
+
+
+
+
 
   const handleNextWord = async (familiarityLevel: RecallAccuracy) => {
+    // Event-driven reset (Better than useEffect)
+    setHintCount(0);
+    setConversationData(null); 
 
-     if (!userProfile.profile || !userProfile.profile.id) {
+
+     if (!userProfile || !userProfile.id) {
       console.error("❌ Missing profile data");
       return false;
     }
@@ -113,38 +119,33 @@ export default function ReviewQueueScreen() {
     try {
       // Step 1: Calculate next review data, set loading to true
 
-      dispatch(setTodayReviewListLoading(true));
+      if(!currentWord.review_interval || !currentWord.ease_factor)
+        return console.log("❌ Missing review interval or ease factor for the current word");
+
       const { next_due, review_interval, ease_factor } = getNextReview({
         review_interval: currentWord.review_interval,
         ease_factor: currentWord.ease_factor,
         recall_accuracy: familiarityLevel,
       });
+
+      const isLast = currentWordIndex === reviewQueue.length - 1;
      
       //Step 2: asyncly (do not wait unless its the last word) update the backend with the new review data
       // 2.1 find the reviewWord entity corresponding to the current word and call the backend updater
-      const reviewWordEntity = reviewWordEntities.find(
-        (rwe: any) => rwe.wordId === currentWord.id
-      );
-
-      const isLast = currentWordIndex === reviewQueue.length - 1;
-
-      if (reviewWordEntity) {
         // Fire-and-forget backend update so UI stays snappy
         updateReviewBackend(
-          reviewWordEntity,
           currentWord,
           next_due,
           review_interval,
           ease_factor
         );
-      } else {
-        console.warn(`⚠️ Review word entity not found for word: ${currentWord.word}`);
-      }
+
 
       // Step 3: If this was the last word, navigate back; otherwise advance index
       if (isLast) {
         router.back();
       } else {
+        //   // Advance index
         setCurrentWordIndex((prevIndex) => prevIndex + 1);
       }
     } catch (error) {
@@ -157,20 +158,20 @@ export default function ReviewQueueScreen() {
 
   // Helper: performs all backend updates for a reviewed word
   const updateReviewBackend = async (
-    reviewWordEntity: any,
-    currentWord: Word,
+    currentWord: any,
     next_due: any,
     review_interval: any,
     ease_factor: any
   ) => {
 
-     if (!userProfile.profile || !userProfile.profile.id) {
+    
+     if (!userProfile || !userProfile.id) {
       return false;
     }
 
     try {
       // Step 1: Validate environment & dependencies
-      if (!userProfile.profile || !userProfile.profile.id) {
+      if (!userProfile || !userProfile.id) {
         return false;
       }
       if (!client) {
@@ -186,18 +187,14 @@ export default function ReviewQueueScreen() {
         return false;
       }
 
+
+
       // Step 3: Locate today's schedule (we should check as it could be from a previous day) and update its counts
       // instead of finding todays schedule, we should find the schedule corresponding to the reviewWordEntity
-      const scheduleData = await Models.ReviewSchedule.get({ id: reviewWordEntity.reviewScheduleId });
-      
-      const schedule = scheduleData?.data;
-      if (!schedule) {
-        return false;
-      }
+      const schedule = schedules.find((s: any) => s.id === currentWord.reviewScheduleId);
 
-      if (typeof Models.ReviewSchedule.update !== "function") {
-        return false;
-      }
+      if(!schedule) return console.log("❌ Missing schedule for the current word");
+     
       // decrement toBeReviewedCount and increment reviewedCount
       const newToBe = Math.max(0, schedule.toBeReviewedCount - 1);
       const newReviewed = (schedule.reviewedCount || 0) + 1;
@@ -205,18 +202,18 @@ export default function ReviewQueueScreen() {
       if (newToBe === 0) {
         // If no remaining words to review, prefer to delete the schedule to keep data clean
         if (typeof Models.ReviewSchedule.delete === "function") {
-          await Models.ReviewSchedule.delete({ id: schedule.id });
+          await Models.ReviewSchedule.delete({ id: currentWord.reviewScheduleId });
         } else {
           // Fallback: update to zeros if delete isn't supported
           await Models.ReviewSchedule.update({
-            id: schedule.id,
+            id: currentWord.reviewScheduleId,
             toBeReviewedCount: 0,
             reviewedCount: newReviewed,
           });
         }
       } else {
         await Models.ReviewSchedule.update({
-          id: schedule.id,
+          id: currentWord.reviewScheduleId,
           toBeReviewedCount: newToBe,
           reviewedCount: newReviewed,
         });
@@ -228,18 +225,13 @@ export default function ReviewQueueScreen() {
       if (!Models.CompletedReviewSchedule || typeof Models.CompletedReviewSchedule.list !== "function") {
         return false;
       }
-      const existing = await Models.CompletedReviewSchedule.list({
-        filter: {
-          and: [
-            { userProfileId: { eq: userProfile.profile.id } },
-            { scheduleDate: { eq: currentDate } },
-          ],
-        },
-      });
+      // get it from redux completedReviewSchedules 
+      const existing = completedReviewSchedules.find((s: any) => s.scheduleDate === currentDate);
 
       let completedSchedule;
-      if (existing.data && existing.data.length > 0) {
-        completedSchedule = existing.data[0];
+      if (existing) {
+        // exist 
+        completedSchedule = existing;
         // Ensure update method exists on the returned object
         if (typeof Models.CompletedReviewSchedule.update === "function") {
           await Models.CompletedReviewSchedule.update({
@@ -251,33 +243,39 @@ export default function ReviewQueueScreen() {
         }
       } else {
         completedSchedule = await Models.CompletedReviewSchedule.create({
-          userProfileId: userProfile.profile.id,
+          userProfileId: userProfile.id,
           scheduleDate: currentDate,
           totalWords: 1,
           reviewedCount: 1,
           successRate: getScoreByHint(hintCount),
         });
-        // normalize completedSchedule variable for later use
-        completedSchedule = completedSchedule?.data || completedSchedule;
       }
 
       // Step 5: Link the review schedule-word to the completed schedule
-      if (!Models.ReviewScheduleWord || typeof Models.ReviewScheduleWord.update !== "function") {
-        return false;
-      }
       await Models.ReviewScheduleWord.update({
-        id: reviewWordEntity.id,
+        id: currentWord.scheduleWordId,
         completedReviewScheduleId: completedSchedule.id,
         status: "REVIEWED",
         score: getScoreByHint(hintCount),
-      
       });
+
       // Step 6: check review_interval  
-      //6.1  if its larger than 180 days, mark the word as mastered long-term
+        const { id,status,ifPastDue, ...wordData } = currentWord;
+      const updatedWordData = {
+        ...wordData,
+        next_due,
+        review_interval,
+        ease_factor,
+      };
+
+      //6.1  if its larger than 180 days, mark the word as mastered long-term 
+      // Update the word data with new review properties (exclude id as it's not part of data)
+    
       if (review_interval > reviewIntervalMax) {
         await Models.Word.update({
           id: currentWord.id,
-          status: "LEARNED"
+          status: "LEARNED",
+          data: JSON.stringify(updatedWordData),
         });
         console.log(`MASTERED CURRENT WORD :${JSON.stringify(currentWord)}`)
       }
@@ -288,33 +286,13 @@ export default function ReviewQueueScreen() {
             currentWord.id,
             next_due
           );
+          // Update the word data with new review properties (exclude id as it's not part of data)
+          await Models.Word.update({
+            id: currentWord.id,
+            data: JSON.stringify(updatedWordData),
+          });
+      
       }
-
-      // Step 7: Update the Word record with scheduling info
-      if (!Models.Word || typeof Models.Word.update !== "function") {
-        return false;
-      }
-      
-      // Update the word data with new review properties (exclude id as it's not part of data)
-      const { id,status,ifPastDue, ...wordData } = currentWord;
-      const updatedWordData = {
-        ...wordData,
-        next_due,
-        review_interval,
-        ease_factor,
-      };
-
-
-      
-      await Models.Word.update({
-        id: currentWord.id,
-        data: JSON.stringify(updatedWordData),
-      });
-      
-      //Step 8: update todays schedule 
-       await dispatch(fetchTodaySchedule(userProfile.profile.id));
-      dispatch(setTodayReviewListLoading(false));
-      
      
       return true;
     } catch (error) {
@@ -322,32 +300,24 @@ export default function ReviewQueueScreen() {
     }
   };
 
-  const getScoreByHint = (hintCount: number): number => {
-    switch (hintCount) {
-      case 0:
-        return 5;
-      case 1:
-        return 3;
-      case 2:
-        return 2;
-      default:
-        return 1;
-    }
-  };
-
-  const getFamiliarityLevel = (count: number): RecallAccuracy => {
-    if (count >= 3) return "poor";
-    if (count === 2) return "fair";
-    if (count === 1) return "good";
-    return "excellent";
-  };
+  
 
   const handleHintPressed = () => {
     if (hintCount >= 3) return;
-    setHintCount((prev) => {
-      const newHintCount = prev + 1;
-      return newHintCount;
-    });
+
+    console.log('currentWOrd:', JSON.stringify(currentWord))
+
+    const newCount = hintCount + 1;
+      setHintCount(newCount);
+
+    if (newCount === 2) {
+    if (currentWord.exampleSentences) {
+      setConversationData(JSON.parse(currentWord.exampleSentences));
+    } else {
+      console.log('fetch sentences');
+       fetchExampleSentences();
+    }
+  }
 
     console.log(
       `💡 Hint pressed! Count: ${hintCount + 1}, familiarLevl: ${getFamiliarityLevel(hintCount + 1)}`
@@ -356,58 +326,9 @@ export default function ReviewQueueScreen() {
 
   const dispatch = useDispatch<any>();
 
-  useEffect(() => {
-    setHintCount(0);
-  }, [currentWordIndex]);
 
   // Animated value for progress bar
   const progressWidth = useSharedValue(0);
-
-  const getReviewQueueData = async () => {
-    try {
-
-      console.log('----trying to get reviewQueueData here-----')
-
-      // get wordslist based on todayAndPastDueWords and wordslist 
-      const reviewWordsList = words
-        .filter((word) => 
-          todayAndPastDueWords.some((scheduleItem) => scheduleItem.wordId === word.id)
-        )
-        .map((word) => {
-          const scheduleItem = todayAndPastDueWords.find((item) => item.wordId === word.id);
-          return {
-            ...word,
-            ifPastDue: scheduleItem?.ifPastDue || false,
-          };
-        });
-      
-        console.log('words:', words)
-
-      setReviewWordEntities(todayAndPastDueWords);
-      setReviewQueue(reviewWordsList);
-      setCurrentWordIndex(0);
-    } catch (error) {
-      console.error("❌ Error fetching review queue data:", error);
-      alert("Failed to load review words");
-      setReviewQueue([]);
-    }
-  };
-
-  // Animate progress bar when currentWordIndex or reviewQueue changes
-  useEffect(() => {
-    if (reviewQueue.length > 0) {
-      const newProgress = ((currentWordIndex + 1) / reviewQueue.length) * 100;
-      progressWidth.value = withTiming(newProgress, {
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
-      });
-    } else {
-      progressWidth.value = withTiming(0, {
-        duration: 300,
-        easing: Easing.inOut(Easing.ease),
-      });
-    }
-  }, [currentWordIndex, reviewQueue.length]);
 
   // Animated style for progress bar
   const animatedProgressStyle = useAnimatedStyle(() => {
@@ -419,9 +340,7 @@ export default function ReviewQueueScreen() {
     };
   });
 
-  useEffect(() => {
-    getReviewQueueData();
-  }, [dispatch]);
+  
 
   return (
     <View
@@ -577,3 +496,24 @@ export default function ReviewQueueScreen() {
     </View>
   );
 }
+
+
+const getScoreByHint = (hintCount: number): number => {
+    switch (hintCount) {
+      case 0:
+        return 5;
+      case 1:
+        return 3;
+      case 2:
+        return 2;
+      default:
+        return 1;
+    }
+  };
+
+  const getFamiliarityLevel = (count: number): RecallAccuracy => {
+    if (count >= 3) return "poor";
+    if (count === 2) return "fair";
+    if (count === 1) return "good";
+    return "excellent";
+  };

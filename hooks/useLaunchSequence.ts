@@ -1,460 +1,402 @@
-import { useEffect, useState, useRef } from "react";
-import { router } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import { Hub } from "@aws-amplify/core";
-import { getCurrentUser } from "aws-amplify/auth";
-import { useDispatch } from "react-redux";
-import { useAppSelector } from "../store/hooks";
+import { getCurrentUser, signOut } from "aws-amplify/auth";
 import { AppState } from "react-native";
-import {
-  setWords,
-  setSynced,
-  setLoading,
-  setError,
-  cleanWords,
-} from "../store/slices/wordsListSlice";
-import {
-  clearProfile,
-  setProfile,
-  setProfileLoading,
-  cleanUserProfile,
-} from "../store/slices/profileSlice";
-import { clearUser, fetchUserInfo } from "../store/slices/userSlice";
-import { setTodaySchedule, setAllSchedules } from "../store/slices/reviewScheduleSlice";
-import { setTodayReviewList, clearTodayReviewList, fetchTodaySchedule } from "../store/slices/todayReviewListSlice";
 import { client } from "../app/client";
-import { useCheckChina } from "./useCheckChina";
-import { getLocalDate } from "../util/utli";
+import { setProfile, UserProfile } from "../store/slices/profileSlice";
+import { useDispatch } from "react-redux";
+import { cleanSchedules, cleanScheduleWords, cleanWords } from "../util/utli";
+import { setSynced, setWords } from "../store/slices/wordsListSlice";
+import { setReviewSchedules, setSchedulesSynced } from "../store/slices/reviewScheduleSlice";
+import { setScheduleWords, setScheduleWordsSynced } from "../store/slices/reviewScheduleWordsSlice";
+import { setCompletedReviewSchedules, setCompletedSchedulesSynced } from "../store/slices/completedReviewScheduleSlice";
 
-export const useLaunchSequence = () => {
-  const dispatch = useDispatch() as any;
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+type AuthMode = "unknown" | "authed" | "guest";
+
+export function useLaunchSequence() {
+  const [authMode, setAuthMode] = useState<AuthMode>("unknown");
+
+  // what screen RootLayout should navigate to AFTER splash hides
+  const [targetRoute, setTargetRoute] = useState<string | null>(null);
+
+  // user id after successful authentication
+  const [userId, setUserId] = useState<string | null>(null);
+
+  //Subscription to Words WebSocket
   const [wordsSubscription, setWordsSubscription] = useState<any>(null);
-  const [scheduleSubscription, setScheduleSubscription] = useState<any>(null);
-  const [hubAuthFail, setHubAuthFail] = useState(false);
+const [reviewScheduleSubscription, setReviewScheduleSubscription] = useState<any>(null);
+const [completedReviewScheduleSubscription, setCompletedReviewScheduleSubscription] = useState<any>(null);
+const [reviewScheduleWordSubscription, setReviewScheduleWordSubscription] = useState<any>(null);
 
-  
-  const userProfile = useAppSelector((state) => state.profile.profile);
-  
-  // Track profile creation to prevent duplicates
-  const profileCreationInProgress = useRef<{ [key: string]: boolean }>({});
-  const profileCreationTimeout = useRef<{
-    [key: string]: ReturnType<typeof setTimeout>;
-  }>({});
+// Redux dispatch
+  const dispatch = useDispatch();
 
-  // 1. China check (happens automatically via hook)
-  const { ifChina, isLoading: chinaCheckLoading } = useCheckChina();
+  // RootLayout uses this to hide splash
+  const [appReady, setAppReady] = useState(false);
 
-  /**
-   * Create a new user profile with related entities
-   */
-  const createUserProfile = async (userId: string): Promise<{ success: boolean; profileId?: string }> => {
-    console.log('🔨 Creating new user profile for userId:', userId);
-    try {
-      // 1. Create UserProfile
-      const newProfile = await (client as any).models.UserProfile.create({
-        userId: userId,
-        username: 'User', // Default username, can be updated later
-        ifChineseUser: ifChina, // Use the China check result
-      });
-
-      console.log('✅ UserProfile created:', {
-        profileId: newProfile.data.id,
-        userId: newProfile.data.userId,
-        ifChineseUser: newProfile.data.ifChineseUser,
-      });
-
-      // 2. Create WordsList for this profile
-      const wordsList = await (client as any).models.WordsList.create({
-        userProfileId: newProfile.data.id,
-      });
-      console.log('✅ WordsList created:', wordsList.data.id);
-
-      // 3. Create SearchHistory for this profile
-      const searchHistory = await (client as any).models.SearchHistory.create({
-        userProfileId: newProfile.data.id,
-        searchedWords: [],
-      });
-      console.log('✅ SearchHistory created:', searchHistory.data.id);
-
-      // 4. Create BadgeList for this profile
-      const badgeList = await (client as any).models.BadgeList.create({
-        userProfileId: newProfile.data.id,
-      });
-      console.log('✅ BadgeList created:', badgeList.data.id);
-      
-
-      // Clean and set the profile
-      const serializedProfile = await cleanUserProfile(newProfile.data);
-      dispatch(setProfile(serializedProfile));
-
-      console.log('✅ Profile setup complete with all related entities');
-      return { success: true, profileId: newProfile.data.id };
-    } catch (error) {
-      console.error('❌ Error creating user profile:', error);
-      console.error('❌ Error details:', error instanceof Error ? error.message : 'Unknown error');
-      console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-      return { success: false };
-    }
+  // prevent duplicate navigation
+  const lastTargetRouteRef = useRef<string | null>(null);
+  const setRouteOnce = (route: string) => {
+    if (lastTargetRouteRef.current === route) return;
+    lastTargetRouteRef.current = route;
+    setTargetRoute(route);
   };
 
+  //MAIN BRANCH: COLD START, RESUME
+
   /**
-   * Check if user has a profile
+   * Cold start (initial launch)
    */
-  const checkUserProfile = async (userId: string): Promise<{ hasProfile: boolean; profileId?: string }> => {
-    dispatch(setProfileLoading(true));
-    console.log('🔍 Checking user profile for userId:', userId);
-    try {
-      const profileResult = await (client as any).models.UserProfile.list({
-        filter: { userId: { eq: userId } },
-      });
+  useEffect(() => {
+    let mounted = true;
 
-     
+    const resolveInitialAuth = async () => {
+      console.log("[LaunchSequence] Cold start: checking auth");
 
-      if (profileResult.data && profileResult.data.length > 0) {
-        const profile = profileResult.data[0];
-        console.log('✅ Profile found:', {
-          profileId: profile.id,
-          userId: profile.userId,
-          createdAt: profile.createdAt
-        });
-
-        // Clean the profile BEFORE dispatching
-        const serializedProfile = await cleanUserProfile(profile);
-        dispatch(setProfile(serializedProfile));
-
-        if (profileCreationTimeout.current[userId]) {
-          clearTimeout(profileCreationTimeout.current[userId]);
-          delete profileCreationTimeout.current[userId];
-        }
-
-        delete profileCreationInProgress.current[userId];
-        dispatch(setProfileLoading(false));
-        console.log('✅ User profile found and loaded');
-        return { hasProfile: true, profileId: profile.id };
-      } else {
-        console.log("⚠️ No profile found for userId:", userId);
-        console.log("📋 Profile result data:", profileResult.data);
-
-        if (profileCreationInProgress.current[userId]) {
-          console.log("⏳ Profile creation already in progress for userId:", userId);
-          dispatch(setProfileLoading(false));
-          return { hasProfile: false };
-        }
-
-        console.log("🚀 Setting profile creation in progress flag for userId:", userId);
-        profileCreationInProgress.current[userId] = true;
-
-        profileCreationTimeout.current[userId] = setTimeout(() => {
-          console.log("⏰ Profile creation timeout reached (30s) for userId:", userId);
-          delete profileCreationInProgress.current[userId];
-          delete profileCreationTimeout.current[userId];
-        }, 30000);
-
-        console.log("🔨 Attempting to create profile...");
-        const createResult = await createUserProfile(userId);
-
-        // Clear the creation tracking
-        if (profileCreationTimeout.current[userId]) {
-          clearTimeout(profileCreationTimeout.current[userId]);
-          delete profileCreationTimeout.current[userId];
-        }
-        delete profileCreationInProgress.current[userId];
-
-        dispatch(setProfileLoading(false));
-        
-        if (createResult.success && createResult.profileId) {
-          console.log("✅ Profile created and loaded successfully");
-          return { hasProfile: true, profileId: createResult.profileId };
-        } else {
-          console.log("❌ Profile creation failed");
-          return { hasProfile: false };
-        }
+      try {
+        await getCurrentUser();
+        if (!mounted) return;
+        await handleAuthSuccess("cold_start");
+      } catch {
+        if (!mounted) return;
+        handleAuthFail("cold_start_not_authenticated");
       }
-    } catch (error) {
-      console.error("❌ Error checking user profile for userId:", userId);
-      console.error("❌ Error details:", error);
-      console.error("❌ Error stack:", error instanceof Error ? error.stack : 'No stack trace');
-      dispatch(setProfileLoading(false));
-      return { hasProfile: false };
-    }
-  };
+    };
 
-  /**
-   * Start words subscription
-   */
-  const startWordsSubscription = () => {
-    if (wordsSubscription) {
-      console.log("📋 Words subscription already active");
-      return;
-    }
+    resolveInitialAuth();
 
-    console.log("  ├─ 📚 Starting words subscription...");
+    // Hub reactive auth changes (runtime)
+    const unsubscribe = Hub.listen("auth", ({ payload }) => {
+      const event = payload.event;
+      console.log("[LaunchSequence] Hub event:", event);
 
-    const sub = (client.models as any).Word.observeQuery().subscribe({
-      next: ({ items, isSynced }: any) => {
-    
-        
-        const cleanedWords = cleanWords(items);
-
-        console.log(
-          `📋 Subscription update: ${cleanedWords.length} words, synced: ${isSynced}`
-        );
-
-        dispatch(setWords(cleanedWords));
-        console.log('clean words: ', JSON.stringify(cleanedWords.map(w => { return { id: w.id, word: w.word }; })));
-
-
-        dispatch(setSynced(isSynced));
-      },
-      error: (error: any) => {
-        console.error("❌ Words subscription error:", error);
-        dispatch(setError(error.message || "Failed to sync words"));
-      },
-    });
-
-    setWordsSubscription(sub);
-    console.log("  ├─ ✅ Words subscription active");
-  };
-
-  /**
-   * Stop words subscription
-   */
-  const stopWordsSubscription = () => {
-    if (wordsSubscription) {
-      console.log("🛑 Stopping words subscription");
-      wordsSubscription.unsubscribe?.();
-      setWordsSubscription(null);
-
-      dispatch(setWords([]));
-      dispatch(setSynced(false));
-    }
-  };
-
-  /**
-   * 2.2 Fetch all-time schedules - load and log all review schedules
-   * Called after successful authentication and profile load
-   */
-  const fetchAllSchedules = async (userProfileId: string) => {
-   
-    try {
-      if (!userProfileId) {
-        console.warn("⚠️ No user profile for fetching schedules");
+      if (event === "signedOut") {
+        handleAuthFail("hub_signedOut");
         return;
       }
-      console.log("  ├─ 🔄 Fetching review schedules...");
 
-      const result = await (client.models as any).ReviewSchedule.list({
-        filter: {
-          userProfileId: { eq: userProfileId },
-        },
-      });
-
-      if (result.data && result.data.length > 0) {
-        const cleanedSchedules = result.data
-          .map((schedule: any) => ({
-            id: schedule.id,
-            scheduleDate: schedule.scheduleDate,
-            totalWords: schedule.totalWords || 0,
-            toBeReviewedCount: schedule.toBeReviewedCount || 0,
-            reviewedCount: schedule.reviewedCount || 0,
-            successRate: schedule.successRate || 0,
-            scheduleInfo: schedule.scheduleInfo || null,
-            notificationId: schedule.notificationId || null,
-            createdAt: schedule.createdAt,
-            updatedAt: schedule.updatedAt,
-            userProfileId: schedule.userProfileId,
-          }))
-          .sort(
-            (a: any, b: any) =>
-              new Date(b.scheduleDate).getTime() -
-              new Date(a.scheduleDate).getTime()
-          );
-
-        // Store in Redux global state
-        dispatch(setAllSchedules(cleanedSchedules));
-        
-        
-       
-      } else {
-        console.log("  └─ 📅 No schedules found");
-        dispatch(setAllSchedules([]));
-      }
-    } catch (error) {
-      console.error("  └─ ❌ Error fetching schedules:", error);
-      dispatch(setAllSchedules([]));
-    }
-  };
-
-
-  /**
-   * 2. Handle successful authentication
-   */
-  const handleSuccessfulAuth = async (user: any) => {
-    try {
-      console.log("\n✅ Authentication successful");
-      setIsAuthenticated(true);
-
-      // Fetch user info and store in Redux
-      const resultAction = await dispatch(fetchUserInfo());
-
-      if (fetchUserInfo.fulfilled.match(resultAction)) {
-        console.log('auth success and check profile...')
-        const profileResult = await checkUserProfile(
-          resultAction.payload.userId
-        );
-
-        if (profileResult.hasProfile && profileResult.profileId) {
-          // Profile exists (found or created) - load user data
-          console.log("  ├─ 📋 Profile ready - loading user data...");
-          
-          // 2.1 Start words subscription
-          startWordsSubscription();
-          
-          // 2.2 Fetch all schedules BEFORE navigation 
-          await fetchAllSchedules(profileResult.profileId);
-
-          // 2.3 Fetch today's schedule (including past due)
-          await dispatch(fetchTodaySchedule(profileResult.profileId));
-          
-          console.log("\n🏠 Navigating to home...\n");
-          router.replace("/(home)");
-        } else {
-          // Profile creation failed
-          console.log("❌ Profile check/creation failed - redirecting to auth");
-          setIsAuthenticated(false);
-          router.replace("/(auth)");
-        }
-      } else {
-        handleAuthFailure();
-      }
-    } catch (error) {
-      console.error("Error handling successful auth:", error);
-      handleAuthFailure();
-    } finally {
-      dispatch(setLoading(false));
-    }
-  };
-
-  /**
-   * Handle authentication failure
-   */
-  const handleAuthFailure = () => {
-    setHubAuthFail(true);
-    console.log('set hub auth fail to true')
-    setIsAuthenticated(false);
-    stopWordsSubscription();
-    dispatch(clearUser());
-    dispatch(clearProfile());
-    dispatch(setAllSchedules([]));
-    dispatch(setTodaySchedule(null));
-    dispatch(clearTodayReviewList());
-    router.replace("/(auth)/sign-in");
-  };
-
-
-  /**
-   * 2. Initial auth check on app launch
-   */
-  useEffect(() => {
-
-   
-    dispatch(setLoading(true));
-
-    // Subscribe to Auth status changes
-    const authListener = Hub.listen("auth", async (data) => {
-      const { event } = data.payload;
-
-      console.log("🔐 Auth event:", event);
-
-      switch (event) {
-        case "signInWithRedirect":
-          console.log("✅ Sign in with redirect completed");
-          try {
-            const user = await getCurrentUser();
-            await handleSuccessfulAuth(user);
-          } catch (error) {
-            console.error("❌ Failed after redirect:", error);
-            handleAuthFailure();
-          }
-          break;
-
-        case "signInWithRedirect_failure":
-          console.log("❌ Sign in with redirect failed");
-          handleAuthFailure();
-          break;
-
-        case "signedIn":
-          console.log("✅ User signed in (email)");
-          try {
-            const user = await getCurrentUser();
-            await handleSuccessfulAuth(user);
-          } catch (error) {
-            console.error("❌ Failed to get user after sign in:", error);
-            handleAuthFailure();
-          }
-          break;
-
-        case "signedOut":
-          console.log("👋 User signed out");
-          handleAuthFailure();
-          break;
-
-        default:
-          break;
+      if (event === "signedIn" || event === "signInWithRedirect") {
+        handleAuthSuccess("hub");
+        return;
       }
     });
 
-    // 2. Initial auth check (only once on app start)
-    const checkInitialAuth = async () => {
-      console.log('hub auth fail value when its called:', hubAuthFail)
-      if(hubAuthFail) return;
-      try {
-        const user = await getCurrentUser();
-        console.log("\n🔐 Checking authentication...");
-        await handleSuccessfulAuth(user);
-      } catch (error) {
-        console.log("❌ Not authenticated - redirecting to login\n");
-        setIsAuthenticated(false);
-        dispatch(setLoading(false));
-        router.replace("/(auth)/sign-in");
-      }
-    };
-
-    // Small delay to ensure components are mounted before navigation
-    const authCheckTimer = setTimeout(checkInitialAuth, 1000);
-
     return () => {
-      authListener();
-      clearTimeout(authCheckTimer);
-      stopWordsSubscription();
+      mounted = false;
+      unsubscribe();
     };
-  }, [dispatch]);
+  }, []);
 
   /**
-   * 3. Refetch today's schedule when app comes to foreground
+   * Resume (app returns to foreground)
    */
   useEffect(() => {
-    if (!isAuthenticated || !userProfile?.id) {
-      return;
+    const sub = AppState.addEventListener("change", async (nextState) => {
+      if (nextState !== "active") return;
+
+      console.log("[LaunchSequence] Resume: app became active");
+
+      try {
+        await getCurrentUser();
+        console.log("[LaunchSequence] Resume: session still valid");
+      } catch {
+        handleAuthFail("resume_session_invalid");
+      }
+    });
+
+    return () => sub.remove();
+  }, []);
+
+
+
+
+  // ----------- helper functions -----------------
+
+
+  /**
+   * Auth failure (guest)
+   */
+  const handleAuthFail = async (reason?: string) => {
+    console.log("[LaunchSequence] Auth failed:", reason ?? "unknown");
+
+    setAuthMode("guest");
+    setUserId(null);
+
+    setRouteOnce("/(auth)/sign-in");
+    setAppReady(true);
+  };
+
+  /**
+   * Auth success (authed)
+   */
+ const handleAuthSuccess = async (source?: "cold_start" | "hub") => {
+  setAuthMode("authed");
+
+  try {
+    const user = await getCurrentUser();
+    const id = user.userId;
+    setUserId(id);
+
+    // --- NEW LOGIC START ---
+    // Instead of setting appReady immediately, run the sequence
+    const success = await initializeData(id);
+    
+    if (success) {
+      setRouteOnce("/(home)");
+      setAppReady(true); // 👈 Splash only hides now
+    } else {
+      handleAuthFail("data_init_failed");
+    }
+    // --- NEW LOGIC END ---
+
+  } catch {
+    handleAuthFail("fetch_user_id_failed");
+  }
+};
+
+  // Initialize user data after authentication
+  const initializeData = async (userId: string) => {
+  console.log("🚀 [Sequence] Phase 2: Starting Data Initialization...");
+  try {
+    // 1. Profile Check
+    const profile = await fetchProfile(userId);
+
+
+    if (!profile) {
+      console.log("📝 [Sequence] New User detected. Creating workspace...");
+      const newProfile = await createProfile(userId);
+      await loadProfileIntoRedux(newProfile.data);
+      const success = await createInitialWordsList(newProfile.data.id);
+      if(!success) throw new Error("Failed to create initial data for new user");
+    } else {
+      console.log('existing profile:', JSON.stringify(profile))
+      console.log("✅ [Sequence] Existing User detected. Loading preferences...");
+      await loadProfileIntoRedux(profile);
     }
 
-    const handleAppStateChange = (nextAppState: string) => {
-      if (nextAppState === "active") {
-        console.log("📱 App returned to foreground - refetching today's schedule...");
-        dispatch(fetchTodaySchedule(userProfile.id));
-      }
-    };
+    // 2. Subscriptions
+    console.log("📡 [Sequence] Opening data streams (Subscriptions)...");
+    subscribeToWords();
+    subscribeToReviewSchedules();
+    subscribeToCompletedReviewSchedules();
+    subscribeToReviewScheduleWords();
 
-    const subscription = AppState.addEventListener("change", handleAppStateChange);
-
-    return () => {
-      subscription.remove();
-    };
-  }, [userProfile?.id, isAuthenticated, dispatch]);
-
-  return {
-    isAuthenticated,
-    ifChina,
-    chinaCheckLoading,
-  };
+    console.log("🏁 [Sequence] All systems GO.");
+    return true;
+  } catch (error) {
+    console.error("❌ [Sequence] Critical failure during init:", error);
+    return false;
+  }
 };
+const fetchProfile = async (userId: string) => {
+  console.log("⏳ [Fetch] Checking for profile...");
+  
+  /// 1. Fetch with Selection Set
+const response = await (client as any).models.UserProfile.list({
+  filter: { userId: { eq: userId } },
+});
+
+const profileData = response?.data?.[0];
+
+if (!profileData) {
+  console.log("⚠️ [Fetch] No profile found in database.");
+  return null;
+}
+
+console.log('✅ [Fetch] Profile found:', profileData.id);
+
+return profileData;
+};
+
+const createProfile = async (userId: string) => {
+  
+  const newProfile = await (client as any).models.UserProfile.create({
+    userId,
+    username: 'user'
+  });
+
+  console.log("✅ [Create] New profile created:", JSON.stringify(newProfile));
+  return newProfile;
+};
+
+const createInitialWordsList = async (userProfileId: string) => {
+  // i want to create wordsList, only wordsList
+  if(!userProfileId){
+    console.log("⚠️ [Create] Missing userProfileId, cannot create initial data.")
+    return false;
+  };
+    await (client as any).models.WordsList.create({
+      userProfileId,
+    });
+  console.log("✅ [Create] Initial words list created.");
+  return true;
+};
+
+const loadProfileIntoRedux = async (profile: any) => {
+  console.log("⏳ [Redux] Syncing profile to global state...");
+  
+  try {
+    // 1. Map raw JSON to your UserProfile interface
+    const formattedProfile: UserProfile = {
+      id: profile.id,
+      userId: profile.userId,
+      username: profile.username || "Guest",
+      owner: profile.owner,
+      createdAt: profile.createdAt,
+      updatedAt: profile.updatedAt,
+      // Handle the wordsListId if it exists in the raw data
+      wordsListId: profile.wordsListId || undefined,
+    };
+
+    // 2. Dispatch to the store
+    dispatch(setProfile(formattedProfile));
+
+    console.log("✅ [Redux] Profile loaded successfully");
+    
+    // Maintain your simulated delay for the splash screen
+    await new Promise((res) => setTimeout(res, 500));
+    return true;
+  } catch (error) {
+    console.error("❌ [Redux] Failed to load profile:", error);
+    return false;
+  }
+};
+
+const subscribeToWords = async () => {
+  console.log("⏳ [Sub] Subscribing to Words...");
+  
+  if (wordsSubscription) {
+    console.log("⚠️ [Sub] Words subscription already connected.");
+    return true;
+  }
+
+  const sub = (client.models as any).Word.observeQuery().subscribe({
+    next: ({ items, isSynced }: any) => {
+      // 1. Transform the raw items into our clean UI format
+      // This uses the transformer we just built
+      const cleanedItems = cleanWords(items);
+
+      // 2. Update Redux with the data
+      dispatch(setWords(cleanedItems));
+
+      // 3. Update the Sync status so the UI knows if we're "Live" or "Local"
+      dispatch(setSynced(isSynced));
+
+      console.log(`📡 [Words] Updated: ${items.length} words. Synced: ${isSynced}`);
+    },
+    error: (error: any) => {
+      console.error("❌ Words subscription error:", error);
+    },
+  });
+
+  setWordsSubscription(sub);
+  return true;
+};
+
+const subscribeToReviewSchedules = async () => {
+  console.log("⏳ [Sub] Connecting to Review Schedules subscription...");
+  
+  if (reviewScheduleSubscription) {
+    console.log("⚠️ [Sub] Review Schedules subscription already connected.");
+    return true;
+  }
+
+  const sub = (client.models as any).ReviewSchedule.observeQuery().subscribe({
+    next: ({ items, isSynced }: any) => {
+      // 1. Transform raw Amplify instances into plain serializable objects
+      // This strips the [Function anonymous] fields that cause Redux errors
+      const cleanedSchedules = cleanSchedules(items);
+
+      // 2. Dispatch the cleaned array to your new slice
+      dispatch(setReviewSchedules(cleanedSchedules));
+
+      // 3. Update the sync status
+      dispatch(setSchedulesSynced(isSynced));
+
+      console.log(
+        `✅ [Sub] Review Schedules: ${items.length} items processed. (Synced: ${isSynced})`
+      );
+    },
+    error: (error: any) => {
+      console.error("❌ Review Schedules subscription error:", error);
+      // Optional: dispatch(setSchedulesError(error.message));
+    },
+  });
+
+  setReviewScheduleSubscription(sub);
+  console.log("✅ [Sub] Review Schedules subscription connected.");
+  return true;
+};
+
+
+const subscribeToCompletedReviewSchedules = async () => {
+  console.log("⏳ [Sub] Connecting to Completed Review Schedules subscription...");
+  if(completedReviewScheduleSubscription) {
+    console.log("⚠️ [Sub] Completed Review Schedules subscription already connected.");
+    return true;
+  }
+
+  const sub = (client.models as any).CompletedReviewSchedule.observeQuery().subscribe({
+    next: ({ items, isSynced }: any) => {
+
+         const cleanedSchedules = cleanSchedules(items);
+
+      // 2. Dispatch the cleaned array to your new slice
+      dispatch(setCompletedReviewSchedules(cleanedSchedules));
+
+      // 3. Update the sync status
+      dispatch(setCompletedSchedulesSynced(isSynced));
+
+      console.log("📋 [Sub] Completed Review Schedules subscription update received.");
+      console.log(
+        `📋 Subscription update: ${items.length} completed review schedules, synced: ${isSynced}`
+      );
+      console.log('completed review schedules items we fetched', items)
+    },
+    error: (error: any) => {
+      console.error("❌ Completed Review Schedules subscription error:", error);
+    },
+  });
+  setCompletedReviewScheduleSubscription(sub);
+  console.log("✅ [Sub] Completed Review Schedules subscription connected.");
+  return true;
+};
+
+
+
+const subscribeToReviewScheduleWords = async () => {
+  console.log("⏳ [Sub] Subscribing to Review Schedule Words...");
+  
+  if (reviewScheduleWordSubscription) {
+    console.log("⚠️ [Sub] Review Schedule Words subscription already connected.");
+    return true;
+  }
+
+  const sub = (client.models as any).ReviewScheduleWord.observeQuery().subscribe({
+    next: ({ items, isSynced }: any) => {
+      // 1. Transform the raw items into our clean UI format
+      // This strips the [Function anonymous] relationships
+      const cleanedWords = cleanScheduleWords(items);
+
+      // 2. Update Redux with the data
+      dispatch(setScheduleWords(cleanedWords));
+
+      // 3. Update the Sync status
+      dispatch(setScheduleWordsSynced(isSynced));
+
+      console.log(`📡 [ReviewScheduleWord] Updated: ${items.length} records. Synced: ${isSynced}`);
+    },
+    error: (error: any) => {
+      console.error("❌ ReviewScheduleWord subscription error:", error);
+    },
+  });
+
+  setReviewScheduleWordSubscription(sub);
+  return true;
+};
+  return {
+    authMode,
+    targetRoute,
+    appReady,
+  };
+}

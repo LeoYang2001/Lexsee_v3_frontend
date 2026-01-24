@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-export interface ReviewSchedule {
+export interface CompletedReviewSchedule {
   id: string;
   notificationId: string;
   owner: string;
@@ -15,38 +15,38 @@ export interface ReviewSchedule {
   // Note: We exclude the [Function anonymous] fields here
 }
 
-interface ReviewSchedulesState {
-  items: ReviewSchedule[];
+interface CompletedReviewSchedulesState {
+  items: CompletedReviewSchedule[];
   isSynced: boolean;
   isLoading: boolean;
   error: string | null;
 }
 
-const initialState: ReviewSchedulesState = {
+const initialState: CompletedReviewSchedulesState = {
   items: [],
   isSynced: false,
   isLoading: true,
   error: null,
 };
 
-const reviewSchedulesSlice = createSlice({
-  name: "reviewSchedules",
+const completedReviewSchedulesSlice = createSlice({
+  name: "completedReviewSchedules",
   initialState,
   reducers: {
     // Main dispatcher for the subscription
-    setReviewSchedules: (state, action: PayloadAction<ReviewSchedule[]>) => {
+    setCompletedReviewSchedules: (state, action: PayloadAction<CompletedReviewSchedule[]>) => {
       state.items = action.payload;
       state.isLoading = false;
       state.error = null;
     },
     // Tracks background sync status
-    setSchedulesSynced: (state, action: PayloadAction<boolean>) => {
+    setCompletedSchedulesSynced: (state, action: PayloadAction<boolean>) => {
       state.isSynced = action.payload;
     },
     // Reset on logout
-    clearSchedules: () => initialState,
+    clearCompletedSchedules: () => initialState,
   },
 });
 
-export const { setReviewSchedules, setSchedulesSynced, clearSchedules } = reviewSchedulesSlice.actions;
-export default reviewSchedulesSlice.reducer;
+export const { setCompletedReviewSchedules, setCompletedSchedulesSynced, clearCompletedSchedules } = completedReviewSchedulesSlice.actions;
+export default completedReviewSchedulesSlice.reducer;

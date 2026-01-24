@@ -1,11 +1,11 @@
-import { Stack } from "expo-router";
+import { router, SplashScreen, Stack } from "expo-router";
 import { Amplify } from "aws-amplify";
 import { Authenticator, ThemeProvider } from "@aws-amplify/ui-react-native";
 import { Provider } from "react-redux";
 import { store } from "../store";
 import outputs from "../amplify_outputs.json";
 import "../global.css";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import * as Notifications from "expo-notifications";
 import { useLaunchSequence } from "../hooks/useLaunchSequence";
 
@@ -22,6 +22,18 @@ Notifications.setNotificationHandler({
   }),
 });
 
+SplashScreen.preventAutoHideAsync();
+
+async function requestNotificationPermissions() {
+  const { status } = await Notifications.requestPermissionsAsync();
+  if (status !== "granted") {
+    alert("Permission not granted for notifications!");
+    return false;
+  }
+
+  return true;
+}
+
 function AppContent() {
   // Run launch sequence - handles all initialization:
   // 1. China user check (useCheckChina)
@@ -32,22 +44,25 @@ function AppContent() {
   //      c. Fetch all-time review schedules (only if profile exists)
   //    - If failed: redirect to login
   // 3. Setup schedule subscription (when profile is loaded)
-  const { isAuthenticated, ifChina, chinaCheckLoading } = useLaunchSequence();
-  
-  async function requestNotificationPermissions() {
-    const { status } = await Notifications.requestPermissionsAsync();
-    if (status !== "granted") {
-      alert("Permission not granted for notifications!");
-      return false;
-    }
-
-    return true;
-  }
+  const { appReady, targetRoute} = useLaunchSequence();
+  const navigatedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    requestNotificationPermissions();
-  }, []);
+    const run = async () => {
+      if (!appReady || !targetRoute) return;
+      if (navigatedRef.current === targetRoute) return;
 
+      // (4) hide splash first
+      await SplashScreen.hideAsync();
+
+      // (5) then navigate
+      navigatedRef.current = targetRoute;
+      router.replace(targetRoute);
+    };
+
+    run();
+    
+  }, [appReady, targetRoute]);
   return (
     <Stack>
       <Stack.Screen
