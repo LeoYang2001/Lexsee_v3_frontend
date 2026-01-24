@@ -1,10 +1,11 @@
-import { View, Text, ActivityIndicator } from "react-native";
+import { View, Text } from "react-native";
 import React, { useEffect, useState } from "react";
 import { ArcGauge } from "./ArcGauge";
+import { getLocalDate } from "../../util/utli";
 
 interface ProgressReviewProps {
   selectedIso?: string | null;
-  allSchedules: ReviewScheduleData[];
+  allSchedules: any[];
 }
 
 export interface ProgressReviewData {
@@ -18,103 +19,91 @@ const ProgressReview: React.FC<ProgressReviewProps> = ({
   allSchedules,
   selectedIso,
 }) => {
-  const [todaySchedule, setTodaySchedule] = useState<
-    ReviewScheduleData | undefined
-  >(undefined);
-  const [isLoading, setIsLoading] = useState(true);
-  const [scheduleWords, setScheduleWords] = useState<any[] | null>(null);
+ 
   const [progressData, setProgressData] = useState<ProgressReviewData | null>(
     null
   );
 
-
-  // resolve scheduleWords (may be array, promise, or function returning promise)
+  const [isIncoming, setIsIncoming] = useState(false)
+  
   useEffect(() => {
-    let mounted = true;
-    async function resolveWords() {
-      setIsLoading(true);
-      setScheduleWords(null);
-      if (!todaySchedule) {
-        setIsLoading(false);
-        setProgressData(null);
-        return;
-      }
 
-      try {
-        const raw = (todaySchedule as any).scheduleWords;
+    setProgressData(null);
 
-        // handle function, promise or direct array
-        let words: any = null;
-        if (typeof raw === "function") {
-          const res = raw();
-          words = res instanceof Promise ? await res : res;
-        } else if (raw instanceof Promise) {
-          words = await raw;
-        } else {
-          words = raw || null;
-        }
+    setIsIncoming(false);
 
-        if (!mounted) return;
-        const wordArray = Array.isArray((words as any)?.data)
-          ? (words as any).data
-          : Array.isArray(words)
-            ? (words as any)
-            : [];
-        setScheduleWords(wordArray);
-        console.log("resolved scheduleWords", wordArray);
+    const currentDate = getLocalDate();
 
-        // calculate score & accuracy
-        const totalWords = wordArray.length;
-        const totalPossible = totalWords * 5; // 5 points per word
-        const scoreSum = wordArray.reduce((acc: any, w: any) => {
-          const s = typeof w.score === "number" ? w.score : 0;
-          return acc + s;
-        }, 0);
-        const accuracy =
-          totalPossible > 0 ? Math.round((scoreSum / totalPossible) * 100) : 0;
-        const reviewedWords = wordArray.filter(
-          (w: any) => w.status === "REVIEWED"
-        ).length;
+   
+    
+    
+    const scheduleForSelectedDate = allSchedules.find(
+      (schedule) => schedule.scheduleDate === selectedIso
+    );
+    if (scheduleForSelectedDate) {
+      setProgressData({
+        reviewedWords: scheduleForSelectedDate.reviewedCount,
+        totalWords: scheduleForSelectedDate.totalWords,
+        // should only accurate to 1 decimal place
+        completionRate: Math.round(100* (scheduleForSelectedDate.reviewedCount / scheduleForSelectedDate.totalWords) * 10) / 10,
+        accuracy: Math.round(100 * (scheduleForSelectedDate.successRate / (5 * scheduleForSelectedDate.reviewedCount)) * 10) / 10,
+      });
 
-        const completionRate =
-          totalWords > 0 ? Math.round((reviewedWords / totalWords) * 100) : 0;
-        const next: ProgressReviewData = {
-          reviewedWords,
-          totalWords,
-          completionRate,
-          accuracy,
-        };
-        setProgressData(next);
-        console.log("progress data", next);
-      } catch (err) {
-        if (!mounted) return;
-        console.warn("failed to resolve scheduleWords", err);
-        setScheduleWords(null);
-        setProgressData(null);
-      } finally {
-        if (mounted) setIsLoading(false);
-      }
+    } else {
+      setProgressData(null);
     }
 
-    resolveWords();
-    return () => {
-      mounted = false;
-    };
-  }, [todaySchedule]);
+     if(selectedIso && currentDate && selectedIso > currentDate)
+    {
+      // if the selected date is in the future, mark it as incoming
+      setIsIncoming(true)
+      return 
+    }
+  }, [selectedIso, allSchedules])
+  
+  
+
+  const IncomingView = () => (
+    <View className="py-6 items-center  h-full justify-center">
+      <Text style={{ color: "#9CA3AF", fontSize: 15 }}>
+        {progressData?.totalWords} words are scheduled for this day
+      </Text>
+      {selectedIso && (
+        <Text style={{ color: "#6B7280", fontSize: 12, marginTop: 6 }}>
+          {selectedIso}
+        </Text>
+      )}
+    </View>
+  );
+
+  const OverdueView = () => (
+    <View className="py-6 items-center  flex  text-center h-full justify-center">
+      <Text style={{ color: "#9CA3AF", fontSize: 15 }}>
+        {progressData?.totalWords} words were scheduled for this day, 
+      </Text>
+      <Text className=" mt-2" style={{ color: "#9CA3AF", fontSize: 15 }}>
+        unfortunately you didn't finish reviewing them.
+      </Text>
+    </View>
+  );
+
+  if(isIncoming && progressData) {
+    return <IncomingView />;
+  }
+
+  if(progressData && progressData?.reviewedWords < progressData?.totalWords) {
+    return <OverdueView />;
+  }
 
   return (
     <View className="w-full h-full">
       {/* loading state */}
-      {isLoading ? (
-        <View className="py-4 items-center justify-center h-full">
-          <ActivityIndicator size="small" color="#CF4A1E" />
-        </View>
-      ) : !progressData ? (
+      {!progressData ? (
         // no scheduled words for this day
         <View className="py-6 items-center  h-full justify-center">
-          <Text style={{ color: "#9CA3AF", fontSize: 15 }}>
-            No words scheduled for this day
-          </Text>
+              <Text style={{ color: "#9CA3AF", fontSize: 15 }}>
+                No words scheduled for this day
+              </Text>
           {selectedIso && (
             <Text style={{ color: "#6B7280", fontSize: 12, marginTop: 6 }}>
               {selectedIso}

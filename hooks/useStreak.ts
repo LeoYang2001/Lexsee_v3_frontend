@@ -35,7 +35,7 @@ const useStreak = () => {
 
     // Combine incoming and past schedules and sort them by scheduleDate from latest to earliest
     const allTimeSchedules = [...incomingSchedules, ...pastSchedules].sort((a, b) => new Date(b.scheduleDate).getTime() - new Date(a.scheduleDate).getTime())
-    console.log(calculateSrsStreak(allTimeSchedules, currentDate))
+    
 
     
   return calculateSrsStreak(allTimeSchedules, currentDate)

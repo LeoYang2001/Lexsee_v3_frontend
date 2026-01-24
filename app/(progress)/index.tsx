@@ -6,8 +6,6 @@ import {
   Dimensions,
 } from "react-native";
 import React, { useEffect, useState } from "react";
-import { useAppSelector } from "../../store/hooks";
-import { client } from "../client";
 import { router } from "expo-router";
 import { ChevronLeft, EllipsisVertical } from "lucide-react-native";
 import ProgressBar from "../../components/common/ProgressBar";
@@ -18,6 +16,8 @@ import Animated, {
 } from "react-native-reanimated";
 import Card1Content from "../../components/progress/Card1Content";
 import Card2Content from "../../components/progress/Card2Content";
+import { useAppSelector } from "../../store/hooks";
+import { wordsListSelector } from "../../store/selectors/wordsListSelector";
 type ViewMode = "default" | "card1Expanded" | "card2Expanded";
 
 // Constants
@@ -28,17 +28,12 @@ const COLLAPSED_BORDER_RADIUS = 16; // top corners for collapsed card2
 const EXPANDED_BORDER_RADIUS = BORDER_RADIUS * 2;
 
 const ProgressPage = () => {
-  const words = useAppSelector((state) => state.wordsList.words);
-  const userProfile = useAppSelector((state) => state.profile.data);
-  const todaySchedule = useAppSelector(
-    (state) => state.reviewSchedule.todaySchedule
-  );
-  const allSchedules = useAppSelector(
-    (state) => state.reviewSchedule.allSchedules
-  );
 
   const [viewMode, setViewMode] = useState<ViewMode>("default");
   const [containerHeight, setContainerHeight] = useState(0);
+
+   
+    const {collectedList, masteredList} = useAppSelector(wordsListSelector);
 
   // Animated values for card heights
   const card1Height = useSharedValue(0);
@@ -50,12 +45,7 @@ const ProgressPage = () => {
   const card2TopRadius = useSharedValue(EXPANDED_BORDER_RADIUS);
   const card2BottomRadius = useSharedValue(EXPANDED_BORDER_RADIUS);
 
-  // Calculate word statistics
-  const totalWords = words.length;
-  const collectedWords = words.filter(
-    (word) => word.status === "COLLECTED"
-  ).length;
-  const learnedWords = words.filter((word) => word.status === "LEARNED").length;
+
 
   // Calculate collapsed card height as percentage
   const collapsedCardHeightPercentage =
@@ -211,7 +201,7 @@ const ProgressPage = () => {
                 color: "#FFFFFF",
               }}
             >
-              {learnedWords}
+              {masteredList.length}
             </Text>
             <View className="flex flex-row items-center justify-center gap-1">
               <Text
@@ -250,7 +240,7 @@ const ProgressPage = () => {
                 color: "#FFFFFF",
               }}
             >
-              {collectedWords}
+              {collectedList.length}
             </Text>
             <View className="flex flex-row items-center justify-center gap-1">
               <Text
@@ -277,8 +267,8 @@ const ProgressPage = () => {
 
         {/* ProgressBar with animation */}
         <ProgressBar
-          solidProgress={learnedWords / totalWords}
-          dashedProgress={collectedWords / totalWords}
+          solidProgress={masteredList.length / (masteredList.length + collectedList.length)}
+          dashedProgress={collectedList.length / (masteredList.length + collectedList.length)}
           height={11}
           solidColor="#c4c4c5"
           dashedColor="#424345"
@@ -319,8 +309,6 @@ const ProgressPage = () => {
           >
             <Card1Content
               viewMode={viewMode}
-              allSchedules={allSchedules}
-              todaySchedule={todaySchedule}
             />
           </Pressable>
         </Animated.View>

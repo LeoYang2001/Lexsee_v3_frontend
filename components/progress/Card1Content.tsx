@@ -4,33 +4,34 @@ import { Calendar, TrendingDown, TrendingUp } from "lucide-react-native";
 import { calculateStreak } from "../../lib/reviewAlgorithm";
 import ProgressCalendar from "./ProgressCalendar";
 import ProgressReview from "./ProgressReview";
-import { ReviewScheduleData } from "../../store/slices/reviewScheduleSlice";
 import { getLocalDate } from "../../util/utli";
+import useStreak from "../../hooks/useStreak";
+import { useAppSelector } from "../../store/hooks";
 
 interface Card1ContentProps {
   viewMode: "default" | "card1Expanded" | "card2Expanded";
-  todaySchedule: any;
-  allSchedules: ReviewScheduleData[];
+ 
 }
 
 const Card1Content: React.FC<Card1ContentProps> = ({
   viewMode,
-  allSchedules,
 }) => {
   // selected date lifted here
   // default selected date to today (YYYY-MM-DD)
   const [selectedIso, setSelectedIso] = useState<string | null>(
     getLocalDate()
   );
-  // guard schedules to avoid undefined being passed into calculateStreak
-  const [streak, setStreak] = useState(0);
 
-  useEffect(() => {
-    if (allSchedules.length > 0) {
-      const calculatedStreak = calculateStreak(allSchedules);
-      setStreak(calculatedStreak);
-    }
-  }, [allSchedules]);
+  const incomingSchedules = useAppSelector(state => state.reviewSchedule.items)
+  const pastSchedules = useAppSelector(state => state.completedReviewSchedules.items)
+    
+  // Combine incoming and past schedules and sort them by scheduleDate from latest to earliest
+  const allSchedules = [...incomingSchedules, ...pastSchedules].sort((a, b) => new Date(b.scheduleDate).getTime() - new Date(a.scheduleDate).getTime())
+
+  // guard schedules to avoid undefined being passed into calculateStreak
+  const streak =useStreak();
+
+
 
   // Only render content when card1 is expanded (or compact row for card2Expanded)
   if (viewMode === "card2Expanded") {

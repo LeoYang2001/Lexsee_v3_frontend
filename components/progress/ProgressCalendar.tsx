@@ -8,7 +8,6 @@ import Animated, {
   interpolate,
   Extrapolate,
 } from "react-native-reanimated";
-import { ReviewScheduleData } from "../../store/slices/reviewScheduleSlice";
 
 type ParentViewMode = "default" | "card1Expanded" | "card2Expanded";
 
@@ -21,7 +20,7 @@ export default function ProgressCalendar({
   viewMode?: ParentViewMode;
   selectedIso?: string | null;
   onSelectDate?: (iso: string | null) => void;
-  allSchedules?: ReviewScheduleData[];
+  allSchedules?: any[];
 }) {
   const COLLAPSED_H = 65;
   const EXPANDED_H = 230;
@@ -151,6 +150,7 @@ export default function ProgressCalendar({
     onPress,
     isScheduled,
     isReviewed,
+    isPast
   }: {
     date: Date | null;
     iso: string | null;
@@ -159,17 +159,84 @@ export default function ProgressCalendar({
     onPress: (iso: string | null) => void;
     isScheduled: boolean;
     isReviewed: boolean;
+    isPast: boolean;
   }) {
     if (!date) {
       return <View className="flex-1 items-center justify-center p-1" />;
     }
 
-    const shouldHighlightText = !isScheduled || (isScheduled && isReviewed);
+
+    // Define your 4 distinct views
+  const StatusViews: { [key: string]: React.ReactNode } = {
+    unscheduled: (
+      <Text
+            style={{
+              fontSize: 14,
+              fontWeight: "400",
+              opacity: 1,
+            }}
+            className="text-white"
+          >
+            {date.getDate()}
+          </Text>
+    ),
+    incoming: (
+       <Text
+            style={{
+              fontSize: 14,
+              fontWeight: "400",
+              opacity: 0.3,
+            }}
+            className="text-white"
+          >
+            {date.getDate()}
+          </Text>
+    ),
+    overdue: (
+       <Text
+            style={{
+              fontSize: 14,
+              fontWeight: "400",
+              opacity: 1,
+            }}
+            className="text-red-500"
+          >
+            {date.getDate()}
+          </Text>
+    ),
+    completed: (
+       <Text
+            style={{
+              fontSize: 14,
+              fontWeight: "400",
+              opacity: 1,
+            }}
+            className="text-white"
+          >
+            ✓
+      </Text>
+    ),
+  };
+    
+
+
+    const ifUnscheduled = !isScheduled;
+    const ifIncoming = isScheduled && !isPast
+    const ifOverDue = isScheduled && isPast && !isReviewed;
+    const ifCompleted = isScheduled && isReviewed;
+
+    let cellStatus = ifUnscheduled ? "unscheduled" : ifIncoming ? "incoming" : ifOverDue ? "overdue" : ifCompleted ? "completed" : "normal";
+
     return (
       <TouchableOpacity
         activeOpacity={0.7}
         className="flex-1 items-center   relative justify-center p-1 "
-        onPress={() => onPress(iso)}
+        // onPress={() => onPress(iso)}
+        onPress={()=>{
+          onPress(iso)
+        
+        }}
+
       >
         <View
           style={{
@@ -181,16 +248,8 @@ export default function ProgressCalendar({
             isSelected ? "bg-orange-500" : ""
           }`}
         >
-          <Text
-            style={{
-              fontSize: 14,
-              fontWeight: "400",
-              opacity: shouldHighlightText ? 1 : 0.3,
-            }}
-            className="text-white"
-          >
-            {date.getDate()}
-          </Text>
+         {StatusViews[cellStatus] || StatusViews.unscheduled}
+          
         </View>
         {/* IsToday Hightlight  */}
         {isToday && (
@@ -345,6 +404,7 @@ export default function ProgressCalendar({
             const schedule = allSchedules.filter(
               (s) => s.scheduleDate === iso
             )[0];
+            const isPast = new Date(iso) < today;
             const isReviewed = schedule
               ? schedule.reviewedCount === schedule.totalWords
               : false;
@@ -357,6 +417,7 @@ export default function ProgressCalendar({
                 isSelected={isSelected}
                 isScheduled={isScheduled}
                 isReviewed={isReviewed}
+                isPast={isPast}
                 onPress={(iso) => {
                   setSelectedIso(iso);
                 }}
@@ -469,6 +530,7 @@ export default function ProgressCalendar({
                     const schedule = allSchedules.filter(
                       (s) => s.scheduleDate === iso
                     )[0];
+                    const isPast = cell ? new Date(isoDate(cell)) < today : false;
                     const isReviewed = schedule
                       ? schedule.reviewedCount === schedule.totalWords
                       : false;
@@ -482,6 +544,7 @@ export default function ProgressCalendar({
                         isToday={
                           cell ? isoDate(cell) === isoDate(today) : false
                         }
+                        isPast={isPast}
                         isSelected={
                           cell ? isoDate(cell) === selectedIso : false
                         }
