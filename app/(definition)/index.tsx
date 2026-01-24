@@ -42,6 +42,7 @@ function CollectBtn({ saveStatus }: { saveStatus: string }) {
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
   const colorProgress = useSharedValue(0);
+  
 
   const getBtnStyle = () => {
     switch (saveStatus) {
@@ -278,7 +279,6 @@ export default function DefinitionPage() {
         (word) => word.word === wordInfoToSave.word
       );
       if (existingWord) {
-        console.log('word exists, do not create but just update')
         const updateData = {
           id: existingWord.id,
           data: JSON.stringify(wordInfoToSave),
@@ -289,7 +289,6 @@ export default function DefinitionPage() {
         wordInfoToSave.id = res.data.id;
       } else {
         // If not exists, create new word entry
-
         const createData = {
           data: JSON.stringify({
             ...wordInfoToSave,
@@ -312,13 +311,9 @@ export default function DefinitionPage() {
    if(!existingScheduleWord) {
     //initiate scheduling notification update
     const currentLocalDate = getLocalDate();
-    console.log('currentLocalDate:', currentLocalDate)
     // newNextDue should be the day after currentLocalDate
     const newNextDue = new Date(currentLocalDate);
-    console.log("newNextDue:", newNextDue)
     newNextDue.setDate(newNextDue.getDate() + wordInfoToSave.review_interval);
-    console.log('wordInfoToSave.reviewInternval:', wordInfoToSave.review_interval)
-    console.log("newNextDue after adding review_interval:", newNextDue)
     if (userProfile) {
       const ifSuccess = await handleScheduleNotification(
         userProfile,

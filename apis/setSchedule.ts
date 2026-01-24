@@ -82,13 +82,12 @@ export const handleScheduleNotification = async (
   //.     2.1 if reviewSchedule of that date does not exist, create one
                 // set notification for that date
   //.     2.2 if reviewScheduleWord already exists in that date, skip
-                // cancle old notification and set a new one with updated count
+                // overwrite with the same notificationId if exists
 
   try {
     const userProfileId = userProfile.id;
     const nextDueDate = new Date(next_due).toISOString().split("T")[0];
     
-
     // Step 1: create a reviewScheduleWord
      const scheduleWordEntity = await (client as any).models.ReviewScheduleWord.create(
       {
@@ -106,7 +105,7 @@ export const handleScheduleNotification = async (
     // 2.1 if reviewSchedule of that date does not exist, create one
     // 2.2 if reviewScheduleWord already exists in that date, skip
     // set notification for that date
-    // cancle old notification and set a new one with updated count
+    // overwrite with the same notificationId if exists
 
 
     // 2.2 if reviewScheduleWord already exists in that date, skip
@@ -115,39 +114,25 @@ export const handleScheduleNotification = async (
       nextDueDate
     ) as { schedule: any; created: boolean };
 
-    console.log(`🔍 DEBUG - schedule: ${JSON.stringify(schedule)}`);
-    console.log(`🔍 DEBUG - schedule.id: ${schedule?.id}`);
-    console.log(`🔍 DEBUG - created: ${created}`);
 
-    // if existed, cancel original notification and set a new one
+    // if existed, overwrite the notification with the same notificationId
     // if just created, set a notification
     if (!created) {
-      // existed schedule,  cancel original notification and set a new one
+      // existed schedule,  overwrite the notification with the same notificationId
       const wordsCount = schedule.toBeReviewedCount - schedule.reviewedCount; // get current count
-      
-      if (schedule.notificationId) {
-        await Notifications.cancelScheduledNotificationAsync(
-          schedule.notificationId
-        );
-        console.log(
-          `🔕 Canceled existing notification ${schedule.notificationId} for schedule on ${nextDueDate}`
-        );
-      }
       console.log('try to schedule on next_due', next_due)
       const notificationId = await setSchedule(wordsCount + 1, next_due);
-      console.log(`🔍 DEBUG - New notificationId: ${notificationId}`);
+      console.log(`🔍 DEBUG - overwrite notificationId: ${notificationId}`);
       
-      // update schedule with new notificationId
+      // update schedule 
       await (client as any).models.ReviewSchedule.update({
         id: schedule.id,
-        notificationId,
         toBeReviewedCount: wordsCount + 1,
         totalWords: schedule.totalWords + 1,
       });
     }
     else{
       // just created schedule, set a notification
-      console.log(`🔍 DEBUG - Creating first notification for new schedule`);
       const notificationId = await setSchedule(1, next_due);
       console.log(`🔍 DEBUG - First notificationId: ${notificationId}`);
       
@@ -238,8 +223,6 @@ export const uncollectWord = async (
         await (client as any).models.ReviewScheduleWord.delete({
           id: scheduleWord.id,
         });
-        console.log(`🗑️ Deleted ReviewScheduleWord entity ${scheduleWord.id}`);
-        console.log('update schedule notification', JSON.stringify(schedule))
         // update notification & schedule counts
         const cur_totalWords = schedule.totalWords; 
         const cur_tobeReviewedCount = schedule.toBeReviewedCount;
@@ -255,12 +238,8 @@ export const uncollectWord = async (
         });
         console.log(`✅ Updated schedule counts after uncollecting word`);
         
-         // cancel old notification and set a new one with updated count at the original time
+         // overwrite notification with the same notificationID
         if(schedule.notificationId){
-          console.log(`🔍 DEBUG - Canceling old notification: ${schedule.notificationId}`);
-          await Notifications.cancelScheduledNotificationAsync(schedule.notificationId);
-          console.log(`🔕 Canceled notification ${schedule.notificationId} for schedule`);
-          
           const newNotificationDate = new Date(schedule.scheduleDate);
           console.log(`🔍 DEBUG - Setting new notification for ${cur_tobeReviewedCount - 1} words at ${newNotificationDate}`);
           const newNotificationId = await setSchedule(cur_tobeReviewedCount - 1, newNotificationDate);
@@ -287,6 +266,8 @@ export const setSchedule = async (
     console.error("❌ [setSchedule] Invalid date provided:", next_due);
     return null;
   }
+
+  console.log('try to schedule in function setSchedule nextdue:', next_due)
   
   try {
     const notificationContent = {
@@ -298,9 +279,11 @@ export const setSchedule = async (
 
     const scheduledYear = next_due.getFullYear();
     const scheduledMonth = next_due.getMonth() + 1;
-    const scheduledDay = next_due.getDate();
+    const scheduledDay = next_due.getUTCDate();
     const scheduledHour = 9;
     const scheduledMinute = 0;
+
+    const notificationId = `review-${scheduledYear}-${scheduledMonth}-${scheduledDay}`;
 
     const trigger: Notifications.CalendarTriggerInput = {
       type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
@@ -316,6 +299,7 @@ export const setSchedule = async (
     console.log(`⏰ [setSchedule] Notification scheduled for local time: ${scheduledYear}-${scheduledMonth}-${scheduledDay} at ${scheduledHour}:00`);
 
     const identifier = await Notifications.scheduleNotificationAsync({
+      identifier: notificationId,
       content: notificationContent,
       trigger,
     });
