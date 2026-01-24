@@ -203,14 +203,6 @@ export const uncollectWord = async (
     {
       console.log(`🔍 DEBUG - Fetching schedule with id: ${scheduleWord.reviewScheduleId}`);
       
-      
-      
-      console.log(`🔍 DEBUG - schedule result: ${JSON.stringify(schedule)}`);
-      console.log(`🔍 DEBUG - schedule.data: ${JSON.stringify(schedule.data)}`);
-      console.log(`🔍 DEBUG - schedule.data.id: ${schedule.data?.id}`);
-      console.log(`🔍 DEBUG - schedule.data.notificationId: ${schedule.data?.notificationId}`);
-      
-     
       const scheduleWordsCount = schedule.totalWords
       console.log(`🔍 DEBUG - Total words in schedule: ${scheduleWordsCount}`);
        // 2.1 If there’s only one entity
