@@ -41,7 +41,6 @@ export const fetchTodaySchedule = createAsyncThunk(
         console.warn("⚠️ No user profile for fetching today's schedule");
         return [];
       }
-      setLoading(true);
       console.log("  ├─ 📅 Fetching today's schedule...");
 
       const currentDate = getLocalDate();
@@ -73,21 +72,26 @@ export const fetchTodaySchedule = createAsyncThunk(
       }
       const pastDueWords = pastDueWordEntities.data || [];
 
+
       // Clean the review words data to remove non-serializable functions
-      const cleanedPastDueReviewWords = pastDueWords.map((word: any) => ({
-        id: word.id,
-        reviewScheduleId: word.reviewScheduleId,
-        wordId: word.wordId,
-        status: word.status,
-        score: word.score,
-        answeredAt: word.answeredAt,
-        meta: word.meta,
-        completedReviewScheduleId: word.completedReviewScheduleId,
-        createdAt: word.createdAt,
-        updatedAt: word.updatedAt,
-        owner: word.owner,
-        ifPastDue: true,
-      }));
+      // Filter out REVIEWED words, only keep TO_REVIEW
+      const cleanedPastDueReviewWords = pastDueWords
+        .filter((word: any) => word.status === "TO_REVIEW")
+        .map((word: any) => ({
+          id: word.id,
+          reviewScheduleId: word.reviewScheduleId,
+          wordId: word.wordId,
+          status: word.status,
+          score: word.score,
+          answeredAt: word.answeredAt,
+          meta: word.meta,
+          completedReviewScheduleId: word.completedReviewScheduleId,
+          createdAt: word.createdAt,
+          updatedAt: word.updatedAt,
+          owner: word.owner,
+          ifPastDue: true,
+        }));
+
 
       // Fetch today's schedule
       const todaySchedule = await (client.models as any).ReviewSchedule.list({
@@ -121,32 +125,33 @@ export const fetchTodaySchedule = createAsyncThunk(
         const todayWords = todayWordEntities.data || [];
       
         // Clean the review words data to remove non-serializable functions
-        const cleanedTodayReviewWords = todayWords.map((word: any) => ({
-          id: word.id,
-          reviewScheduleId: word.reviewScheduleId,
-          wordId: word.wordId,
-          status: word.status,
-          score: word.score,
-          answeredAt: word.answeredAt,
-          meta: word.meta,
-          completedReviewScheduleId: word.completedReviewScheduleId,
-          createdAt: word.createdAt,
-          updatedAt: word.updatedAt,
-          owner: word.owner,
-          ifPastDue: false,
-        }));
+        // Filter out REVIEWED words, only keep TO_REVIEW
+        const cleanedTodayReviewWords = todayWords
+          .filter((word: any) => word.status === "TO_REVIEW")
+          .map((word: any) => ({
+            id: word.id,
+            reviewScheduleId: word.reviewScheduleId,
+            wordId: word.wordId,
+            status: word.status,
+            score: word.score,
+            answeredAt: word.answeredAt,
+            meta: word.meta,
+            completedReviewScheduleId: word.completedReviewScheduleId,
+            createdAt: word.createdAt,
+            updatedAt: word.updatedAt,
+            owner: word.owner,
+            ifPastDue: false,
+          }));
 
         todayAndPastDueWords = [...cleanedPastDueReviewWords, ...cleanedTodayReviewWords];
       } else {
         // No schedule exists for today, create a local schedule with past due words
         todayAndPastDueWords = [...cleanedPastDueReviewWords];
       }
-      setLoading(false);
      
       return todayAndPastDueWords;
     } catch (error) {
       console.error("  └─ ❌ Error fetching today's schedule:", error);
-      setLoading(false);
       return rejectWithValue(error instanceof Error ? error.message : "Failed to fetch today's schedule");
     }
   }
@@ -161,7 +166,7 @@ const todayReviewListSlice = createSlice({
       state.isLoading = false;
       state.error = null;
     },
-    setLoading: (state, action: PayloadAction<boolean>) => {
+    setTodayReviewListLoading: (state, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload;
     },
     setError: (state, action: PayloadAction<string | null>) => {
@@ -206,7 +211,7 @@ const todayReviewListSlice = createSlice({
 
 export const {
   setTodayReviewList,
-  setLoading,
+  setTodayReviewListLoading,
   setError,
   clearTodayReviewList,
   updateWordStatus,

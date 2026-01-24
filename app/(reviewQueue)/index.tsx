@@ -28,7 +28,7 @@ import {
 } from "../../apis/AIFeatures";
 import { handleScheduleNotification, setSchedule } from "../../apis/setSchedule";
 import { getLocalDate } from "../../util/utli";
-import { fetchTodaySchedule } from "../../store/slices/todayReviewListSlice";
+import { fetchTodaySchedule, setTodayReviewList, setTodayReviewListLoading } from "../../store/slices/todayReviewListSlice";
 
 const { width, height } = Dimensions.get("window");
 const BORDER_RADIUS = Math.min(width, height) * 0.06;
@@ -57,6 +57,7 @@ export default function ReviewQueueScreen() {
   useEffect(() => {
     //try to fetch existing conversation data from Redux store or local state
     if (currentWord) {
+
       const parsedConversation = JSON.parse(
         currentWord.exampleSentences as string
       );
@@ -112,7 +113,8 @@ export default function ReviewQueueScreen() {
     );
 
     try {
-      // Step 1: Calculate next review data
+      // Step 1: Calculate next review data, set loading to true
+      dispatch(setTodayReviewListLoading(true));
       const { next_due, review_interval, ease_factor } = getNextReview({
         review_interval: currentWord.review_interval,
         ease_factor: currentWord.ease_factor,
@@ -335,7 +337,8 @@ export default function ReviewQueueScreen() {
       console.log("✅ Step 7 result:", { wordId: currentWord.id, response: wordUpdateRes });
       
       //Step 8: update todays schedule 
-        dispatch(fetchTodaySchedule(userProfile.profile.id));
+       await dispatch(fetchTodaySchedule(userProfile.profile.id));
+      dispatch(setTodayReviewListLoading(false));
       
      
       return true;
@@ -388,17 +391,22 @@ export default function ReviewQueueScreen() {
 
   const getReviewQueueData = async () => {
     try {
-    
-      console.log('todayAndPastDueWords',todayAndPastDueWords)
-      // console.log('eventually we want these data scheduleWords', scheduleWords)
-      // console.log('eventually we want these data reviewQueueData', reviewQueueData)
-
 
 
       // get wordslist based on todayAndPastDueWords and wordslist 
-      const reviewWordsList = words.filter((word) => 
-        todayAndPastDueWords.some((scheduleItem) => scheduleItem.wordId === word.id)
-      );
+      const reviewWordsList = words
+        .filter((word) => 
+          todayAndPastDueWords.some((scheduleItem) => scheduleItem.wordId === word.id)
+        )
+        .map((word) => {
+          const scheduleItem = todayAndPastDueWords.find((item) => item.wordId === word.id);
+          return {
+            ...word,
+            ifPastDue: scheduleItem?.ifPastDue || false,
+          };
+        });
+
+      console.log('reviewWordsList: ',reviewWordsList)
       setReviewWordEntities(todayAndPastDueWords);
       setReviewQueue(reviewWordsList);
       setCurrentWordIndex(0);
@@ -558,8 +566,8 @@ export default function ReviewQueueScreen() {
           <View className="flex-1 ">
             {/* If past due badge  */}
             {currentWord.ifPastDue && (
-              <View className="absolute top-4 right-6 z-30 px-1 py-1 rounded">
-                <Text className="text-red-500 text-xs">overdue</Text>
+              <View className="absolute top-4 bg-red-500 right-6 z-30 px-1 py-1 rounded">
+                <Text className="text-white text-xs">overdue</Text>
               </View>
             )}
             {/* Word Display */}

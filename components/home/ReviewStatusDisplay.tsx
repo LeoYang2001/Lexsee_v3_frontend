@@ -22,7 +22,6 @@ interface ReviewStatusDisplayProps {
 const ReviewStatusDisplay: React.FC<ReviewStatusDisplayProps> = ({
   reviewStatus,
   todayStats,
-  totalWords,
   onToggleExpand,
   isLoadingTodaySchedule = false,
 }) => {
@@ -102,7 +101,7 @@ const ReviewStatusDisplay: React.FC<ReviewStatusDisplayProps> = ({
     >
       {/* Loading state for today's schedule */}
       {isLoadingTodaySchedule ? (
-        <View className="w-full h-full flex items-center justify-start flex-col">
+        <View className="w-full h-full flex items-center justify-center flex-col">
           <ActivityIndicator size="small" color="#ffffff" />
           <Text
             className="text-white opacity-70 mt-2"
