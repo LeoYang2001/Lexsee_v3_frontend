@@ -262,7 +262,8 @@ export default function DefinitionPage() {
   const userProfile = useAppSelector((state) => state.profile.data);
 
 
-  const ifChina = useAppSelector((state) => state.ifChina.ifChina);
+  const aiSettings = useAppSelector((state) => state.aiSettings);
+  const activeModel = aiSettings.activeModel;
 
   const handleSaveWord = async (wordInfo: Word) => {
     // save/resave, we reset the schedule
@@ -348,7 +349,7 @@ export default function DefinitionPage() {
         wordInfo.word,
         partOfSpeech,
         definition,
-        ifChina ? "deepseek" : "openai"
+        activeModel
       );
 
       if (conversation) {
@@ -571,7 +572,7 @@ export default function DefinitionPage() {
         const fetchedWord = await fetchDefinition(
           searchWord,
           callbacks,
-          ifChina ? "deepseek" : "openai"
+          activeModel
         );
 
         if (fetchedWord) {

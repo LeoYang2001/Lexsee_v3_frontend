@@ -41,7 +41,8 @@ export default function ReviewQueueScreen() {
 
   const [hintCount, setHintCount] = useState(0);
   const [loading, setLoading] = useState(false);
-  const ifChina = useAppSelector((state) => state.ifChina.ifChina);
+    const aiSettings = useAppSelector((state) => state.aiSettings);
+    const activeModel = aiSettings.activeModel;
 
   const userProfile = useAppSelector((state) => state.profile.data);
 
@@ -80,7 +81,7 @@ useEffect(() => {
           setLoading(true);
           const conversation = await fetchQuickConversation(
             currentWord.word,
-            ifChina ? "deepseek" : "openai"
+            activeModel
           );
 
           if (conversation) {
