@@ -38,7 +38,7 @@ const persistConfig = {
   storage: AsyncStorage,
   // We only want to save specific things to disk. 
   // You definitely want aiSettings and profile here.
-  whitelist: ['aiSettings'], 
+  whitelist: [''], 
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
