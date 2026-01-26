@@ -29,6 +29,18 @@
     "assetBundlePatterns": ["**/*"],
     "plugins": [
       "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#1F2734",
+          "image": "./assets/splashScreen.png",
+          "imageWidth": "100%",
+          "resizeMode": "contain",
+          "dark": {
+            "backgroundColor": "#1F2734"
+          }
+        }
+      ],
 
       [
         "expo-video",
