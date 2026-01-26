@@ -6,8 +6,7 @@ import {
   Animated,
   Dimensions,
 } from "react-native";
-import { Link, router } from "expo-router";
-import Logo from "../../components/common/Logo";
+import { router } from "expo-router";
 import GradientBackground from "../../components/common/GradientBackground";
 
 const { width, height } = Dimensions.get("window");
