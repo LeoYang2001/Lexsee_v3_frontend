@@ -280,7 +280,7 @@ export default function SignInScreen() {
                 </Link>
               </View>
 
-              {/* <Button title="Reset Auth State" onPress={() => signOut()} /> */}
+              <Button title="Reset Auth State" onPress={() => signOut()} />
             </View>
           </View>
         </ScrollView>
