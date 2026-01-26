@@ -2,12 +2,13 @@ import { router, SplashScreen, Stack } from "expo-router";
 import { Amplify } from "aws-amplify";
 import { Authenticator, ThemeProvider } from "@aws-amplify/ui-react-native";
 import { Provider } from "react-redux";
-import { store } from "../store";
+import { persistor, store } from "../store";
 import outputs from "../amplify_outputs.json";
 import "../global.css";
 import { useEffect, useRef } from "react";
 import * as Notifications from "expo-notifications";
 import { useLaunchSequence } from "../hooks/useLaunchSequence";
+import { PersistGate } from "redux-persist/integration/react";
 
 Amplify.configure(outputs);
 
@@ -107,9 +108,11 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <Provider store={store}>
+        <PersistGate loading={null} persistor={persistor}>
         <Authenticator.Provider>
           <AppContent />
         </Authenticator.Provider>
+        </PersistGate>
       </Provider>
     </ThemeProvider>
   );

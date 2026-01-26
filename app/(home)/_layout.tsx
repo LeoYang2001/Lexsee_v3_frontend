@@ -26,6 +26,8 @@ export default function HomeLayout() {
     }
   };
 
+  const aiSetting = useSelector((state: RootState) => state.aiSettings);
+  const activeModel = aiSetting.activeModel;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -51,8 +53,10 @@ export default function HomeLayout() {
               contentContainerStyle={{ flexGrow: 1, paddingTop: 68 }}
               showsVerticalScrollIndicator={false}
             >
+            
               {/* User Email Section */}
               <View className="flex relative justify-center items-center my-3 "  style={{ height:44}}>
+                
                 <View style={{
                   opacity: 0.03
                 }} className=" absolute w-full h-full z-10 bg-white " />
@@ -130,9 +134,43 @@ export default function HomeLayout() {
                 <Feather name="log-out" size={20} color="#9CA3AF" style={{ marginRight: 16 }} />
                 <Text style={{ color: "#fff", fontSize: 14, opacity: 0.9 }}>Sign Out</Text>
               </TouchableOpacity>
+             
 
               {/* Spacer to push Footer to bottom */}
               <View style={{ flex: 1 }} />
+
+              {
+                activeModel === 'openai' ? (
+                      <View 
+             
+              className=" w-full py-1 flex justify-center flex-row gap-3 items-center  ">
+                <Text  style={{
+                    color: "#0ea982",
+                    fontSize: 12,
+                    opacity: 0.7
+                  }} className=" font-semibold opacity-30 ">powered by {activeModel}</Text>
+                  <Image
+                    source={require("../../assets/aiModels/openai.png")}
+                    style={{ width: 22, height: 22, marginTop: 0 }}
+                  />
+              </View>
+                ) : (
+                               <View 
+             
+              className=" w-full py-1 flex justify-center flex-row gap-3 items-center  ">
+                <Text  style={{
+                    color: "#536dfe",
+                    fontSize: 12,
+                    opacity: 0.7
+                  }} className=" font-semibold opacity-30 ">powered by {activeModel}</Text>
+                  <Image
+                    source={require("../../assets/aiModels/deepseek.png")}
+                    style={{ width: 22, height: 22, marginTop: 0 }}
+                  />
+              </View>
+                )
+              }
+             
 
               {/* Footer */}
               <View

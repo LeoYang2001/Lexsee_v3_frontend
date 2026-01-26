@@ -1,6 +1,11 @@
 const DICTIONARY_API_URL = "https://api.dictionaryapi.dev/api/v2/entries/en/";
 
 import OpenAI from "openai";
+
+
+// Type for AI provider
+export type AIProvider = "deepseek" | "openai";
+
 // Default provider
 const DEFAULT_AI_PROVIDER: AIProvider = "openai";
 
@@ -22,8 +27,6 @@ interface WordDefinition {
   ease_factor: number;
 }
 
-// Type for AI provider
-export type AIProvider = "deepseek" | "openai";
 
 const deepseekClient = new OpenAI({
   apiKey: DEEPSEEK_API_KEY,

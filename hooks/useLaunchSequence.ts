@@ -19,6 +19,8 @@ import {
   setCompletedReviewSchedules,
   setCompletedSchedulesSynced,
 } from "../store/slices/completedReviewScheduleSlice";
+import { useAppSelector } from "../store/hooks";
+import { probeOpenAIConnection } from "../store/slices/aiSettingsSlice";
 
 type AuthMode = "unknown" | "authed" | "guest";
 
@@ -30,6 +32,8 @@ export function useLaunchSequence() {
 
   // user id after successful authentication
   const [userId, setUserId] = useState<string | null>(null);
+  // AI settings from Redux
+  const { hasTested } = useAppSelector((state) => state.aiSettings);
 
   //Subscription to Words WebSocket
   const [wordsSubscription, setWordsSubscription] = useState<any>(null);
@@ -183,6 +187,9 @@ export function useLaunchSequence() {
       // 1. Profile Check
       const profile = await fetchProfile(userId);
 
+      // Start the AI Probe (Silent / Non-blocking)
+      checkAISettings();
+
       if (!profile) {
         console.log("📝 [Sequence] New User detected. Creating workspace...");
         const newProfile = await createProfile(userId);
@@ -191,7 +198,6 @@ export function useLaunchSequence() {
         if (!success)
           throw new Error("Failed to create initial data for new user");
       } else {
-        console.log("existing profile:", JSON.stringify(profile));
         console.log(
           "✅ [Sequence] Existing User detected. Loading preferences...",
         );
@@ -227,7 +233,6 @@ export function useLaunchSequence() {
       console.log("⚠️ [Fetch] No profile found in database.");
       return null;
     }
-
     console.log("✅ [Fetch] Profile found:", profileData.id);
 
     return profileData;
@@ -385,7 +390,6 @@ export function useLaunchSequence() {
         console.log(
           `📋 Subscription update: ${items.length} completed review schedules, synced: ${isSynced}`,
         );
-        console.log("completed review schedules items we fetched", items);
       },
       error: (error: any) => {
         console.error(
@@ -435,6 +439,20 @@ export function useLaunchSequence() {
     setReviewScheduleWordSubscription(sub);
     return true;
   };
+
+
+  const checkAISettings = async () => {
+    // If Redux-Persist already loaded 'hasTested: true' from storage, stop here.
+    if (hasTested) {
+      console.log("🤖 [AI] Model preference loaded from storage. Skipping probe.");
+      return;
+    }
+
+    console.log("🚀 [AI] First launch or untested state. Probing OpenAI...");
+    // Trigger the thunk we built in the previous step
+    dispatch(probeOpenAIConnection() as any);
+  };
+
   return {
     authMode,
     targetRoute,
