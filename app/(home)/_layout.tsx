@@ -4,10 +4,11 @@ import { Feather } from "@expo/vector-icons";
 
 import { TouchableOpacity, Text, Alert, View, Dimensions, ScrollView, Image } from "react-native";
 import { useRouter } from "expo-router";
-import { signOut as amplifySignOut } from "aws-amplify/auth";
+import { signOut as amplifySignOut, getCurrentUser } from "aws-amplify/auth";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
 import appConfig from "../../app.json";
+import { useEffect, useState } from "react";
 
 
 const screenWidth = Dimensions.get("window").width;
@@ -16,10 +17,18 @@ export default function HomeLayout() {
   const router = useRouter();
 
   
-  const user = useSelector((state: RootState) => state.user.user);
+
   const profile = useSelector((state: RootState) => state.profile.data);
+  const [user, setUser] = useState<any | null>(null);
 
   
+  useEffect(() => {
+    const fetchUser = async () => {
+     const user = await getCurrentUser();
+     setUser(user);
+    };
+    fetchUser();
+  }, []);
 
   const handleSignOut = async () => {
     try {
@@ -96,7 +105,7 @@ export default function HomeLayout() {
                     opacity: 0.7
                   }}
                 >
-                  {user?.email }
+                  {user?.signInDetails?.loginId }
                 </Text>
                   )
                 }

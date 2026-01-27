@@ -33,8 +33,6 @@ export function useLaunchSequence() {
   // what screen RootLayout should navigate to AFTER splash hides
   const [targetRoute, setTargetRoute] = useState<string | null>(null);
 
-  // user id after successful authentication
-  const [userId, setUserId] = useState<string | null>(null);
   // AI settings from Redux
   const { hasTested } = useAppSelector((state) => state.aiSettings);
 
@@ -76,7 +74,8 @@ export function useLaunchSequence() {
       console.log("[LaunchSequence] Cold start: checking auth");
 
       try {
-        await getCurrentUser();
+         await getCurrentUser();
+
         if (!mounted) return;
         await handleAuthSuccess("cold_start");
       } catch {
@@ -156,7 +155,6 @@ export function useLaunchSequence() {
   dispatch({ type: 'USER_LOGOUT' });
 
     setAuthMode("guest");
-    setUserId(null);
 
     setRouteOnce("/(auth)/sign-in");
     setAppReady(true);

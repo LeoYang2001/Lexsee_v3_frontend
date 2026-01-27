@@ -31,53 +31,28 @@ export default function SignInScreen() {
   const router = useRouter();
 
   const handleSignIn = async () => {
+  if (!email || !password) {
+    Alert.alert("Error", "Please fill in all fields");
+    return;
+  }
 
-    console.log('currently handling signin')
-    if (!email || !password) {
-      Alert.alert("Error", "Please fill in all fields");
-      return;
+  setLoading(true);
+  try {
+    const { isSignedIn, nextStep } = await signIn({ username: email, password });
+    
+    if (isSignedIn) {
+       console.log("✅ Auth success. Letting LaunchSequence take over...");
+       // DON'T navigate. DON'T dispatch fetchUserInfo.
+       // The Hub listener in useLaunchSequence will catch this and handle the data.
+    } else if (nextStep.signInStep === "CONFIRM_SIGN_UP") {
+       router.push({ pathname: "/(auth)/verify-email", params: { email } });
     }
-
-    setLoading(true);
-    try {
-      console.log('attempting to sign in with email:', email);
-      const { isSignedIn, nextStep } = await signIn({
-        username: email,
-        password,
-      });
-     
-      if (isSignedIn) {
-        // Fetch user info and update Redux store
-        const resultAction = await dispatch(fetchUserInfo());
-
-        if (fetchUserInfo.fulfilled.match(resultAction)) {
-          // User info fetched successfully, redirect to home
-          // router.replace("/(home)");
-        } else {
-          // Failed to fetch user info, show error but user is still signed in
-          Alert.alert(
-            "Warning",
-            "Signed in successfully but failed to load user data. Please restart the app.",
-          );
-          // router.replace("/(home)");
-        }
-      }
-      else{
-        console.log('SignIn not complete, next step:', nextStep);
-        if(nextStep.signInStep === "CONFIRM_SIGN_UP") {
-         router.push({
-                  pathname: "/(auth)/verify-email",
-                  params: { email },
-                })
-        }
-      }
-    } catch (error) {
-      console.error("Error signing in:", error);
-      Alert.alert("Sign In Error", (error as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (error) {
+    Alert.alert("Sign In Error", (error as Error).message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleSignInWithGoogle = async () => {
     try {
