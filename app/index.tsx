@@ -1,7 +1,6 @@
 import React from "react";
 import { ActivityIndicator, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import Logo from "../components/common/Logo";
 
 
 export default function IndexScreen() {
