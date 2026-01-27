@@ -17,6 +17,9 @@ export default function HomeLayout() {
 
   
   const user = useSelector((state: RootState) => state.user.user);
+  const profile = useSelector((state: RootState) => state.profile.data);
+
+  
 
   const handleSignOut = async () => {
     try {
@@ -60,15 +63,43 @@ export default function HomeLayout() {
                 <View style={{
                   opacity: 0.03
                 }} className=" absolute w-full h-full z-10 bg-white " />
-                <Text
+                {
+                  profile?.providerType ? (
+                     <>
+                     {
+                      profile?.providerType === 'SignInWithApple' ? (
+                         <Image
+                                       source={require("../../assets/loginIcons/apple_source.png")} // Update path to your Google icon
+                                       style={{
+                                         width: 42,
+                                         height: 42,
+                                       }}
+                                       resizeMode="contain"
+                                     />
+                      ): (
+                         <Image
+                                       source={require("../../assets/loginIcons/google_source.png")} // Update path to your Google icon
+                                       style={{
+                                         width: 62,
+                                         height: 62,
+                                       }}
+                                       resizeMode="contain"
+                                     />
+                      )
+                     }
+                     </>
+                  ): (
+                    <Text
                   style={{
                     color: "#FFFFFF",
                     fontSize: 12,
                     opacity: 0.7
                   }}
                 >
-                  {user?.email || "No email available"}
+                  {user?.email }
                 </Text>
+                  )
+                }
               </View>
 
               {/* Home */}

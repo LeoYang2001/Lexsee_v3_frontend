@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Hub } from "@aws-amplify/core";
-import { getCurrentUser, signOut } from "aws-amplify/auth";
+import { fetchUserAttributes, getCurrentUser, signOut } from "aws-amplify/auth";
 import { AppState } from "react-native";
 import { client } from "../app/client";
 import { setProfile, UserProfile } from "../store/slices/profileSlice";
@@ -298,6 +298,14 @@ export function useLaunchSequence() {
     console.log("⏳ [Redux] Syncing profile to global state...");
 
     try {
+
+      const attributes = await fetchUserAttributes();
+
+      let providerType = undefined;
+      if(attributes.identities){
+        const parsedIdentities = JSON.parse(attributes.identities);
+        providerType = parsedIdentities?.[0]?.providerType;
+      }
       // 1. Map raw JSON to your UserProfile interface
       const formattedProfile: UserProfile = {
         id: profile.id,
@@ -308,6 +316,7 @@ export function useLaunchSequence() {
         updatedAt: profile.updatedAt,
         // Handle the wordsListId if it exists in the raw data
         wordsListId: profile.wordsListId || undefined,
+        providerType,
       };
 
       // 2. Dispatch to the store

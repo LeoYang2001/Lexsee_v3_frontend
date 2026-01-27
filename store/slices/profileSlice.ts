@@ -12,6 +12,7 @@ export interface UserProfile {
   updatedAt: string;
   owner: string;
   wordsListId?: string;
+  providerType?: "Google" | "SignInWithApple" | undefined;
 }
 
 
