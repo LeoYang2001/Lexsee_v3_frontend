@@ -87,6 +87,7 @@ export function useLaunchSequence() {
     const unsubscribe = Hub.listen("auth", ({ payload }) => {
       const event = payload.event;
       console.log("[LaunchSequence] Hub event:", event);
+      
 
       if (event === "signedOut") {
         handleAuthFail("hub_signedOut");
@@ -146,6 +147,10 @@ export function useLaunchSequence() {
   const handleAuthFail = async (reason?: string) => {
     console.log("[LaunchSequence] Auth failed:", reason ?? "unknown");
 
+    // 1. Close WebSockets
+  unsubscribeAll();
+  dispatch({ type: 'USER_LOGOUT' });
+
     setAuthMode("guest");
     setUserId(null);
 
@@ -159,25 +164,51 @@ export function useLaunchSequence() {
   const handleAuthSuccess = async (source?: "cold_start" | "hub") => {
     setAuthMode("authed");
 
+    // 1. Settle period for Hub events
+  if (source === "hub") await new Promise(res => setTimeout(res, 200));
+
+  let retryCount = 0;
+  const maxRetries = 3;
+
+  const tryInitialize = async () => {
     try {
       const user = await getCurrentUser();
-      const id = user.userId;
-      setUserId(id);
-
-      // --- NEW LOGIC START ---
-      // Instead of setting appReady immediately, run the sequence
-      const success = await initializeData(id);
-
+      const success = await initializeData(user.userId);
       if (success) {
         setRouteOnce("/(home)");
-        setAppReady(true); // 👈 Splash only hides now
-      } else {
-        handleAuthFail("data_init_failed");
+        setAppReady(true);
       }
-      // --- NEW LOGIC END ---
-    } catch {
-      handleAuthFail("fetch_user_id_failed");
+    } catch (err) {
+      if (retryCount < maxRetries) {
+        retryCount++;
+        console.log(`⚠️ Auth race detected. Retry ${retryCount}...`);
+        setTimeout(tryInitialize, 500 * retryCount); // Exponential backoff
+      } else {
+        handleAuthFail("auth_initialization_retry_exhausted");
+      }
     }
+  };
+
+  tryInitialize();
+    // try {
+    //   const user = await getCurrentUser();
+    //   const id = user.userId;
+    //   setUserId(id);
+
+    //   // --- NEW LOGIC START ---
+    //   // Instead of setting appReady immediately, run the sequence
+    //   const success = await initializeData(id);
+
+    //   if (success) {
+    //     setRouteOnce("/(home)");
+    //     setAppReady(true); // 👈 Splash only hides now
+    //   } else {
+    //     handleAuthFail("data_init_failed");
+    //   }
+    //   // --- NEW LOGIC END ---
+    // } catch {
+    //   handleAuthFail("fetch_user_id_failed");
+    // }
   };
 
   // Initialize user data after authentication
@@ -452,6 +483,20 @@ export function useLaunchSequence() {
     // Trigger the thunk we built in the previous step
     dispatch(probeOpenAIConnection() as any);
   };
+
+
+  const unsubscribeAll = () => {
+  console.log("🧹 [Cleanup] Closing all data streams...");
+  wordsSubscription?.unsubscribe();
+  reviewScheduleSubscription?.unsubscribe();
+  completedReviewScheduleSubscription?.unsubscribe();
+  reviewScheduleWordSubscription?.unsubscribe();
+  
+  setWordsSubscription(null);
+  setReviewScheduleSubscription(null);
+  setCompletedReviewScheduleSubscription(null);
+  setReviewScheduleWordSubscription(null);
+};
 
   return {
     authMode,
