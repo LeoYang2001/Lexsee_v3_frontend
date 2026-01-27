@@ -44,7 +44,11 @@ export default function ProgressCalendar({
   });
 
   // collapsed: show one week (Sun..Sat) containing today
-  const today = useMemo(() => new Date(), []);
+    const today = useMemo(() => {
+  const now = new Date();
+  // This creates a Date object at exactly 00:00:00 local time
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}, []);
 
   // monthly overlay state
   const [visibleMonth, setVisibleMonth] = useState<Date>(() => {
