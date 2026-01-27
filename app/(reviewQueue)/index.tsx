@@ -114,6 +114,8 @@ export default function ReviewQueueScreen() {
 
     try {
       // Step 1: Calculate next review data, set loading to true
+
+      console.log('currentWord before review algorithmn', JSON.stringify(currentWord))
       dispatch(setTodayReviewListLoading(true));
       const { next_due, review_interval, ease_factor } = getNextReview({
         review_interval: currentWord.review_interval,
@@ -168,94 +170,67 @@ export default function ReviewQueueScreen() {
   ) => {
 
      if (!userProfile.profile || !userProfile.profile.id) {
-      console.error("❌ Missing profile data");
       return false;
     }
 
     try {
-      console.log("Step 0: start updateReviewBackend for:", currentWord.word);
-
       // Step 1: Validate environment & dependencies
-      console.log("Step 1/6: validate user profile and client/models");
       if (!userProfile.profile || !userProfile.profile.id) {
-        console.error("❌ Missing profile data in updateReviewBackend");
         return false;
       }
       if (!client) {
-        console.error("❌ client is undefined in updateReviewBackend");
         return false;
       }
       const Models = (client as any).models;
       if (!Models) {
-        console.error("❌ client.models is undefined", { client });
         return false;
       }
-      console.log("ℹ️ Available models:", Object.keys(Models));
 
       // Step 2: Verify schedule-word model exists and defer update until we have the completed schedule
-      console.log("Step 2/6: verify schedule-word model exists (update deferred)", { scheduleWordId: reviewWordEntity.id });
       if (!Models.ReviewScheduleWord || typeof Models.ReviewScheduleWord.update !== "function") {
-        console.error("❌ ReviewScheduleWord.update not available", { hasReviewScheduleWord: !!Models.ReviewScheduleWord });
         return false;
       }
-      console.log("ℹ️ Step 2: ReviewScheduleWord.update available, will update after completed schedule is ready");
 
       // Step 3: Locate today's schedule (we should check as it could be from a previous day) and update its counts
-      console.log("Step 3/6: find today's schedule and update counts");
       // instead of finding todays schedule, we should find the schedule corresponding to the reviewWordEntity
-      console.log('reviewWord entity:', reviewWordEntity)
-
       const scheduleData = await Models.ReviewSchedule.get({ id: reviewWordEntity.reviewScheduleId });
       
       const schedule = scheduleData?.data;
-      console.log('finding schedule by schedule Id:', reviewWordEntity.reviewScheduleId)
-      console.log('schedule: from step 3', schedule )
       if (!schedule) {
-        console.error("❌ Step 3: No schedule found for reviewWordEntity", { reviewWordEntity });
         return false;
       }
 
-      console.log("✅ Step 3: found schedule", { scheduleId: schedule.id });
       if (typeof Models.ReviewSchedule.update !== "function") {
-        console.error("❌ ReviewSchedule.update not available");
         return false;
       }
       // decrement toBeReviewedCount and increment reviewedCount
       const newToBe = Math.max(0, schedule.toBeReviewedCount - 1);
       const newReviewed = (schedule.reviewedCount || 0) + 1;
-      console.log(`newToBe:${newToBe} --- newReviewed:${newReviewed}`)
 
       if (newToBe === 0) {
         // If no remaining words to review, prefer to delete the schedule to keep data clean
         if (typeof Models.ReviewSchedule.delete === "function") {
-          console.log("ℹ️ Step 3: toBeReviewedCount hit 0 — deleting schedule", { scheduleId: schedule.id });
-          const deleteRes = await Models.ReviewSchedule.delete({ id: schedule.id });
-          console.log("✅ Step 3 result: schedule deleted", { scheduleId: schedule.id, response: deleteRes });
+          await Models.ReviewSchedule.delete({ id: schedule.id });
         } else {
           // Fallback: update to zeros if delete isn't supported
-          console.log("ℹ️ Step 3: delete not available — updating schedule counts to 0", { scheduleId: schedule.id });
-          const scheduleUpdateRes = await Models.ReviewSchedule.update({
+          await Models.ReviewSchedule.update({
             id: schedule.id,
             toBeReviewedCount: 0,
             reviewedCount: newReviewed,
           });
-          console.log("✅ Step 3 result (fallback update):", { scheduleId: schedule.id, response: scheduleUpdateRes });
         }
       } else {
-        const scheduleUpdateRes = await Models.ReviewSchedule.update({
+        await Models.ReviewSchedule.update({
           id: schedule.id,
           toBeReviewedCount: newToBe,
           reviewedCount: newReviewed,
         });
-        console.log("✅ Step 3 result:", { scheduleId: schedule.id, response: scheduleUpdateRes });
       }
     
       const currentDate = getLocalDate()
 
       // Step 4: Create or update a CompletedReviewSchedule for today's completed reviews
-      console.log("Step 4/6: upsert CompletedReviewSchedule for today");
       if (!Models.CompletedReviewSchedule || typeof Models.CompletedReviewSchedule.list !== "function") {
-        console.error("❌ CompletedReviewSchedule.list not available", { hasCompletedReviewSchedule: !!Models.CompletedReviewSchedule });
         return false;
       }
       const existing = await Models.CompletedReviewSchedule.list({
@@ -266,11 +241,6 @@ export default function ReviewQueueScreen() {
           ],
         },
       });
-
-      if(existing)
-      {
-        console.log("ℹ️ Step 4: found existing CompletedReviewSchedule", JSON.stringify(existing.data));
-      }
 
       let completedSchedule;
       if (existing.data && existing.data.length > 0) {
@@ -283,9 +253,6 @@ export default function ReviewQueueScreen() {
             reviewedCount: (completedSchedule.reviewedCount || 0) + 1,
             successRate: ((completedSchedule.successRate || 0) + getScoreByHint(hintCount)),
           });
-          console.log("✅ Step 4 result: updated CompletedReviewSchedule", { id: completedSchedule.id });
-        } else {
-          console.warn("⚠️ CompletedReviewSchedule instance has no update method; skipping in-place update", { id: completedSchedule.id });
         }
       } else {
         completedSchedule = await Models.CompletedReviewSchedule.create({
@@ -295,25 +262,21 @@ export default function ReviewQueueScreen() {
           reviewedCount: 1,
           successRate: getScoreByHint(hintCount),
         });
-        console.log("✅ Step 4 result: created CompletedReviewSchedule", { created: completedSchedule?.data?.id || null });
         // normalize completedSchedule variable for later use
         completedSchedule = completedSchedule?.data || completedSchedule;
       }
 
       // Step 5: Link the review schedule-word to the completed schedule
-      console.log("Step 5/6: link schedule-word to completed schedule", { scheduleWordId: reviewWordEntity.id });
       if (!Models.ReviewScheduleWord || typeof Models.ReviewScheduleWord.update !== "function") {
-        console.error("❌ ReviewScheduleWord.update not available for linking", { hasReviewScheduleWord: !!Models.ReviewScheduleWord });
         return false;
       }
-      const scheduleWordUpdateRes = await Models.ReviewScheduleWord.update({
+      await Models.ReviewScheduleWord.update({
         id: reviewWordEntity.id,
         completedReviewScheduleId: completedSchedule.id,
         status: "REVIEWED",
         score: getScoreByHint(hintCount),
       
       });
-      console.log("✅ Step 5 result:", { id: reviewWordEntity.id, response: scheduleWordUpdateRes });
       // Step 6: Schedule the next review for the word
        await handleScheduleNotification(
             userProfile,
@@ -321,20 +284,28 @@ export default function ReviewQueueScreen() {
             next_due
           );
 
-          console.log("✅ Step 6 result: scheduled next review", { wordId: currentWord.id, next_due });
       // Step 7: Update the Word record with scheduling info
-      console.log("Step 7/7: update Word with next_due/review_interval/ease_factor", { wordId: currentWord.id });
       if (!Models.Word || typeof Models.Word.update !== "function") {
-        console.error("❌ Word.update not available", { hasWord: !!Models.Word });
         return false;
       }
-      const wordUpdateRes = await Models.Word.update({
-        id: currentWord.id,
+      
+      // Update the word data with new review properties (exclude id as it's not part of data)
+      const { id,status,ifPastDue, ...wordData } = currentWord;
+      console.log(`Update word with new ease_factor:${ease_factor} and next_due:${next_due} and review_interval:${review_interval}  `)
+      const updatedWordData = {
+        ...wordData,
         next_due,
         review_interval,
         ease_factor,
+      };
+
+      console.log('Current word data:', updatedWordData)
+
+      
+      await Models.Word.update({
+        id: currentWord.id,
+        data: JSON.stringify(updatedWordData),
       });
-      console.log("✅ Step 7 result:", { wordId: currentWord.id, response: wordUpdateRes });
       
       //Step 8: update todays schedule 
        await dispatch(fetchTodaySchedule(userProfile.profile.id));
@@ -343,7 +314,6 @@ export default function ReviewQueueScreen() {
      
       return true;
     } catch (error) {
-      console.error("❌ updateReviewBackend error:", error);
       return false;
     }
   };
@@ -392,6 +362,7 @@ export default function ReviewQueueScreen() {
   const getReviewQueueData = async () => {
     try {
 
+      console.log('----trying to get reviewQueueData here-----')
 
       // get wordslist based on todayAndPastDueWords and wordslist 
       const reviewWordsList = words
@@ -405,8 +376,9 @@ export default function ReviewQueueScreen() {
             ifPastDue: scheduleItem?.ifPastDue || false,
           };
         });
+      
+        console.log('words:', words)
 
-      console.log('reviewWordsList: ',reviewWordsList)
       setReviewWordEntities(todayAndPastDueWords);
       setReviewQueue(reviewWordsList);
       setCurrentWordIndex(0);

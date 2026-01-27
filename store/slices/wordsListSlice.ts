@@ -32,7 +32,6 @@ const parseWordData = (word: any): Word => {
   try {
     let parsedData;
 
-
     // Handle cases where word.data might be a string that needs parsing
     if (typeof word.data === "string") {
       try {
@@ -83,8 +82,8 @@ const parseWordData = (word: any): Word => {
         word.exampleSentences || parsedData.exampleSentences || null,
       timeStamp:
         parsedData.timeStamp || word.timeStamp || new Date().toISOString(),
-      review_interval: word.review_interval || 1,
-      ease_factor: word.ease_factor || 2.0,
+      review_interval: parsedData.review_interval || word.review_interval || 1,
+      ease_factor: parsedData.ease_factor || word.ease_factor || 2.0,
     };
   } catch (error) {
     console.error("Error parsing word data:", error);
@@ -135,6 +134,7 @@ const wordsListSlice = createSlice({
       state.isSynced = true;
       state.isLoading = false;
       state.error = null;
+      console.log('words loaded:', JSON.stringify(cleanedWords))
       console.log(`  └─ ✅ ${cleanedWords.length} words loaded`);
     },
     setSynced: (state, action: PayloadAction<boolean>) => {
