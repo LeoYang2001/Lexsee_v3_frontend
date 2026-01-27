@@ -11,7 +11,7 @@ import {
   Image,
   Button,
 } from "react-native";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { signIn, signInWithRedirect, signOut } from "aws-amplify/auth";
 import { useAppDispatch } from "../../store/hooks";
 import { fetchUserInfo } from "../../store/slices/userSlice";
@@ -28,7 +28,11 @@ export default function SignInScreen() {
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
 
+  const router = useRouter();
+
   const handleSignIn = async () => {
+
+    console.log('currently handling signin')
     if (!email || !password) {
       Alert.alert("Error", "Please fill in all fields");
       return;
@@ -36,11 +40,12 @@ export default function SignInScreen() {
 
     setLoading(true);
     try {
-      const { isSignedIn } = await signIn({
+      console.log('attempting to sign in with email:', email);
+      const { isSignedIn, nextStep } = await signIn({
         username: email,
         password,
       });
-
+     
       if (isSignedIn) {
         // Fetch user info and update Redux store
         const resultAction = await dispatch(fetchUserInfo());
@@ -55,6 +60,15 @@ export default function SignInScreen() {
             "Signed in successfully but failed to load user data. Please restart the app.",
           );
           // router.replace("/(home)");
+        }
+      }
+      else{
+        console.log('SignIn not complete, next step:', nextStep);
+        if(nextStep.signInStep === "CONFIRM_SIGN_UP") {
+         router.push({
+                  pathname: "/(auth)/verify-email",
+                  params: { email },
+                })
         }
       }
     } catch (error) {

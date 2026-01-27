@@ -21,10 +21,13 @@ import {
 } from "../store/slices/completedReviewScheduleSlice";
 import { useAppSelector } from "../store/hooks";
 import { probeOpenAIConnection } from "../store/slices/aiSettingsSlice";
+import { useRouter } from "expo-router";
 
 type AuthMode = "unknown" | "authed" | "guest";
 
 export function useLaunchSequence() {
+  const router = useRouter();
+
   const [authMode, setAuthMode] = useState<AuthMode>("unknown");
 
   // what screen RootLayout should navigate to AFTER splash hides
@@ -34,6 +37,7 @@ export function useLaunchSequence() {
   const [userId, setUserId] = useState<string | null>(null);
   // AI settings from Redux
   const { hasTested } = useAppSelector((state) => state.aiSettings);
+
 
   //Subscription to Words WebSocket
   const [wordsSubscription, setWordsSubscription] = useState<any>(null);
@@ -176,6 +180,7 @@ export function useLaunchSequence() {
       const success = await initializeData(user.userId);
       if (success) {
         setRouteOnce("/(home)");
+        // setRouteOnce("/(auth)/provision");
         setAppReady(true);
       }
     } catch (err) {
@@ -190,25 +195,7 @@ export function useLaunchSequence() {
   };
 
   tryInitialize();
-    // try {
-    //   const user = await getCurrentUser();
-    //   const id = user.userId;
-    //   setUserId(id);
-
-    //   // --- NEW LOGIC START ---
-    //   // Instead of setting appReady immediately, run the sequence
-    //   const success = await initializeData(id);
-
-    //   if (success) {
-    //     setRouteOnce("/(home)");
-    //     setAppReady(true); // 👈 Splash only hides now
-    //   } else {
-    //     handleAuthFail("data_init_failed");
-    //   }
-    //   // --- NEW LOGIC END ---
-    // } catch {
-    //   handleAuthFail("fetch_user_id_failed");
-    // }
+  
   };
 
   // Initialize user data after authentication
@@ -223,6 +210,12 @@ export function useLaunchSequence() {
 
       if (!profile) {
         console.log("📝 [Sequence] New User detected. Creating workspace...");
+        // should reroute to provision page
+        router.push({
+          pathname: "/(auth)/provision",
+          params: { userId },
+        });
+
         const newProfile = await createProfile(userId);
         await loadProfileIntoRedux(newProfile.data);
         const success = await createInitialWordsList(newProfile.data.id);
@@ -245,7 +238,13 @@ export function useLaunchSequence() {
       console.log("🏁 [Sequence] All systems GO.");
       return true;
     } catch (error) {
-      console.error("❌ [Sequence] Critical failure during init:", error);
+      console.error("❌ [Sequence] Critical failure during init:", JSON.stringify(error));
+      // if fail error is [NoSignedUser: No current user]
+      if (error && typeof error === 'object' && 'name' in error && error.name === "NoSignedUser") {
+        console.warn("⚠️ [Sequence] No signed-in user found.");
+        // fall back
+        signOut();
+      }
       return false;
     }
   };
