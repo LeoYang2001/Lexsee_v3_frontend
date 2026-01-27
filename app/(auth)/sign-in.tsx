@@ -50,7 +50,6 @@ export default function SignInScreen() {
   } catch (error) {
     Alert.alert("Sign In Error", (error as Error).message);
   } finally {
-    setLoading(false);
   }
 };
 
@@ -61,7 +60,6 @@ export default function SignInScreen() {
       await signInWithRedirect({
         provider: "Google",
       });
-      setLoading(false);
     } catch (e) {
       setLoading(false);
       console.error("Error signing in with Google:", e);
@@ -74,7 +72,6 @@ export default function SignInScreen() {
       await signInWithRedirect({
         provider: "Apple",
       });
-      setLoading(false);
     } catch (e) {
       setLoading(false);
       console.error("Error signing in with Apple:", e);
