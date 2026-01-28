@@ -18,6 +18,10 @@ export type Word = {
   ease_factor: number;
   scheduleWords?: string[];
   ifPastDue?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  owner?: string;
+  
 };
 
 export type Phonetics = {

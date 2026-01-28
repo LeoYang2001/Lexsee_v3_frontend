@@ -51,7 +51,10 @@ export const cleanWords = (rawItems: any[]): Word[] => {
       scheduleWords: Array.isArray(item.scheduleWords) ? [...item.scheduleWords] : [],
       
       // Default as requested
-      ifPastDue: false 
+      ifPastDue: false,
+      createdAt: item.createdAt, 
+      updatedAt: item.updatedAt, 
+
     };
   });
 };
