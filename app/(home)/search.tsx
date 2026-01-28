@@ -17,6 +17,8 @@ import { ScrollView } from "react-native-gesture-handler";
 import { getWordSuggestions } from "../../apis/getWordSuggestions";
 import { client } from "../client";
 import { useAppSelector } from "../../store/hooks";
+import { useSearchHistory } from "../../hooks/useSearchHistory";
+import { SearchHistoryItem } from "../../types/common/SearchHistoryItem";
 
 export default function SearchPage() {
   const theme = useTheme();
@@ -28,41 +30,11 @@ export default function SearchPage() {
   const inputRef = useRef<TextInput>(null);
   const userProfile = useAppSelector((state) => state.profile.data);
 
-  const [searchHistory, setSearchHistory] = useState<string[]>([]);
 
-  //get real search history from backend
+  // 1. Use your new Local Hook
+  const { history, addToHistory, clearHistory } = useSearchHistory()
 
-  useEffect(() => {
-    const getSearchHistory = async () => {
-      setIsHistoryLoading(true);
-      try {
-        const historyData = await (client.models as any).SearchHistory.list({
-          filter: { userProfileId: { eq: userProfile?.id } },
-          limit: 1000,
-        });
-
-        // Parse searched words from JSON string
-        const parsedSearchedWords = historyData.data[0]?.searchedWords
-          ? JSON.parse(historyData.data[0].searchedWords)
-          : [];
-
-        console.log("parsed search history:", parsedSearchedWords);
-        setSearchHistory(parsedSearchedWords);
-
-        // prefer storing the raw rows in state for later use, but UI expects strings:
-      } catch (error) {
-        console.error("Error fetching search history:", error);
-      } finally {
-        setIsHistoryLoading(false);
-      }
-    };
-
-    getSearchHistory();
-
-    return () => {
-      setSearchHistory([]);
-    };
-  }, []);
+ 
 
   // Debounced search suggestions
   useEffect(() => {
@@ -81,90 +53,10 @@ export default function SearchPage() {
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
 
-  const appendSearchHistory = async (term: string) => {
-    if (!term?.trim() || !userProfile?.id) return;
 
-    const updatedSearchHistory = [
-      term,
-      ...searchHistory.filter((t) => t !== term),
-    ].slice(0, 12);
-    setSearchHistory(updatedSearchHistory);
-
-    try {
-      if (updatedSearchHistory.length > 0) {
-        await (client.models as any).SearchHistory.update({
-          id: userProfile?.id,
-          searchedWords: JSON.stringify(updatedSearchHistory),
-        });
-      }
-    } catch (error) {
-      console.error("Error updating search history:", error);
-    }
-  };
-
-  // clear all history locally and on backend
-  const clearAllHistory = async () => {
-    if (!userProfile?.id) {
-      setSearchHistory([]);
-      return;
-    }
-
-    // optimistic local clear
-    setSearchHistory([]);
-    setIsHistoryLoading(true);
-
-    try {
-      const models = (client as any)?.models;
-      const SearchHistoryModel = models?.SearchHistory;
-      if (!SearchHistoryModel) {
-        console.warn("clearAllHistory: SearchHistory model not found");
-        setIsHistoryLoading(false);
-        return;
-      }
-
-      // find existing row(s) for this user
-      const res = await SearchHistoryModel.list({
-        filter: { userProfileId: { eq: userProfile.id } },
-        limit: 1000,
-      });
-      console.log("clearAllHistory: list response:", res);
-      const rows = Array.isArray(res?.data)
-        ? res.data
-        : res?.data
-          ? [res.data]
-          : [];
-
-      // if rows exist, update each to empty json string; otherwise nothing to do
-      for (const r of rows) {
-        try {
-          if (typeof SearchHistoryModel.update === "function") {
-            const updateRes = await SearchHistoryModel.update({
-              id: r.id,
-              searchedWords: JSON.stringify([]),
-            });
-            console.log("clearAllHistory: cleared row id:", r.id, updateRes);
-          } else if (typeof SearchHistoryModel.delete === "function") {
-            // fallback: delete the row if update not supported
-            const delRes = await SearchHistoryModel.delete({ id: r.id });
-            console.log("clearAllHistory: deleted row id:", r.id, delRes);
-          } else {
-            console.warn(
-              "clearAllHistory: neither update nor delete available on model",
-            );
-          }
-        } catch (rowErr) {
-          console.error("clearAllHistory: failed to clear row", r?.id, rowErr);
-        }
-      }
-    } catch (err) {
-      console.error("clearAllHistory failed:", err);
-    } finally {
-      setIsHistoryLoading(false);
-    }
-  };
 
   const handleWordSelect = (word: string) => {
-    appendSearchHistory(word);
+    addToHistory(word); 
     setSearchQuery("");
     setSuggestions([]);
     Keyboard.dismiss();
@@ -270,14 +162,14 @@ export default function SearchPage() {
             </View>
             {searchQuery.trim().length === 0 && (
               <TouchableOpacity
-                onPress={clearAllHistory}
-                disabled={isHistoryLoading || searchHistory.length === 0}
+                onPress={clearHistory}
+                disabled={isHistoryLoading || history.length === 0}
               >
                 <Text
                   style={{
                     fontSize: 12,
                     opacity:
-                      isHistoryLoading || searchHistory.length === 0
+                      isHistoryLoading || history.length === 0
                         ? 0.5
                         : 0.9,
                   }}
@@ -327,21 +219,21 @@ export default function SearchPage() {
                   <View className="py-6 items-center justify-center">
                     <ActivityIndicator size="small" color="#fff" />
                   </View>
-                ) : searchHistory.length === 0 ? (
+                ) : history.length === 0 ? (
                   <View className="py-8 items-center justify-center">
                     <Text className="text-white opacity-60 mb-2">
                       No search history yet
                     </Text>
                   </View>
                 ) : (
-                  searchHistory.map((text: string, index: number) => (
+                  history.map((item: SearchHistoryItem, index: number) => (
                     <TouchableOpacity
-                      key={`${text}-${index}`}
+                      key={`${item.word}-${index}`}
                       className="py-3 border-b border-white/10"
-                      onPress={() => handleWordSelect(text)}
+                      onPress={() => handleWordSelect(item.word)}
                     >
                       <View className="flex flex-row items-center justify-between">
-                        <Text className="text-white text-base">{text}</Text>
+                        <Text className="text-white text-base">{item.word}</Text>
                         <AntDesign name="clockcircleo" size={14} color="#666" />
                       </View>
                     </TouchableOpacity>

@@ -342,7 +342,18 @@ export function useLaunchSequence() {
       next: ({ items, isSynced }: any) => {
         // 1. Transform the raw items into our clean UI format
         // This uses the transformer we just built
-        const cleanedItems = cleanWords(items);
+
+        console.log('before sorting: ', JSON.stringify(items))
+        const cleanedItems = cleanWords(items).sort((a, b) => {
+          // If updatedAt is undefined, we treat it as 0 (the beginning of time)
+          const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+          const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+
+          return timeB - timeA; // Newest first
+        });
+
+        console.log('after sorting: ', JSON.stringify(cleanedItems))
+
 
         // 2. Update Redux with the data
         dispatch(setWords(cleanedItems));

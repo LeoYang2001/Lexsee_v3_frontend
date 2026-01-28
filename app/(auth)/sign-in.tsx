@@ -44,13 +44,16 @@ export default function SignInScreen() {
        console.log("✅ Auth success. Letting LaunchSequence take over...");
        // DON'T navigate. DON'T dispatch fetchUserInfo.
        // The Hub listener in useLaunchSequence will catch this and handle the data.
+       setTimeout(() => {
+        setLoading(false);
+      }, 2000);
     } else if (nextStep.signInStep === "CONFIRM_SIGN_UP") {
        router.push({ pathname: "/(auth)/verify-email", params: { email } });
+        setLoading(false);
     }
   } catch (error) {
     Alert.alert("Sign In Error", (error as Error).message);
-  } finally {
-  }
+  } 
 };
 
   const handleSignInWithGoogle = async () => {
@@ -60,9 +63,13 @@ export default function SignInScreen() {
       await signInWithRedirect({
         provider: "Google",
       });
+      setTimeout(() => {
+        setLoading(false);
+      }, 2000);
     } catch (e) {
       setLoading(false);
       console.error("Error signing in with Google:", e);
+      
     }
   };
 
@@ -72,6 +79,9 @@ export default function SignInScreen() {
       await signInWithRedirect({
         provider: "Apple",
       });
+        setTimeout(() => {
+        setLoading(false);
+      }, 2000);
     } catch (e) {
       setLoading(false);
       console.error("Error signing in with Apple:", e);
