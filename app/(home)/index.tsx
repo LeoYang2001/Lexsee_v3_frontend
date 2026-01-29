@@ -46,8 +46,8 @@ export default function HomeScreen() {
   const searchBarRef = useRef<View>(null);
 
   const handleLayout = () => {
-    // Only measure if the "Director" says we are in the 'NEW' stage
-    if (activeStep === 'NEW') {
+    // Only measure if the "Director" says we are in the 'SEARCH' stage
+    if (activeStep === 'SEARCH') {
       searchBarRef.current?.measureInWindow((x, y, width, height) => {
         setTargetLayout({ x, y, width, height });
       });

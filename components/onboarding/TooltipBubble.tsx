@@ -1,34 +1,37 @@
 import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { LinearGradient } from 'expo-linear-gradient';
+import { StepConfig } from "../../types/common/StepConfig";
 
 
 interface Props {
 
-  text: string;
+ 
 
   layout: { x: number; y: number; width: number; height: number } | null;
 
-  position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
   widthPercentage?: number;
 
-  onNext: () => void;
 
-  onSkip: () => void;
 
   progress?: string;
+   contentConfig: StepConfig;
+
+
 
 }
 export const TooltipBubble = ({ 
-  text, 
+ 
   layout, 
-  position, 
+  contentConfig,
   widthPercentage = 0.9, 
-  onNext, 
-  onSkip,
+ 
   progress 
 }: Props) => {
+
+  const { text, onNext, position, desc, icon } = contentConfig;
+  
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   if (!layout) return null;
 
@@ -56,26 +59,37 @@ export const TooltipBubble = ({
     >
       {/* 1. THE GRADIENT BORDER & GLOW */}
       <LinearGradient
-        colors={['#FF8C00', '#F97316', '#EA580C']} // Orange to Deep Orange gradient
+        colors={['#EA580C', '#F97316','#FF8C00',]} // Orange to Deep Orange gradient
         start={{ x: 0, y: 0.5 }}
         end={{ x: 1, y: 0.5 }}
         style={styles.gradientBorder}
       >
+      
         {/* 2. THE INNER CONTENT (Background should be dark to match your image) */}
-        <View style={styles.innerContainer}>
-          {progress && <Text style={styles.progressText}>{progress}</Text>}
+        <View className=" relative flex flex-row items-center  px-6 py-4" style={styles.innerContainer}>
+          
+          {icon && <View className="mr-4">{icon}</View>}
+          {/* Text & Desc  */}
+         <View className=" flex flex-col gap-2">
+             <Text className=" font-semibold" style={{
+            fontSize: 16,
+            color: 'white',
+            opacity: 0.9,
+          }}>{text}</Text>
+          {desc && <Text style={{
+            fontSize: 14,
+            color: 'white',
+            opacity: 0.6,
+          }}>{desc}</Text>}
+         </View>
 
-          <Text style={styles.text}>{text}</Text>
-
-          <View style={styles.buttonRow}>
-            <TouchableOpacity onPress={onSkip} style={styles.skipBtn}>
-              <Text style={styles.skipLabel}>Skip</Text>
+         {
+          onNext && (
+            <TouchableOpacity className=" absolute right-2 bottom-2" onPress={onNext} style={styles.nextBtn}>
+              <Text style={styles.nextLabel}>Next</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity onPress={onNext} style={styles.nextBtn}>
-              <Text style={styles.nextLabel}>Got it!</Text>
-            </TouchableOpacity>
-          </View>
+          )
+         }
         </View>
       </LinearGradient>
     </Animated.View>
@@ -98,9 +112,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   innerContainer: {
-    backgroundColor: '#121212', // Dark background like your image
+    backgroundColor: '#020202', // Dark background like your image
     borderRadius: 10, // Slightly smaller than border radius to fit inside
-    padding: 20,
   },
   progressText: {
     fontSize: 12,
@@ -125,10 +138,9 @@ const styles = StyleSheet.create({
   skipBtn: { paddingVertical: 8 },
   skipLabel: { color: '#9CA3AF', fontSize: 14, fontWeight: '600' },
   nextBtn: {
-    backgroundColor: '#F97316',
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: 6,
   },
   nextLabel: { color: 'white', fontSize: 15, fontWeight: '700' },
 });

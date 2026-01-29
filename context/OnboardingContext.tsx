@@ -26,28 +26,45 @@ export const OnboardingProvider = ({ children }: { children: React.ReactNode }) 
     const path = segments.join('/');
 
     // Map your Page + Redux Stage to the UI activeStep
-    if (onboardingStage === 'NEW' && path === '(home)') {
-      console.log('[FROM CONTEXT]: Should trigger setActive(1)')
-      setActiveStep('NEW');
-    } else if (onboardingStage === 'FIRST_WORD_SEARCHED' && path === '(definition)') {
-      setActiveStep('FIRST_WORD_SEARCHED');
-    } else {
-      setActiveStep(null);
-    }
-
+    if (onboardingStage === 'SEARCH' && path === '(home)') {
+      console.log('[FROM CONTEXT]: Should trigger setActive(SEARCH)')
+      setActiveStep('SEARCH');
+    } 
     // trigger the next step when the user navigates to the search page
-    if (onboardingStage === 'NEW' && path === '(home)/search') {
+    if (onboardingStage === 'SEARCH' && path === '(home)/search') {
 
-      console.log('provider brain detect search and should update activeStep')
-    // step1: setActiveStep to FIRST_WORD_SEARCHED
-    setActiveStep('FIRST_WORD_SEARCHED');
-    // step2: setTargetLayout to null to hide the spotlight
-    setTargetLayout(null);
-
-    // step3: update backend without blocking UI 
-    dispatch(updateOnboardingStage('FIRST_WORD_SEARCHED'));
+      // step1: setActiveStep to FIRST_WORD_SEARCHED
+      setActiveStep('DEFINITION_STEP_1');
+      // step2: setTargetLayout to null to hide the spotlight
+      setTargetLayout(null);
+      // step3: update backend without blocking UI 
+      dispatch(updateOnboardingStage('DEFINITION_STEP_1'));
     return;
   }
+  if (onboardingStage === 'DEFINITION_STEP_1' && path === '(definition)') {
+
+      // step1: setActiveStep to FIRST_WORD_SEARCHED
+      setActiveStep('DEFINITION_STEP_1');
+      // step2: setTargetLayout to null to hide the spotlight
+    return;
+  }
+   if (onboardingStage === 'DEFINITION_STEP_2' && path === '(definition)') {
+
+      // step1: setActiveStep to FIRST_WORD_SEARCHED
+      setActiveStep('DEFINITION_STEP_2');
+      // step2: setTargetLayout to null to hide the spotlight
+    return;
+  }
+
+  if (onboardingStage === 'COMPLETED') {
+
+      // step1: setActiveStep to FIRST_WORD_SEARCHED
+      setActiveStep('COMPLETED');
+      // step2: setTargetLayout to null to hide the spotlight
+      setTargetLayout(null);
+    return;
+  }
+ 
   }, [onboardingStage, segments]);
 
   return (

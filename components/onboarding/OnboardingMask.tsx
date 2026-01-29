@@ -5,7 +5,10 @@ import Svg, { Defs, Mask, Rect, Circle } from 'react-native-svg';
 const { width: windowWidth, height: windowHeight } = Dimensions.get('window');
 
 export const OnboardingMask = ({ layout }: { layout: { x: number; y: number; width: number; height: number } | null }) => {
-  if (!layout) return null;
+  // Guard against null OR empty layout (0,0,0,0)
+  if (!layout || (layout.width === 0 && layout.height === 0)) {
+    return null;
+  }
 
 
   
@@ -47,6 +50,7 @@ export const OnboardingMask = ({ layout }: { layout: { x: number; y: number; wid
           mask="url(#myMask)"
         />
       </Svg>
+      
     </View>
   );
 };
