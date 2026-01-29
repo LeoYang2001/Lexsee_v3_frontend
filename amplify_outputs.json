@@ -94,10 +94,10 @@
                 "targetNames": []
               }
             },
-            "ifChineseUser": {
-              "name": "ifChineseUser",
+            "onboardingStage": {
+              "name": "onboardingStage",
               "isArray": false,
-              "type": "Boolean",
+              "type": "String",
               "isRequired": false,
               "attributes": []
             },
@@ -122,22 +122,6 @@
               "isArray": true,
               "type": {
                 "model": "CompletedReviewSchedule"
-              },
-              "isRequired": false,
-              "attributes": [],
-              "isArrayNullable": true,
-              "association": {
-                "connectionType": "HAS_MANY",
-                "associatedWith": [
-                  "userProfileId"
-                ]
-              }
-            },
-            "searchHistories": {
-              "name": "searchHistories",
-              "isArray": true,
-              "type": {
-                "model": "SearchHistory"
               },
               "isRequired": false,
               "attributes": [],
@@ -715,95 +699,6 @@
           },
           "syncable": true,
           "pluralName": "ReviewScheduleWords",
-          "attributes": [
-            {
-              "type": "model",
-              "properties": {}
-            },
-            {
-              "type": "auth",
-              "properties": {
-                "rules": [
-                  {
-                    "provider": "userPools",
-                    "ownerField": "owner",
-                    "allow": "owner",
-                    "identityClaim": "cognito:username",
-                    "operations": [
-                      "create",
-                      "update",
-                      "delete",
-                      "read"
-                    ]
-                  }
-                ]
-              }
-            }
-          ],
-          "primaryKeyInfo": {
-            "isCustomPrimaryKey": false,
-            "primaryKeyFieldName": "id",
-            "sortKeyFieldNames": []
-          }
-        },
-        "SearchHistory": {
-          "name": "SearchHistory",
-          "fields": {
-            "id": {
-              "name": "id",
-              "isArray": false,
-              "type": "ID",
-              "isRequired": true,
-              "attributes": []
-            },
-            "userProfileId": {
-              "name": "userProfileId",
-              "isArray": false,
-              "type": "ID",
-              "isRequired": true,
-              "attributes": []
-            },
-            "userProfile": {
-              "name": "userProfile",
-              "isArray": false,
-              "type": {
-                "model": "UserProfile"
-              },
-              "isRequired": false,
-              "attributes": [],
-              "association": {
-                "connectionType": "BELONGS_TO",
-                "targetNames": [
-                  "userProfileId"
-                ]
-              }
-            },
-            "searchedWords": {
-              "name": "searchedWords",
-              "isArray": false,
-              "type": "AWSJSON",
-              "isRequired": false,
-              "attributes": []
-            },
-            "createdAt": {
-              "name": "createdAt",
-              "isArray": false,
-              "type": "AWSDateTime",
-              "isRequired": false,
-              "attributes": [],
-              "isReadOnly": true
-            },
-            "updatedAt": {
-              "name": "updatedAt",
-              "isArray": false,
-              "type": "AWSDateTime",
-              "isRequired": false,
-              "attributes": [],
-              "isReadOnly": true
-            }
-          },
-          "syncable": true,
-          "pluralName": "SearchHistories",
           "attributes": [
             {
               "type": "model",

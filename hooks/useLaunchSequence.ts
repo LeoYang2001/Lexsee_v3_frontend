@@ -237,6 +237,8 @@ export function useLaunchSequence() {
       return true;
     } catch (error) {
       console.error("❌ [Sequence] Critical failure during init:", JSON.stringify(error));
+        signOut();
+
       // if fail error is [NoSignedUser: No current user]
       if (error && typeof error === 'object' && 'name' in error && error.name === "NoSignedUser") {
         console.warn("⚠️ [Sequence] No signed-in user found.");
@@ -314,6 +316,7 @@ export function useLaunchSequence() {
         // Handle the wordsListId if it exists in the raw data
         wordsListId: profile.wordsListId || undefined,
         providerType,
+        onboardingStage: profile.onboardingStage || "NEW",
       };
 
       // 2. Dispatch to the store
@@ -343,7 +346,6 @@ export function useLaunchSequence() {
         // 1. Transform the raw items into our clean UI format
         // This uses the transformer we just built
 
-        console.log('before sorting: ', JSON.stringify(items))
         const cleanedItems = cleanWords(items).sort((a, b) => {
           // If updatedAt is undefined, we treat it as 0 (the beginning of time)
           const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
@@ -352,7 +354,6 @@ export function useLaunchSequence() {
           return timeB - timeA; // Newest first
         });
 
-        console.log('after sorting: ', JSON.stringify(cleanedItems))
 
 
         // 2. Update Redux with the data
