@@ -12,7 +12,6 @@ export const probeOpenAIConnection = createAsyncThunk(
     console.log("[AI Probe] Starting OpenAI connection probe...");
     
     const state = getState() as any;
-    console.log("[AI Probe] Current state:", state.aiSettings);
     const { hasTested } = state.aiSettings;
     
     // If we've already tested successfully in the past, don't ping the API again

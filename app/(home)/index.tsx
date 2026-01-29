@@ -19,9 +19,10 @@ import CustomHeader from "../../components/home/Header";
 import { useTheme } from "../../theme/ThemeContext";
 import DashCard from "../../components/home/DashCard";
 import FlexCard from "../../components/common/FlexCard";
+import { useOnboarding } from "../../hooks/useOnboarding";
 
 export default function HomeScreen() {
-  const { user, isAuthenticated } = useAppSelector((state) => state.user);
+
   const router = useRouter();
 
   const anchorSnapPoints = [0.15, 0.25];
@@ -38,6 +39,20 @@ export default function HomeScreen() {
   const { words } = useAppSelector(
     (state) => state.wordsList
   );
+
+
+  //NEW USER GUIDE
+  const { activeStep, setTargetLayout } = useOnboarding();
+  const searchBarRef = useRef<View>(null);
+
+  const handleLayout = () => {
+    // Only measure if the "Director" says we are in the 'NEW' stage
+    if (activeStep === 'NEW') {
+      searchBarRef.current?.measureInWindow((x, y, width, height) => {
+        setTargetLayout({ x, y, width, height });
+      });
+    }
+  };
 
   // Filter words for crrent user
 
@@ -78,7 +93,7 @@ export default function HomeScreen() {
   };
 
   // Animate header by its actual height
-  React.useEffect(() => {
+  useEffect(() => {
     const target = ifShowHeader ? 0 : -headerHeight;
     translateY.value = withTiming(target, { duration: 200 });
   }, [ifShowHeader, headerHeight]);
@@ -114,6 +129,8 @@ export default function HomeScreen() {
                 }}
               >
                 <TouchableOpacity
+                  ref={searchBarRef}
+                  onLayout={handleLayout}
                   style={{
                     height: 49,
                     backgroundColor: "#2b2c2d",

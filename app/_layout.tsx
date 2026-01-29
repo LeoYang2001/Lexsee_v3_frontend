@@ -9,6 +9,9 @@ import { useEffect, useRef } from "react";
 import * as Notifications from "expo-notifications";
 import { useLaunchSequence } from "../hooks/useLaunchSequence";
 import { PersistGate } from "redux-persist/integration/react";
+import { View } from "react-native";
+import { OnboardingOverlay } from "../components/onboarding/OnboardingOverlay";
+import { OnboardingProvider } from "../context/OnboardingContext";
 
 Amplify.configure(outputs);
 
@@ -65,7 +68,8 @@ function AppContent() {
     
   }, [appReady, targetRoute]);
   return (
-    <Stack>
+   <View className="flex-1">
+     <Stack>
       <Stack.Screen
         name="index"
         options={{ headerShown: false, animation: "fade" }}
@@ -101,6 +105,8 @@ function AppContent() {
       />
       <Stack.Screen name="+not-found" options={{ title: "Not Found" }} />
     </Stack>
+    <OnboardingOverlay />
+   </View>
   );
 }
 
@@ -110,7 +116,9 @@ export default function RootLayout() {
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
         <Authenticator.Provider>
-          <AppContent />
+          <OnboardingProvider>
+            <AppContent />
+          </OnboardingProvider>
         </Authenticator.Provider>
         </PersistGate>
       </Provider>
