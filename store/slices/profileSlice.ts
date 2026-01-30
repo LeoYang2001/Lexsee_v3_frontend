@@ -15,7 +15,7 @@ export interface UserProfile {
   owner: string;
   wordsListId?: string;
   providerType?: "Google" | "SignInWithApple" | undefined;
-  // Values: 'NEW', 'FIRST_WORD_SEARCHED', 'FIRST_WORD_COLLECTED', 'FIRST_REVIEW_DONE', 'COMPLETED'
+  // Values: 'NEW', 'FIRST_WORD_SEARCHED'', 'FIRST_REVIEW_DONE', 'COMPLETED'
   onboardingStage?: GuideStep;
 }
 
