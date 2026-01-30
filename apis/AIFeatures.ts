@@ -201,7 +201,6 @@ export async function fetchDefinition(
 
     const data = await response.json();
 
-    console.log('Dictionary API response data:', JSON.stringify(data));
 
     if (!data || !Array.isArray(data) || data.length === 0) {
       console.log(

@@ -15,7 +15,7 @@ export interface UserProfile {
   owner: string;
   wordsListId?: string;
   providerType?: "Google" | "SignInWithApple" | undefined;
-  // Values: 'NEW', 'FIRST_WORD_SEARCHED', 'FIRST_WORD_COLLECTED', 'FIRST_REVIEW_DONE', 'COMPLETED'
+  // Values: 'NEW', 'FIRST_WORD_SEARCHED'', 'FIRST_REVIEW_DONE', 'COMPLETED'
   onboardingStage?: GuideStep;
 }
 
@@ -43,21 +43,36 @@ export const updateOnboardingStage = createAsyncThunk(
   "profile/updateOnboardingStage",
   async (newStage: UserProfile["onboardingStage"], thunkAPI) => {
     try {
-      console.log('update active step on redux')
       const state = thunkAPI.getState() as { profile: ProfileState };
       const currentProfile = state.profile.data;
 
       if (!currentProfile) throw new Error("No profile found");
 
-      // SIMULATION: Instead of calling Amplify, we just return the 
+     
       // current profile with the updated stage.
       const updatedProfile = {
         ...currentProfile,
         onboardingStage: newStage,
       };
 
-      // In a real scenario, you'd uncomment the client.models... code here
-      return updatedProfile; 
+      
+    // 2. NON-BLOCKING BACKEND UPDATE
+      // We don't use 'await' here so the function continues immediately.
+    // Inside your Async Thunk
+      (client as any).models.UserProfile.update({
+        id: currentProfile.id,
+        onboardingStage: newStage,
+        // DO NOT spread (...currentProfile) here
+      }).then(({ errors }: any) => {
+        if (errors) {
+          console.log('newStage we want to update:', JSON.stringify(newStage))
+          console.error("Background onboarding update failed:", errors);
+        }
+      }); 
+
+      // 3. RETURN IMMEDIATELY
+      // Redux hits 'fulfilled' now, making the UI transition instant.
+      return updatedProfile;
       
     } catch (error: any) {
       return thunkAPI.rejectWithValue(error.message);

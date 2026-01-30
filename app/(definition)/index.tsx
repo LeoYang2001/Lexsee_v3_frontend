@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   ScrollView,
   Pressable,
   Image,
+  LayoutChangeEvent,
 } from "react-native";
 import { useTheme } from "../../theme/ThemeContext";
 import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
@@ -37,6 +38,7 @@ import { client } from "../client";
 import ConversationView from "../../components/definition/ConversationView";
 import { handleScheduleNotification, uncollectWord } from "../../apis/setSchedule";
 import { getLocalDate } from "../../util/utli";
+import { useOnboarding } from "../../hooks/useOnboarding";
 
 function CollectBtn({ saveStatus }: { saveStatus: string }) {
   const scale = useSharedValue(1);
@@ -264,6 +266,21 @@ export default function DefinitionPage() {
 
   const aiSettings = useAppSelector((state) => state.aiSettings);
   const activeModel = aiSettings.activeModel;
+
+  //USER GUIDE 
+   const { activeStep, setTargetLayout } = useOnboarding();
+    const definitionRef = useRef<ScrollView>(null);
+  
+    const handleLayout = () => {
+      // Only measure if the "Director" says we are in the 'DEFINITION_STEP_1' stage
+      if (activeStep === 'DEFINITION_STEP_1') {
+      (definitionRef.current as any)?.measureInWindow((x: number, y: number, width: number, height: number) => {
+        setTargetLayout({ x, y, width, height });
+      });
+      }
+    };
+ 
+
 
   const handleSaveWord = async (wordInfo: Word) => {
     // save/resave, we reset the schedule
@@ -945,7 +962,7 @@ export default function DefinitionPage() {
               </View>
 
               {/* Part of Speech Tags - Skeleton or Real */}
-              <View className=" mt-4 flex flex-row gap-3">
+              <View className=" mt-4 flex flex-row gap-3 ">
                 {isLoadingDefinition ? (
                   // Skeleton tags
                   <>
@@ -1044,8 +1061,11 @@ export default function DefinitionPage() {
                     </TouchableOpacity>
                   )}
 
-                  <ScrollView className=" w-full py-4 flex-1">
-                    <View className=" text-white  opacity-70">
+                  <ScrollView
+                  ref={definitionRef}
+                  onLayout={handleLayout}
+                  className=" w-full py-4 flex-1 mb-10 mt-2">
+                    <View className=" text-white  opacity-70" >
                       {isLoadingDefinition ? (
                         // Skeleton definitions
                         <>

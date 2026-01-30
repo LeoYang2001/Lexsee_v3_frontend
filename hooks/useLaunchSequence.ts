@@ -316,7 +316,7 @@ export function useLaunchSequence() {
         // Handle the wordsListId if it exists in the raw data
         wordsListId: profile.wordsListId || undefined,
         providerType,
-        onboardingStage: profile.onboardingStage || "NEW",
+        onboardingStage: profile.onboardingStage || "SEARCH",
       };
 
       // 2. Dispatch to the store

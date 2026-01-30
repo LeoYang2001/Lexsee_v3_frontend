@@ -3,6 +3,7 @@ import React, { useRef, useEffect } from "react";
 import { Volume2 } from "lucide-react-native";
 import { Audio } from "expo-av";
 import { Phonetics } from "../../types/common/Word";
+import { useOnboarding } from "../../hooks/useOnboarding";
 
 interface PhoneticAudioProps {
   phonetics: Phonetics | undefined;
@@ -11,6 +12,35 @@ interface PhoneticAudioProps {
 
 const PhoneticAudio = ({ phonetics, size = 14 }: PhoneticAudioProps) => {
   const soundRef = useRef<Audio.Sound | null>(null);
+
+  const { activeStep, setTargetLayout } = useOnboarding();
+      const phoneticRef = useRef<View>(null);
+    
+      const handleLayout = () => {
+        // Only measure if the "Director" says we are in the 'DEFINITION_STEP_2' stage
+        if (activeStep === 'DEFINITION_STEP_2') {
+        (phoneticRef.current as any)?.measureInWindow((x: number, y: number, width: number, height: number) => {
+          setTargetLayout({ x, y, width, height });
+        });
+        }
+      };
+   
+  useEffect(() => {
+    // This component only cares about STEP_2
+    if (activeStep === 'DEFINITION_STEP_2') {
+      // Small delay to ensure any scrolling/layout from previous step is done
+      const timer = setTimeout(() => {
+        (phoneticRef.current as any)?.measureInWindow((x: number, y: number, width: number, height: number) => {
+          if (width > 0) {
+            setTargetLayout({ x, y, width, height });
+          }
+        });
+      }, 150); // Delay slightly longer than the tooltip exit animation
+      
+      return () => clearTimeout(timer);
+    }
+  }, [activeStep])
+
 
   // Configure audio mode to play even in silent mode
   useEffect(() => {
@@ -103,9 +133,11 @@ const PhoneticAudio = ({ phonetics, size = 14 }: PhoneticAudioProps) => {
 
   return (
     <TouchableOpacity
-      className="flex flex-row items-center gap-2 mt-2"
+      ref={phoneticRef}
+      className="flex flex-row items-center gap-2 mt-2 "
       onPress={playAudio}
       disabled={!isValidAudioUrl(phonetics?.audioUrl)}
+      onLayout={handleLayout}
     >
       <Text style={{ color: "#fff", opacity: 0.7, fontSize: size }}>
         {phonetics?.text}

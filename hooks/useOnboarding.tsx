@@ -1,8 +1,5 @@
 import { useContext } from 'react';
 import { OnboardingContext } from '../context/OnboardingContext';
-import { useAppDispatch } from '../store/hooks';
-import { updateOnboardingStage } from '../store/slices/profileSlice';
-import { GuideStep } from '../types/common/GuideStep';
 
 export const useOnboarding = () => {
   
