@@ -134,7 +134,6 @@ const wordsListSlice = createSlice({
       state.isSynced = true;
       state.isLoading = false;
       state.error = null;
-      console.log('words loaded:', JSON.stringify(cleanedWords))
       console.log(`  └─ ✅ ${cleanedWords.length} words loaded`);
     },
     setSynced: (state, action: PayloadAction<boolean>) => {

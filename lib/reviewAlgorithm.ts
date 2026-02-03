@@ -16,22 +16,14 @@ interface ReviewOutput {
 export function getNextReview(input: ReviewInput): ReviewOutput {
   const { review_interval, ease_factor, recall_accuracy } = input;
 
-  console.log("📊 getNextReview - Input:", {
-    review_interval,
-    ease_factor,
-    recall_accuracy,
-  });
-
   let newEase = ease_factor;
   let newInterval = review_interval;
 
   switch (recall_accuracy) {
     case "poor":
       // Forgot → reset interval, decrease ease
-      console.log("  ├─ 😞 POOR recall - resetting interval to 1, decreasing ease");
       newInterval = 1;
       newEase = Math.max(1.3, newEase - 0.2);
-      console.log(`  ├─ newInterval: ${newInterval}, newEase: ${newEase.toFixed(2)}`);
       break;
 
     case "fair":

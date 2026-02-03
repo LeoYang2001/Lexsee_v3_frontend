@@ -1,12 +1,9 @@
-import React, { use, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, Dimensions } from "react-native";
 import { router } from "expo-router";
-import { ChevronLeft, Zap } from "lucide-react-native";
+import { ChevronLeft } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  fetchReviewInfo,
-} from "../../store/slices/profileSlice";
 import { RootState } from "../../store";
 import { Word } from "../../types/common/Word";
 // Add Reanimated imports
@@ -26,12 +23,13 @@ import {
   ConversationResponse,
   fetchQuickConversation,
 } from "../../apis/AIFeatures";
-import { handleScheduleNotification, setSchedule } from "../../apis/setSchedule";
+import { handleScheduleNotification } from "../../apis/setSchedule";
 import { getLocalDate } from "../../util/utli";
-import { fetchTodaySchedule, setTodayReviewList, setTodayReviewListLoading } from "../../store/slices/todayReviewListSlice";
+import { fetchTodaySchedule, setTodayReviewListLoading } from "../../store/slices/todayReviewListSlice";
 
 const { width, height } = Dimensions.get("window");
 const BORDER_RADIUS = Math.min(width, height) * 0.06;
+const reviewIntervalMax = 180;
 
 export default function ReviewQueueScreen() {
   // instead of fetching words directly,
@@ -115,16 +113,13 @@ export default function ReviewQueueScreen() {
     try {
       // Step 1: Calculate next review data, set loading to true
 
-      console.log('currentWord before review algorithmn', JSON.stringify(currentWord))
       dispatch(setTodayReviewListLoading(true));
       const { next_due, review_interval, ease_factor } = getNextReview({
         review_interval: currentWord.review_interval,
         ease_factor: currentWord.ease_factor,
         recall_accuracy: familiarityLevel,
       });
-      console.log(
-        `📊 Next due: ${next_due}, review_interval: ${review_interval}, ease_factor: ${ease_factor}`
-      );
+     
       //Step 2: asyncly (do not wait unless its the last word) update the backend with the new review data
       // 2.1 find the reviewWord entity corresponding to the current word and call the backend updater
       const reviewWordEntity = reviewWordEntities.find(
@@ -277,12 +272,23 @@ export default function ReviewQueueScreen() {
         score: getScoreByHint(hintCount),
       
       });
-      // Step 6: Schedule the next review for the word
-       await handleScheduleNotification(
+      // Step 6: check review_interval  
+      //6.1  if its larger than 180 days, mark the word as mastered long-term
+      if (review_interval > reviewIntervalMax) {
+        await Models.Word.update({
+          id: currentWord.id,
+          status: "LEARNED"
+        });
+        console.log(`MASTERED CURRENT WORD :${JSON.stringify(currentWord)}`)
+      }
+      //6.2  if it's not larger than 180 days, schedule a notification for the next review
+      else{
+         await handleScheduleNotification(
             userProfile,
             currentWord.id,
             next_due
           );
+      }
 
       // Step 7: Update the Word record with scheduling info
       if (!Models.Word || typeof Models.Word.update !== "function") {
@@ -291,7 +297,6 @@ export default function ReviewQueueScreen() {
       
       // Update the word data with new review properties (exclude id as it's not part of data)
       const { id,status,ifPastDue, ...wordData } = currentWord;
-      console.log(`Update word with new ease_factor:${ease_factor} and next_due:${next_due} and review_interval:${review_interval}  `)
       const updatedWordData = {
         ...wordData,
         next_due,
@@ -299,7 +304,6 @@ export default function ReviewQueueScreen() {
         ease_factor,
       };
 
-      console.log('Current word data:', updatedWordData)
 
       
       await Models.Word.update({
