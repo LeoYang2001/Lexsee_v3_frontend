@@ -91,3 +91,29 @@ export const cleanScheduleWords = (rawItems: any[]): ScheduleWord[] => {
     // because we will "Join" them in selectors instead.
   }));
 };
+
+export const checkIfTrialExpired = (
+  createdAt: string | number | undefined,
+  trialDays: number = 2
+): boolean => {
+  // If we can't find a date, we give them the benefit of the doubt for the MVP
+  if (!createdAt) {
+    console.warn('[RC] Missing createdAt. Allowing access for safety.');
+    return false; 
+  }
+
+  const signupDate = new Date(createdAt).getTime();
+  const now = new Date().getTime();
+  
+  // Use "Math.max" to ensure we don't get negative numbers
+  const msPassed = now - signupDate;
+  const daysPassed = msPassed / (1000 * 60 * 60 * 24);
+
+  if (daysPassed > trialDays) {
+    console.log(`[RC] Trial Expired: ${daysPassed.toFixed(1)} days passed.`);
+    return true;
+  }
+
+  console.log(`[RC] Trial Active: ${(trialDays - daysPassed).toFixed(1)} days remaining.`);
+  return false;
+};

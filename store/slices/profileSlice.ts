@@ -64,6 +64,7 @@ export const updateOnboardingStage = createAsyncThunk(
         onboardingStage: newStage,
         // DO NOT spread (...currentProfile) here
       }).then(({ errors }: any) => {
+        console.log('profile update successful, new stage:', newStage);
         if (errors) {
           console.log('newStage we want to update:', JSON.stringify(newStage))
           console.error("Background onboarding update failed:", errors);

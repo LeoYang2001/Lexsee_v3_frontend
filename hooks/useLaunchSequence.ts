@@ -5,7 +5,7 @@ import { AppState } from "react-native";
 import { client } from "../app/client";
 import { setProfile, UserProfile } from "../store/slices/profileSlice";
 import { useDispatch } from "react-redux";
-import { cleanSchedules, cleanScheduleWords, cleanWords } from "../util/utli";
+import {  checkIfTrialExpired, cleanSchedules, cleanScheduleWords, cleanWords } from "../util/utli";
 import { setSynced, setWords } from "../store/slices/wordsListSlice";
 import {
   setReviewSchedules,
@@ -22,8 +22,16 @@ import {
 import { useAppSelector } from "../store/hooks";
 import { probeOpenAIConnection } from "../store/slices/aiSettingsSlice";
 import { useRouter } from "expo-router";
+import * as Notifications from "expo-notifications";
+import Purchases from "react-native-purchases";
+import { setProStatus } from "../store/slices/subscriptionSlice";
+import { store } from "../store";
+import RevenueCatUI from "react-native-purchases-ui";
+
 
 type AuthMode = "unknown" | "authed" | "guest";
+const REVENUECAT_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY;
+
 
 export function useLaunchSequence() {
   const router = useRouter();
@@ -47,6 +55,7 @@ export function useLaunchSequence() {
   ] = useState<any>(null);
   const [reviewScheduleWordSubscription, setReviewScheduleWordSubscription] =
     useState<any>(null);
+
 
   // Redux dispatch
   const dispatch = useDispatch();
@@ -151,13 +160,31 @@ export function useLaunchSequence() {
     console.log("[LaunchSequence] Auth failed:", reason ?? "unknown");
 
     // 1. Close WebSockets
-  unsubscribeAll();
-  dispatch({ type: 'USER_LOGOUT' });
+   try {
+     unsubscribeAll();
+     
+     // 2. Safely log out of RevenueCat
+    const isConfigured = await Purchases.isConfigured();
+    if (isConfigured) {
+      // Check if the user is actually identified before logging out
+      const isAnonymous = await Purchases.isAnonymous();
+      
+      if (!isAnonymous) {
+        await Purchases.logOut();
+        console.log("🧹 [Cleanup] RevenueCat identified user logged out.");
+      } else {
+        console.log("ℹ️ [Cleanup] User already anonymous, skipping RC logout.");
+      }
+    }
+      dispatch({ type: 'USER_LOGOUT' });
 
-    setAuthMode("guest");
+      setAuthMode("guest");
 
-    setRouteOnce("/(auth)/sign-in");
-    setAppReady(true);
+      setRouteOnce("/(auth)/sign-in");
+      setAppReady(true);
+   } catch (error) {
+      console.log('[LaunchSequence] Error during auth fail handling:', error);
+   }
   };
 
   /**
@@ -198,10 +225,37 @@ export function useLaunchSequence() {
 
   // Initialize user data after authentication
   const initializeData = async (userId: string) => {
+
+    
     console.log("🚀 [Sequence] Phase 2: Starting Data Initialization...");
     try {
-      // 1. Profile Check
+      // Phase 1: Identity
+      if (REVENUECAT_API_KEY) {
+      const isConfigured = await Purchases.isConfigured(); 
+      if (!isConfigured) {
+        Purchases.configure({ apiKey: REVENUECAT_API_KEY, appUserID: userId });
+        console.log('✅ RevenueCat Configured');
+      }
+      
+      // 🛡️ BLOCKING IDENTITY SYNC
+      // This ensures the SDK is locked to your Cognito userId BEFORE anything else happens
+      const loginResult = await Purchases.logIn(userId); 
+      
+      // Immediately update Redux so the rest of the app knows the status
+      const currentIsPro = !!loginResult.customerInfo.entitlements.active['LexSee Pro'];
+      dispatch(setProStatus(currentIsPro));
+      
+      console.log(`✅ [RC] Identity Synced for ${userId}. Pro Status: ${currentIsPro}`);
+
+      }
+      else{
+        console.log('REVENUECAT_API_KEY is not set')
+      }
       const profile = await fetchProfile(userId);
+      console.log('fetched profile from initializeData:', JSON.stringify(profile))
+
+      console.log("🔔 [Sequence] Checking notification permissions...");
+    await requestNotificationPermissions();
 
       // Start the AI Probe (Silent / Non-blocking)
       checkAISettings();
@@ -226,12 +280,23 @@ export function useLaunchSequence() {
         await loadProfileIntoRedux(profile);
       }
 
+
       // 2. Subscriptions
       console.log("📡 [Sequence] Opening data streams (Subscriptions)...");
+
+      await subscribeToPurchases()
       subscribeToWords();
       subscribeToReviewSchedules();
       subscribeToCompletedReviewSchedules();
       subscribeToReviewScheduleWords();
+
+
+      const isPro = store.getState().subscription.isPro; 
+    if (checkIfTrialExpired(profile.createdAt) && !isPro) {
+      await RevenueCatUI.presentPaywallIfNeeded({
+        requiredEntitlementIdentifier: "pro",
+      });
+    }
 
       console.log("🏁 [Sequence] All systems GO.");
       return true;
@@ -254,11 +319,11 @@ export function useLaunchSequence() {
     /// 1. Fetch with Selection Set
     const response = await (client as any).models.UserProfile.list({
       filter: { userId: { eq: userId } },
+      
       limit: 1000,
     });
 
     const profileData = response?.data?.[0];
-
     if (!profileData) {
       console.log("⚠️ [Fetch] No profile found in database.");
       return null;
@@ -295,7 +360,7 @@ export function useLaunchSequence() {
 
   const loadProfileIntoRedux = async (profile: any) => {
     console.log("⏳ [Redux] Syncing profile to global state...");
-
+    console.log('loading profile info:', JSON.stringify(profile))
     try {
 
       const attributes = await fetchUserAttributes();
@@ -490,6 +555,46 @@ export function useLaunchSequence() {
   };
 
 
+ const subscribeToPurchases = async () => {
+  console.log("💎 [Sequence] Opening purchase stream...");
+
+  // 1. Set up the Live Listener
+  Purchases.addCustomerInfoUpdateListener((info) => {
+    const activeEntitlements = Object.keys(info.entitlements.active);
+    const isPro = !!info.entitlements.active['LexSee Pro'];
+    
+    console.log("🔔 [RC Listener] Update Received");
+    console.log("   > Active Entitlements:", activeEntitlements);
+    console.log("   > Target 'LexSee Pro' found?:", isPro);
+    
+    dispatch(setProStatus(isPro));
+  });
+
+  // 2. Immediate Initial Check
+  try {
+    console.log("⏳ [RC Check] Fetching current CustomerInfo...");
+    const info = await Purchases.getCustomerInfo();
+    
+    const allEntitlements = Object.keys(info.entitlements.all);
+    const activeEntitlements = Object.keys(info.entitlements.active);
+    const isPro = !!info.entitlements.active['LexSee Pro'];
+
+    console.log("✅ [RC Check] Success");
+    console.log("   > All Entitlements in Dashboard:", allEntitlements);
+    console.log("   > Currently Active:", activeEntitlements);
+    console.log("   > Identified User ID:", info.originalAppUserId);
+    console.log("   > Resulting isPro:", isPro);
+
+    dispatch(setProStatus(isPro));
+  } catch (e: any) {
+    console.error("❌ [RC Check] Failed to fetch initial CustomerInfo", {
+      message: e.message,
+      code: e.code,
+      underlyingError: e.underlyingError
+    });
+  }
+};
+
   const checkAISettings = async () => {
     // If Redux-Persist already loaded 'hasTested: true' from storage, stop here.
     if (hasTested) {
@@ -516,6 +621,25 @@ export function useLaunchSequence() {
   setReviewScheduleWordSubscription(null);
 };
 
+const requestNotificationPermissions = async () => {
+  // 1. Check current status
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+
+  // 2. Only ask if we don't have it yet
+  if (existingStatus !== "granted") {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+
+
+  if (finalStatus !== "granted") {
+    console.warn("Permission not granted for notifications!");
+    return false;
+  }
+
+  return true;
+};
   return {
     authMode,
     targetRoute,
