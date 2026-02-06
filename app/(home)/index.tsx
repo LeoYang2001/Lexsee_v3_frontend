@@ -180,7 +180,7 @@ export default function HomeScreen() {
               showsVerticalScrollIndicator={false}
               onScroll={handleScroll}
             >
-              {collectedWords.map((word, idx) => (
+              {collectedWords.slice(0,10).map((word, idx) => (
                 <TouchableWithoutFeedback
                   onPress={() => {
                     if (activeCardId === word.id) {

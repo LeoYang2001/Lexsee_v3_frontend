@@ -94,6 +94,13 @@
                 "targetNames": []
               }
             },
+            "onboardingStage": {
+              "name": "onboardingStage",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
             "reviewSchedules": {
               "name": "reviewSchedules",
               "isArray": true,

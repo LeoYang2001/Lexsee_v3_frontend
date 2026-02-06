@@ -19,6 +19,7 @@ import reviewScheduleReducer from './slices/reviewScheduleSlice';
 import completedReviewSchedulesReducer from './slices/completedReviewScheduleSlice';
 import reviewScheduleWordsReducer from './slices/reviewScheduleWordsSlice';
 import aiSettingsReducer from './slices/aiSettingsSlice'; // Ensure this filename matches your slice
+import  subscriptionSlice from "./slices/subscriptionSlice";
 
 // 1. Combine all your reducers
 const appReducer = combineReducers({
@@ -30,6 +31,7 @@ const appReducer = combineReducers({
   reviewScheduleWords: reviewScheduleWordsReducer,
   completedReviewSchedules: completedReviewSchedulesReducer,
   aiSettings: aiSettingsReducer,
+  subscription: subscriptionSlice
 });
 
 
