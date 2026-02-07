@@ -9,24 +9,18 @@
     "scheme": "lexsee-v3",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.leoyang-2001.lexsee-v3-frontend",
+      "bundleIdentifier": "com.leotab.lexsee",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#1F2734"
-      },
-      "edgeToEdgeEnabled": true,
-      "package": "com.leoyang_2001.lexsee_v3_frontend"
     },
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "plugins": [
       "expo-router",
       [
@@ -41,7 +35,6 @@
           }
         }
       ],
-
       [
         "expo-video",
         {
@@ -53,8 +46,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "869eddf8-c7bf-4c1e-aa45-1ca742707208"
+        "projectId": "5e532f1b-440d-4813-8ddc-d5e9a1c1e425"
       }
-    }
+    },
+    "owner": "leotab-lab"
   }
 }
