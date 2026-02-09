@@ -156,7 +156,8 @@ export default function HomeScreen() {
                     paddingHorizontal: 16,
                   }}
                   className=" w-full flex  justify-center"
-                  onPress={() => router.push("/(home)/search")}
+                  // onPress={() => router.push("/(home)/search")}
+                  onPress={() => router.push("/(swipeDemo)")}
                 >
                   <AntDesign
                     color={"white"}
