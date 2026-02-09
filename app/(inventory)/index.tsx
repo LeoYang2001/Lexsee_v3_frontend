@@ -1,5 +1,5 @@
 // app/(inventory)/index.tsx
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, use } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   Pressable,
   TouchableWithoutFeedback,
+  Dimensions,
+  Keyboard,
 } from "react-native";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
@@ -25,8 +27,12 @@ import SearchBar from "../../components/inventory/SearchBar";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withTiming,
+  interpolate,
+  Extrapolate,
 } from "react-native-reanimated";
+import { GestureHandlerRootView, ScrollView } from "react-native-gesture-handler";
+
+const { width: windowWidth } = Dimensions.get("window");
 
 // Helper to format date as YYYY-MM-DD
 const formatDate = (isoString: string) => {
@@ -43,61 +49,87 @@ const InventoryScreen = () => {
   const [ifGraphic, setIfGraphic] = useState(false);
   const [ifDetail, setIfDetail] = useState<string | null>(null);
   const [ifInputComp, setIfInputComp] = useState<boolean>(false);
-  const [filterMode, setFilterMode] = useState<"review" | "master">("review");
-  const [words, setWords] = useState<Word[]>(wordsFromDB);
+
+
+  const [reviewedWords, setReviewedWords] = useState<Word[]>([]);
+  const [masteredWords, setMasteredWords] = useState<Word[]>([]);
+
+  // Width of each tab for the slider calculation
+    const sliderPosition = useSharedValue(0);
+
+  const reviewedTabStyle = useAnimatedStyle(() => {
+  return {
+    opacity: interpolate(
+      sliderPosition.value,
+      [0, 60],    // When slider is at 0 (Review) vs 60 (Master)
+      [0.8, 0.5], // Opacity goes from 0.8 down to 0.5
+      Extrapolate.CLAMP
+    ),
+  };
+});
+
+const masterTabStyle = useAnimatedStyle(() => {
+  return {
+    opacity: interpolate(
+      sliderPosition.value,
+      [0, 60],
+      [0.5, 0.8], // Master does the opposite (fades in)
+      Extrapolate.CLAMP
+    ),
+  };
+});
+
+  const animatedContainerStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: sliderPosition.value }, { translateY: -1.5 }],
+  }));
+  
 
   const TABWIDTH = 63;
   
   // Animated value for slider position
-  const sliderPosition = useSharedValue(0);
 
   // Filter words based on filterMode
   useEffect(() => {
-    if (filterMode === "review") {
       // Show words that are not mastered (status != "LEARNED")
       const reviewWords = wordsFromDB.filter(
         (word) => word.status !== "LEARNED"
       );
-      setWords(reviewWords);
-    } else {
+      setReviewedWords(reviewWords);
       // Show mastered words (status == "LEARNED")
       const masteredWords = wordsFromDB.filter(
         (word) => word.status === "LEARNED"
       );
-      setWords(masteredWords);
-    }
-  }, [filterMode, wordsFromDB]);
+      setMasteredWords(masteredWords);
+  }, [ wordsFromDB]);
 
-  // Animated style for the slider indicator
-  const animatedSliderStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateX: sliderPosition.value }, { translateY: -1.5 }],
-    };
-  });
-
-  // Handle tab switch
-  const handleTabSwitch = (mode: "review" | "master", tabWidth: number) => {
-    setFilterMode(mode);
-    sliderPosition.value = withTiming(mode === "review" ? 0 : tabWidth, {
-      duration: 250,
-    });
-  };
-
+  
+ 
   // Filter words based on search query
-  const filteredWords = useMemo(() => {
+  const filteredWords_reviewed = useMemo(() => {
     if (!searchQuery.trim()) {
-      return words;
+      return reviewedWords;
     }
 
     const query = searchQuery.toLowerCase().trim();
-    return words.filter((word) => {
+    return reviewedWords.filter((word) => {
       if (word.word.toLowerCase().includes(query)) return true;
     });
-  }, [words, searchQuery]);
+  }, [reviewedWords, searchQuery]);
 
-  const groupedWords = useMemo(() => {
+    const filteredWords_mastered = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return masteredWords;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    return masteredWords.filter((word) => {
+      if (word.word.toLowerCase().includes(query)) return true;
+    });
+  }, [masteredWords, searchQuery]);
+
+  const groupedWords_reviewed = useMemo(() => {
     const groups: { [date: string]: Word[] } = {};
-    filteredWords.forEach((word) => {
+    filteredWords_reviewed.forEach((word) => {
       const dateKey = word.timeStamp ? formatDate(word.timeStamp) : "Unknown";
       if (!groups[dateKey]) groups[dateKey] = [];
       groups[dateKey].push(word);
@@ -110,7 +142,23 @@ const InventoryScreen = () => {
       date,
       words: groups[date],
     }));
-  }, [filteredWords, sortAsc]);
+  }, [filteredWords_reviewed, sortAsc]);
+    const groupedWords_mastered = useMemo(() => {
+    const groups: { [date: string]: Word[] } = {};
+    filteredWords_mastered.forEach((word) => {
+      const dateKey = word.timeStamp ? formatDate(word.timeStamp) : "Unknown";
+      if (!groups[dateKey]) groups[dateKey] = [];
+      groups[dateKey].push(word);
+    });
+    // Sort dates based on sortAsc
+    const sortedDates = Object.keys(groups).sort((a, b) =>
+      sortAsc ? (a > b ? 1 : -1) : a < b ? 1 : -1
+    );
+    return sortedDates.map((date) => ({
+      date,
+      words: groups[date],
+    }));
+  }, [filteredWords_mastered, sortAsc]);
 
   const renderWordItem = ({ item , index}: { item: Word, index: number }) => (
     <TouchableWithoutFeedback
@@ -157,18 +205,15 @@ const InventoryScreen = () => {
   );
 
   return (
-    <Pressable
+    <View
       style={{ flex: 1 }}
-      onPress={() => {
-        setIfDetail(null);
-        if (!searchQuery) setIfInputComp(false);
-      }}
+     
     >
       <View
         style={{
           backgroundColor: "#131416",
         }}
-        className=" w-full h-full flex flex-col px-3 "
+        className=" w-full h-full flex flex-col "
       >
         <StatusBar style="light" />
         {/* Header */}
@@ -190,7 +235,7 @@ const InventoryScreen = () => {
                 <View className="flex-row bg-transparent relative">
                   {/* Slider track */}
                   <View
-                  className=" absolute flex justify-center items-center w-full h-[7px]  -bottom-[7px]"
+                  className=" absolute flex justify-center items-center w-full h-[7px] overflow-hidden  -bottom-[7px]"
                    >
                       <View
                       
@@ -205,7 +250,7 @@ const InventoryScreen = () => {
                          {/* Animated Slider Indicator */}
                   <Animated.View
                     style={[
-                      animatedSliderStyle,
+                      animatedContainerStyle,
                       {
                         position: "absolute",
                         top: "50%",
@@ -223,47 +268,37 @@ const InventoryScreen = () => {
 
                     </View>
                   {/* Review Tab */}
-                  <TouchableOpacity
+                  <View
 
-                    onPress={() => handleTabSwitch("review", 60)}
-                    className="flex justify-center items-center"
+                    className="flex justify-center items-center overflow-x-hidden"
                     style={{ width: TABWIDTH, height:32}}
                   >
-                    <Text
+                    <Animated.Text
                     numberOfLines={1}
-                    style={{
+                    style={[{
                       fontSize:14
-                    }}
-                      className={` text-white   font-semibold ${
-                        filterMode === "review"
-                          ? " opacity-80 "
-                          : " opacity-50"
-                      }`}
+                    }, reviewedTabStyle]}
+                      className={` text-white   font-semibold `}
                     >
                       Review
-                    </Text>
-                  </TouchableOpacity>
+                    </Animated.Text>
+                  </View>
 
                   {/* Master Tab */}
-                  <TouchableOpacity
-                    onPress={() => handleTabSwitch("master", 60)}
+                  <View
                     className="flex justify-center items-center"
                     style={{ width: TABWIDTH, height:32 }}
                   >
-                     <Text
+                     <Animated.Text
                     numberOfLines={1}
-                    style={{
-                      fontSize:14
-                    }}
-                      className={` text-white font-semibold ${
-                        filterMode === "master"
-                          ? " opacity-80 "
-                          : " opacity-50"
-                      }`}
+                    style={[{
+                      fontSize:14,
+                    }, masterTabStyle]}
+                      className={` text-white font-semibold `}
                     >
                       Master
-                    </Text>
-                  </TouchableOpacity>
+                    </Animated.Text>
+                  </View>
 
                  
                 </View>
@@ -307,28 +342,75 @@ const InventoryScreen = () => {
           />
         </View>
         {/* Grouped Words List */}
-        <FlatList
-          className="mt-6"
-          data={groupedWords}
-          keyExtractor={(group) => group.date}
-          renderItem={({ item: group }) => (
-            <View>
-              <Text className="text-gray-400 font-semibold mb-2 mt-4">
-                {group.date}
-              </Text>
-              <FlatList
-                data={group.words}
-                keyExtractor={(item) => item.id || item.word}
-                renderItem={renderWordItem}
-                scrollEnabled={false}
-              />
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <ScrollView
+            horizontal 
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScrollBeginDrag={() => {
+              setIfDetail(null);
+              if (!searchQuery) setIfInputComp(false);
+              
+            }}
+            onScroll={(e) => {
+            // This keeps your top slider in sync with the swipe!
+            const offset = e.nativeEvent.contentOffset.x;
+            sliderPosition.value = (offset / windowWidth) * 60; // 60 is the width of each tab
+          }}
+          
+            scrollEventThrottle={16}
+            // This ensures it doesn't drift if you swipe diagonally
+            directionalLockEnabled={true} 
+          >
+            <View className='flex-1 justify-center items-center px-3' style={{ width: windowWidth }}>
+                <FlatList
+              className="mt-6 "
+              data={groupedWords_reviewed}
+              keyExtractor={(group) => group.date}
+              renderItem={({ item: group }) => (
+                <View>
+                  <Text className="text-gray-400 font-semibold mb-2 mt-4">
+                    {group.date}
+                  </Text>
+                  <FlatList
+                    data={group.words}
+                    keyExtractor={(item) => item.id || item.word}
+                    renderItem={renderWordItem}
+                    scrollEnabled={false}
+                  />
             </View>
           )}
           ListEmptyComponent={renderEmptyState}
           showsVerticalScrollIndicator={false}
         />
+            </View>
+
+            <View className='flex-1 justify-center items-center' style={{ width: windowWidth }}>
+             <FlatList
+              className="mt-6 "
+              data={groupedWords_mastered}
+              keyExtractor={(group) => group.date}
+              renderItem={({ item: group }) => (
+                <View>
+                  <Text className="text-gray-400 font-semibold mb-2 mt-4">
+                    {group.date}
+                  </Text>
+                  <FlatList
+                    data={group.words}
+                    keyExtractor={(item) => item.id || item.word}
+                    renderItem={renderWordItem}
+                    scrollEnabled={false}
+                  />
+            </View>
+          )}
+          ListEmptyComponent={renderEmptyState}
+          showsVerticalScrollIndicator={false}
+        />
+            </View>
+          </ScrollView>
+          </GestureHandlerRootView>
       </View>
-    </Pressable>
+    </View>
   );
 };
 
