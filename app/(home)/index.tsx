@@ -45,14 +45,32 @@ export default function HomeScreen() {
   const { activeStep, setTargetLayout } = useOnboarding();
   const searchBarRef = useRef<View>(null);
 
+  // const handleLayout = () => {
+  //   // Only measure if the "Director" says we are in the 'SEARCH' stage
+  //   if (activeStep === 'SEARCH') {
+  //     searchBarRef.current?.measureInWindow((x, y, width, height) => {
+  //       setTargetLayout({ x, y, width, height });
+  //     });
+  //   }
+  // };
+
   const handleLayout = () => {
-    // Only measure if the "Director" says we are in the 'SEARCH' stage
-    if (activeStep === 'SEARCH') {
+  if (activeStep === 'SEARCH') {
+    const tryMeasure = (retries = 3) => {
       searchBarRef.current?.measureInWindow((x, y, width, height) => {
-        setTargetLayout({ x, y, width, height });
+        // Check if we actually got data (height/width shouldn't be 0 for a search bar)
+        if (width > 0 && height > 0) {
+          setTargetLayout({ x, y, width, height });
+        } else if (retries > 0) {
+          // If zeros, wait 100ms and try again
+          setTimeout(() => tryMeasure(retries - 1), 100);
+        }
       });
-    }
-  };
+    };
+
+    tryMeasure();
+  }
+};
 
   // Filter words for crrent user
 

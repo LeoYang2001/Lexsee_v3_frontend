@@ -9,7 +9,7 @@ import {
   ScrollView,
   Pressable,
   Image,
-  LayoutChangeEvent,
+  Alert,
 } from "react-native";
 import { useTheme } from "../../theme/ThemeContext";
 import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
@@ -40,10 +40,11 @@ import { handleScheduleNotification, uncollectWord } from "../../apis/setSchedul
 import { getLocalDate } from "../../util/utli";
 import { useOnboarding } from "../../hooks/useOnboarding";
 
-function CollectBtn({ saveStatus }: { saveStatus: string }) {
+function CollectBtn({ saveStatus, handleSaveOrUnsave, handleSaveWithoutPicture }: { saveStatus: string, handleSaveOrUnsave: () => void, handleSaveWithoutPicture: () => void }) {
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
   const colorProgress = useSharedValue(0);
+
   
 
   const getBtnStyle = () => {
@@ -153,6 +154,18 @@ function CollectBtn({ saveStatus }: { saveStatus: string }) {
   });
 
   return (
+     <TouchableOpacity
+          onPress={handleSaveOrUnsave}
+          onLongPress={()=>{
+            if(saveStatus === "unsaved"){
+              //handle save without picture
+              handleSaveWithoutPicture();
+            }
+          }}
+                    disabled={saveStatus === "saving"}
+                  >
+
+
     <Animated.View
       style={[
         {
@@ -196,7 +209,9 @@ function CollectBtn({ saveStatus }: { saveStatus: string }) {
         />
       </Animated.View>
     </Animated.View>
+    </TouchableOpacity>
   );
+
 }
 
 // Add this skeleton component at the top of your file
@@ -272,23 +287,43 @@ export default function DefinitionPage() {
     const definitionRef = useRef<ScrollView>(null);
   
     const handleLayout = () => {
-      // Only measure if the "Director" says we are in the 'DEFINITION_STEP_1' stage
-      if (activeStep === 'DEFINITION_STEP_1') {
-      (definitionRef.current as any)?.measureInWindow((x: number, y: number, width: number, height: number) => {
-        setTargetLayout({ x, y, width, height });
+  // Only measure if the "Director" says we are in the 'DEFINITION_STEP_1' stage
+  if (activeStep === 'DEFINITION_STEP_1') {
+    
+    const tryMeasure = (retries = 5) => {
+      (definitionRef.current as any).measureInWindow((x: number, y: number, width: number, height: number) => {
+        // Check if layout is valid (not zero and not undefined/null)
+        const isValid = width > 0 && height > 0;
+
+        if (isValid) {
+          setTargetLayout({ x, y, width, height });
+        } else if (retries > 0) {
+          // If we got 0,0,0,0, wait 100ms and try again
+          setTimeout(() => tryMeasure(retries - 1), 100);
+        } else {
+          console.warn("Onboarding: Failed to measure DEFINITION_STEP_1 after 5 attempts.");
+        }
       });
-      }
     };
+
+    tryMeasure();
+  }
+};
  
 
 
-  const handleSaveWord = async (wordInfo: Word) => {
+  const handleSaveWord = async (wordInfo: Word, conversation?: any) => {
     // save/resave, we reset the schedule
+
+
     let wordInfoToSave = {
       ...wordInfo,
       phonetics: phonetics || undefined,
-      exampleSentences: wordInfo.exampleSentences || null,
+      exampleSentences: JSON.stringify(conversation) || JSON.stringify(conversationData) || null,
     };
+
+    console.log('generate convo first and save :', JSON.stringify(conversation))
+
 
     setSaveStatus("saving");
     try {
@@ -385,21 +420,15 @@ export default function DefinitionPage() {
       setIsLoadingConversation(false);
     }
 
-    //this step should not block displaying loaded definition
-    //save or update definition to the wordInfo
 
-    if (wordInfo && saveStatus !== "saving") {
-      console.log("saving convo");
-      try {
-        let wordInfoToSave = {
-          ...wordInfo,
-          exampleSentences: JSON.stringify(conversation),
-        };
-        await handleSaveWord(wordInfoToSave);
-      } catch (error) {
-        console.error("Error saving word:", error);
-      }
+     //this step should not block displaying loaded definition
+    //save or update definition to the wordInfo
+    // updating word triggered only when the saveStatus is saved (ie. already saved before)
+    if (saveStatus === "saved" && wordInfo) {
+      console.log('coversation:', JSON.stringify(conversation))
+      handleSaveWord(wordInfo, conversation);
     }
+
   };
 
   // Get current word consistently
@@ -516,6 +545,7 @@ export default function DefinitionPage() {
         setSaveStatus("saved");
         setDefinitionSource("dictionary");
         setIsLoadingDefinition(false);
+
 
         // Set phonetics from existing word
         if (existingWord.phonetics) {
@@ -667,6 +697,34 @@ export default function DefinitionPage() {
   // Animated values
   const definitionHeight = useSharedValue(definitionSectionHeight);
   const conversationHeight = useSharedValue(0);
+
+const handleSaveWithoutPicture = async () => {
+  if (!wordInfo) return;
+
+  Alert.alert(
+    "Save without picture?", // Title
+    "Are you sure you want to save this word without an image?", // Message
+    [
+      {
+        text: "Cancel",
+        style: "cancel", // This styling only shows on iOS
+        onPress: () => console.log("User cancelled"),
+      },
+      {
+        text: "Save",
+        onPress: () => {
+          const updatedWordInfo = {
+            ...wordInfo,
+            imgUrl: undefined,
+          };
+          setWordInfo(updatedWordInfo);
+          handleSaveWord(updatedWordInfo);
+        },
+      },
+    ],
+    { cancelable: true } // Allows tapping outside the alert to close (Android only)
+  );
+};
 
   const handleSaveOrUnsave = async () => {
     if (saveStatus === "saved") {
@@ -952,12 +1010,8 @@ export default function DefinitionPage() {
                 <View
                   style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
                 >
-                  <TouchableOpacity
-                    onPress={handleSaveOrUnsave}
-                    disabled={saveStatus === "saving"}
-                  >
-                    <CollectBtn saveStatus={saveStatus} />
-                  </TouchableOpacity>
+                 
+                    <CollectBtn saveStatus={saveStatus} handleSaveOrUnsave={handleSaveOrUnsave} handleSaveWithoutPicture={handleSaveWithoutPicture}/>
                 </View>
               </View>
 

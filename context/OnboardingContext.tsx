@@ -64,7 +64,13 @@ export const OnboardingProvider = ({ children }: { children: React.ReactNode }) 
       setTargetLayout(null);
     return;
   }
- 
+
+  //MISS MATCH - reset everything
+  if(onboardingStage === 'SEARCH' && path !== '(home)'  ||onboardingStage === 'DEFINITION_STEP_1' && path !== '(definition)' ||onboardingStage === 'DEFINITION_STEP_2' && path !== '(definition)'){
+    setActiveStep(null);
+    setTargetLayout(null);
+    return; 
+  }
   }, [onboardingStage, segments]);
 
   return (

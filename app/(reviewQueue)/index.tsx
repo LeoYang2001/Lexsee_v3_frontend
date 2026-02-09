@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, Dimensions } from "react-native";
+import { View, Text, TouchableOpacity, Dimensions, Alert } from "react-native";
 import { router } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -52,6 +52,8 @@ export default function ReviewQueueScreen() {
   const [currentWord, setCurrentWord] = useState(reviewQueue[currentWordIndex]);
 
 
+  const [ifShowConfirmPage, setIfShowConfirmPage] = useState(false)
+
   const [conversationData, setConversationData] =
     useState<ConversationResponse | null>(null);
 
@@ -69,6 +71,8 @@ useEffect(() => {
       easing: Easing.out(Easing.cubic),
     });
   }
+  //reset confirm page when index changes
+  setIfShowConfirmPage(false);
 }, [currentWordIndex, reviewQueue.length]);
 
   
@@ -95,7 +99,6 @@ useEffect(() => {
           setLoading(false);
         }
       };
-
 
 
 
@@ -488,12 +491,15 @@ useEffect(() => {
                 word={currentWord}
                 isLoading={loading}
                 conversationData={conversationData}
+                ifShowConfirmPage={ifShowConfirmPage}
               />
             </View>
             <View className=" px-6">
               <ControlPanel
                 isLoading={loading}
                 handleNextWord={handleNextWord}
+                ifShowConfirmPage={ifShowConfirmPage}
+                setIfShowConfirmPage={setIfShowConfirmPage}
                 familiarityLevel={getFamiliarityLevel(hintCount)}
                 handleHintPressed={handleHintPressed}
               />
