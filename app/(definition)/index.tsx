@@ -965,27 +965,36 @@ const handleSaveWithoutPicture = async () => {
 
             <View className="mt-3 px-2 flex-1 flex flex-col">
               <View className="flex flex-row justify-between items-center">
-                <View className="flex flex-col gap-1">
+                <View className="flex flex-col gap-1  w-[80%] overflow-hidden">
                   {/* Word Title - Skeleton or Real */}
                   {isLoadingDefinition ? (
                     <SkeletonBox width={200} height={36} />
                   ) : (
                     <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 8,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontSize: 30,
-                        }}
-                        className="text-white"
-                      >
-                        {wordInfo?.word}
-                      </Text>
-                    </View>
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  // Ensure the container doesn't push off screen
+                  flexShrink: 1, 
+                  overflow: 'hidden'
+                }}
+              >
+                <Text
+                  // 1. Force a single line
+                  numberOfLines={1} 
+                  // 2. Add the "..." at the end
+                  ellipsizeMode="tail" 
+                  style={{
+                    fontSize: 30,
+                    // 3. Allow text to shrink if container is tight
+                    flexShrink: 1, 
+                  }}
+                  className="text-white font-bold"
+                >
+                  {wordInfo?.word}
+                </Text>
+              </View>
                   )}
 
                   {/* Phonetics - Skeleton or Real */}
