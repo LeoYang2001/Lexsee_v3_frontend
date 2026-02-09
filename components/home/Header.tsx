@@ -23,12 +23,8 @@ interface CustomHeaderProps {
 
 export default function Header({
   logoSize = 60,
-  anchorY,
-  anchorDistance,
 }: CustomHeaderProps) {
-  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const screenHeight = Dimensions.get("window").height;
   const theme = useTheme();
 
   const handleDrawerToggle = () => {

@@ -13,8 +13,8 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useRouter } from "expo-router";
-import { useAppSelector, useAppDispatch } from "../../store/hooks";
-import { AntDesign, Feather } from "@expo/vector-icons";
+import { useAppSelector } from "../../store/hooks";
+import { AntDesign } from "@expo/vector-icons";
 import CustomHeader from "../../components/home/Header";
 import { useTheme } from "../../theme/ThemeContext";
 import DashCard from "../../components/home/DashCard";
