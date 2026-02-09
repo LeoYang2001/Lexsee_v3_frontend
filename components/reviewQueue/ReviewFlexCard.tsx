@@ -27,6 +27,7 @@ interface ReviewFlexCardProps {
   hintCount?: number;
   isLoading?: boolean;
   conversationData: ConversationResponse | null;
+  ifShowConfirmPage?: boolean;
 }
 
 const { width, height } = Dimensions.get("window");
@@ -189,6 +190,7 @@ const ReviewFlexCard = ({
   familiarityLevel,
   isLoading = false,
   conversationData,
+  ifShowConfirmPage
 }: ReviewFlexCardProps) => {
   const [isImageZoomed, setIsImageZoomed] = useState(false);
   const [contentHeight, setContentHeight] = useState(200);
@@ -604,9 +606,13 @@ const ReviewFlexCard = ({
           onLayout={() => measureContent("poor")}
           className="flex-col pt-6 pb-8 items-center"
         >
-          <Text style={{ fontSize: 14 }} className="color-white opacity-30">
-            Don't worry! Let's relearn this word!
-          </Text>
+          {
+            !ifShowConfirmPage && (
+            <Text style={{ fontSize: 14 }} className="color-white opacity-30">
+              Don't worry! Let's review the word together.
+            </Text>
+            )
+          }
           <Text className=" my-6" style={{ fontSize: 32, color: "white" }}>
             {word.word}
           </Text>
@@ -713,12 +719,12 @@ const ReviewFlexCard = ({
       >
         {/* Animated Content */}
         <Animated.View style={[animatedContentStyle, { flex: 1 }]}>
-          {familiarityLevel === "excellent" && (
+          { (familiarityLevel === "excellent" && !ifShowConfirmPage) && (
             <ExcellentContent isLoading={isLoading} />
           )}
-          {familiarityLevel === "good" && <GoodContent isLoading={isLoading} />}
-          {familiarityLevel === "fair" && <FairContent isLoading={isLoading} />}
-          {familiarityLevel === "poor" && <PoorContent isLoading={isLoading} />}
+          { (familiarityLevel === "good" && !ifShowConfirmPage) && <GoodContent isLoading={isLoading} />}
+          { (familiarityLevel === "fair" && !ifShowConfirmPage) && <FairContent isLoading={isLoading} />}
+          {(familiarityLevel === "poor" ||  ifShowConfirmPage) && <PoorContent isLoading={isLoading} />}
         </Animated.View>
       </Animated.View>
     </>

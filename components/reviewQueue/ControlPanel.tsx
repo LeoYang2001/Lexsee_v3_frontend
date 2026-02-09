@@ -7,6 +7,8 @@ interface ControlPanelProp {
   familiarityLevel: RecallAccuracy;
   handleNextWord: (familiarityLevel: RecallAccuracy) => void;
   isLoading: boolean;
+  ifShowConfirmPage: boolean;
+  setIfShowConfirmPage: (value: boolean) => void;
 }
 
 const ControlPanel = ({
@@ -14,6 +16,8 @@ const ControlPanel = ({
   familiarityLevel,
   handleNextWord,
   isLoading,
+  ifShowConfirmPage,
+  setIfShowConfirmPage
 }: ControlPanelProp) => {
   if (isLoading) return null;
   if (familiarityLevel === "poor")
@@ -28,7 +32,7 @@ const ControlPanel = ({
             width: "100%",
           }}
           className="flex-row items-center   justify-center"
-          onPress={() => handleNextWord(familiarityLevel)}
+           onPress={() => handleNextWord(familiarityLevel)}
         >
           <Text
             style={{
@@ -67,7 +71,9 @@ const ControlPanel = ({
             NO
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity
+        {
+          !ifShowConfirmPage && (
+            <TouchableOpacity
           onPress={handleHintPressed}
           style={{
             height: 44,
@@ -88,11 +94,16 @@ const ControlPanel = ({
             Hint
           </Text>
         </TouchableOpacity>
+          )
+        }
 
         {/* Yes Button */}
-        <TouchableOpacity
+       {
+        !ifShowConfirmPage ? (
+            <TouchableOpacity
           // onPress={handlePrevious}
-          onPress={() => handleNextWord(familiarityLevel)}
+          // onPress={() => handleNextWord(familiarityLevel)}
+          onPress={()=>{setIfShowConfirmPage(true)}}
           style={{
             height: 44,
             borderRadius: 9,
@@ -110,7 +121,30 @@ const ControlPanel = ({
           >
             YES
           </Text>
+        </TouchableOpacity>) : (
+            <TouchableOpacity
+          // onPress={handlePrevious}
+          onPress={() => handleNextWord(familiarityLevel)}
+          style={{
+            height: 44,
+            borderRadius: 9,
+            backgroundColor: "#FA541C",
+            width: 104,
+          }}
+          className="flex-row items-center   justify-center"
+        >
+          <Text
+            style={{
+              fontSize: 15,
+              fontWeight: "400",
+              color: "white",
+            }}
+          >
+            NEXT
+          </Text>
         </TouchableOpacity>
+        )
+       }
       </View>
     );
 };
