@@ -70,10 +70,7 @@ function AppContent() {
   return (
    <View className="flex-1">
      <Stack>
-        <Stack.Screen
-        name="(swipeDemo)"
-        options={{ headerShown: false, animation: "slide_from_right" }}
-      />
+      
       <Stack.Screen
         name="index"
         options={{ headerShown: false, animation: "fade" }}
