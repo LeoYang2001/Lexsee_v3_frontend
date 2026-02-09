@@ -272,13 +272,28 @@ export default function DefinitionPage() {
     const definitionRef = useRef<ScrollView>(null);
   
     const handleLayout = () => {
-      // Only measure if the "Director" says we are in the 'DEFINITION_STEP_1' stage
-      if (activeStep === 'DEFINITION_STEP_1') {
-      (definitionRef.current as any)?.measureInWindow((x: number, y: number, width: number, height: number) => {
-        setTargetLayout({ x, y, width, height });
+  // Only measure if the "Director" says we are in the 'DEFINITION_STEP_1' stage
+  if (activeStep === 'DEFINITION_STEP_1') {
+    
+    const tryMeasure = (retries = 5) => {
+      (definitionRef.current as any).measureInWindow((x: number, y: number, width: number, height: number) => {
+        // Check if layout is valid (not zero and not undefined/null)
+        const isValid = width > 0 && height > 0;
+
+        if (isValid) {
+          setTargetLayout({ x, y, width, height });
+        } else if (retries > 0) {
+          // If we got 0,0,0,0, wait 100ms and try again
+          setTimeout(() => tryMeasure(retries - 1), 100);
+        } else {
+          console.warn("Onboarding: Failed to measure DEFINITION_STEP_1 after 5 attempts.");
+        }
       });
-      }
     };
+
+    tryMeasure();
+  }
+};
  
 
 

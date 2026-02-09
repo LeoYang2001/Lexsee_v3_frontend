@@ -11,11 +11,25 @@ import { HoldToSkipButton } from './HoldToSkipButton';
 import { useAppDispatch } from '../../store/hooks';
 import { updateOnboardingStage } from '../../store/slices/profileSlice';
 
+const isValidLayout = (layout:any) => {
+  return (
+    layout && 
+    layout.width > 0 && 
+    layout.height > 0
+  );
+};
+
 export const OnboardingOverlay = () => {
   const { activeStep, targetLayout, setTargetLayout } = useOnboarding();
   const dispatch = useAppDispatch();
   const router = useRouter();
 
+  console.log('OnboardingOverlay receive targetLayout:', JSON.stringify(targetLayout));
+
+  if (!isValidLayout(targetLayout)) {
+    console.log('INVALID LAYOUT:', JSON.stringify(targetLayout));
+    return null;
+  }
   // Keep the guard, but the animation happens when this 
   // component is added/removed from the React tree.
   if (!activeStep || !targetLayout) return null;

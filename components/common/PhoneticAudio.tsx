@@ -16,14 +16,31 @@ const PhoneticAudio = ({ phonetics, size = 14 }: PhoneticAudioProps) => {
   const { activeStep, setTargetLayout } = useOnboarding();
       const phoneticRef = useRef<View>(null);
     
-      const handleLayout = () => {
-        // Only measure if the "Director" says we are in the 'DEFINITION_STEP_2' stage
-        if (activeStep === 'DEFINITION_STEP_2') {
-        (phoneticRef.current as any)?.measureInWindow((x: number, y: number, width: number, height: number) => {
-          setTargetLayout({ x, y, width, height });
-        });
+   const handleLayout = () => {
+  // Only measure if the "Director" says we are in the 'DEFINITION_STEP_2' stage
+  if (activeStep === 'DEFINITION_STEP_2') {
+    
+    const tryMeasure = (retries = 5) => {
+      (phoneticRef.current as any)?.measureInWindow(
+        (x: number, y: number, width: number, height: number) => {
+          // Check if we got valid layout data (non-zero width and height)
+          const isValid = width > 0 && height > 0;
+
+          if (isValid) {
+            setTargetLayout({ x, y, width, height });
+          } else if (retries > 0) {
+            // If zeros, wait 100ms and try again
+            setTimeout(() => tryMeasure(retries - 1), 100);
+          } else {
+            console.warn("Onboarding: Failed to measure DEFINITION_STEP_2 after 5 attempts.");
+          }
         }
-      };
+      );
+    };
+
+    tryMeasure();
+  }
+};
    
   useEffect(() => {
     // This component only cares about STEP_2
