@@ -110,14 +110,14 @@ const ContactScreen = () => {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <TouchableWithoutFeedback onPress={() => {
           Keyboard.dismiss();
           setIsMessageFocused(false);
         }}>
           <ScrollView 
-            className="flex-1 px-4"
+            className="flex-1 px-4 "
             contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
             keyboardShouldPersistTaps="handled"
           >
