@@ -3,7 +3,7 @@ import { Drawer } from "expo-router/drawer";
 import { Feather } from "@expo/vector-icons";
 
 import { TouchableOpacity, Text, Alert, View, Dimensions, ScrollView, Image } from "react-native";
-import { useRouter } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import { signOut as amplifySignOut, getCurrentUser } from "aws-amplify/auth";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
@@ -15,6 +15,8 @@ const screenWidth = Dimensions.get("window").width;
 
 export default function HomeLayout() {
   const router = useRouter();
+
+  const pathname = usePathname(); // Get current path
 
   
 
@@ -40,6 +42,28 @@ export default function HomeLayout() {
 
   const aiSetting = useSelector((state: RootState) => state.aiSettings);
   const activeModel = aiSetting.activeModel;
+
+  const tabs = [
+    {
+      name: "Home",
+      pathname: '/',
+      icon: <Feather name="home" size={20} color="#9CA3AF" style={{ marginRight: 16 }} />,
+      router: "/(home)"
+    },
+    {
+      name: "Guidance",
+      pathname: '/info',
+      icon: <Feather name="book-open" size={20} color="#9CA3AF" style={{ marginRight: 16 }} />,
+      router: "/(home)/info"
+    },
+    {
+      name: "Contact Us",
+      pathname: '/contact',
+      icon: <Feather name="phone" size={20} color="#9CA3AF" style={{ marginRight: 16 }} />,
+      router: "/(home)/contact"
+    }
+  ]
+
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -112,23 +136,12 @@ export default function HomeLayout() {
               </View>
 
               {/* Home */}
-              <TouchableOpacity
-                style={{
-                  paddingHorizontal: 20,
-                  paddingVertical: 16,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  borderBottomWidth: 1,
-                  borderBottomColor: "#2a2b35",
-                }}
-                onPress={() => router.push("/(home)")}
-              >
-                <Feather name="home" size={20} color="#9CA3AF" style={{ marginRight: 16 }} />
-                <Text style={{ color: "#fff", fontSize: 14, opacity: 0.9 }}>Home</Text>
-              </TouchableOpacity>
+           
 
-              {/* Guidance */}
-              <TouchableOpacity
+            {
+              tabs.map((tab) => (
+                 <TouchableOpacity
+                 key={tab.pathname}
                 style={{
                   paddingHorizontal: 20,
                   paddingVertical: 16,
@@ -136,28 +149,14 @@ export default function HomeLayout() {
                   alignItems: "center",
                   borderBottomWidth: 1,
                   borderBottomColor: "#2a2b35",
+                  backgroundColor: pathname === tab.pathname ? "#2a2b35" : "transparent"
                 }}
-                onPress={() => router.push("/(home)/info")}
+                onPress={() => router.push(tab.pathname)}
               >
-                <Feather name="book-open" size={20} color="#9CA3AF" style={{ marginRight: 16 }} />
-                <Text style={{ color: "#fff", fontSize: 14, opacity: 0.9 }}>Guidance</Text>
-              </TouchableOpacity>
-
-              {/* Contact Us */}
-              <TouchableOpacity
-                style={{
-                  paddingHorizontal: 20,
-                  paddingVertical: 16,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  borderBottomWidth: 1,
-                  borderBottomColor: "#2a2b35",
-                }}
-                onPress={() => router.push("/(home)/contact")}
-              >
-                <Feather name="phone" size={20} color="#9CA3AF" style={{ marginRight: 16 }} />
-                <Text style={{ color: "#fff", fontSize: 14, opacity: 0.9 }}>Contact Us</Text>
-              </TouchableOpacity>
+                {tab.icon}
+                <Text style={{ color: "#fff", fontSize: 14, opacity: 0.9 }}>{tab.name}</Text>
+              </TouchableOpacity>))
+            }
 
               {/* Sign Out Button */}
               <TouchableOpacity
