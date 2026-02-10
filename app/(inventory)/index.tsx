@@ -5,10 +5,10 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  Pressable,
+  
   TouchableWithoutFeedback,
   Dimensions,
-  Keyboard,
+  
 } from "react-native";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
@@ -217,7 +217,7 @@ const masterTabStyle = useAnimatedStyle(() => {
       >
         <StatusBar style="light" />
         {/* Header */}
-        <View className="mt-16 w-full  justify-between  flex-row items-center">
+        <View className="mt-16 w-full  justify-between  px-3  flex-row items-center">
           <TouchableOpacity
             onPress={() => {
               router.back();
@@ -319,7 +319,7 @@ const masterTabStyle = useAnimatedStyle(() => {
             />
           </View>
         </View>
-        <View className="flex-row items-center justify-end gap-3 my-2">
+        <View className="flex-row items-center  px-3 justify-end gap-3 my-2">
           {/* Sort Button */}
           <TouchableOpacity
             onPress={() => setSortAsc((prev) => !prev)}
@@ -364,7 +364,7 @@ const masterTabStyle = useAnimatedStyle(() => {
           >
             <View className='flex-1 justify-center items-center px-3' style={{ width: windowWidth }}>
                 <FlatList
-              className="mt-6 "
+              className="mt-6  w-full relative  "
               data={groupedWords_reviewed}
               keyExtractor={(group) => group.date}
               renderItem={({ item: group }) => (
@@ -387,7 +387,7 @@ const masterTabStyle = useAnimatedStyle(() => {
 
             <View className='flex-1 justify-center items-center' style={{ width: windowWidth }}>
              <FlatList
-              className="mt-6 "
+              className="mt-6  w-full relative  "
               data={groupedWords_mastered}
               keyExtractor={(group) => group.date}
               renderItem={({ item: group }) => (

@@ -1,91 +1,152 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Animated,
-  Dimensions,
-} from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { View, Text, TouchableOpacity, Animated as RNAnimated, Dimensions, Pressable } from "react-native";
 import { router } from "expo-router";
 import GradientBackground from "../../components/common/GradientBackground";
+import Animated ,{ Extrapolation, interpolate, interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 const { width, height } = Dimensions.get("window");
 
-// Placeholder carousel data
+const ACTIVE_WIDTH = 148;
+const INACTIVE_WIDTH = 45;
+
+
+export function IndicatorBar({
+  active,
+  onPress,
+}: {
+  active: boolean;
+  onPress?: () => void;
+}) {
+  const progress = useSharedValue(active ? 1 : 0);
+
+  useEffect(() => {
+    progress.value = withTiming(active ? 1 : 0, { duration: 280 });
+  }, [active, progress]);
+
+  const rStyle = useAnimatedStyle(() => {
+    const width = interpolate(
+      progress.value,
+      [0, 1],
+      [INACTIVE_WIDTH, ACTIVE_WIDTH],
+      Extrapolation.CLAMP
+    );
+
+    const opacity = interpolate(progress.value, [0, 1], [0.5, 1], Extrapolation.CLAMP);
+
+    const backgroundColor = interpolateColor(progress.value, [0, 1], [
+      "rgba(255,255,255,0.9)",
+      "#FA541C",
+    ]);
+
+    return { width, opacity, backgroundColor };
+  }, []);
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+      // optional: prevent accidental double taps
+      disabled={!onPress}
+      style={{ paddingVertical: 8 }} // increases tappable height without changing bar
+    >
+      <Animated.View
+        style={[
+          {
+            height: 5,
+            borderRadius: 4,
+            marginHorizontal: 2,
+          },
+          rStyle,
+        ]}
+      />
+    </TouchableOpacity>
+  );
+}
+// Carousel data
 const carouselData = [
   {
     id: 1,
-    image: require("../../assets/carouselImages/bgImage1.png"), // Using icon as placeholder
-    title: "Welcome to LexSee",
+    image: require("../../assets/onboardingImages/page_1.png"),
+    title: "Learn English with memory science",
     description:
-      "Your intelligent AI legal assistant, ready to help you navigate complex legal matters with ease and confidence.",
+      "LexSee helps you remember words better using proven learning principles.",
   },
   {
     id: 2,
-    image: require("../../assets/carouselImages/bgImage2.png"), // Fixed extension to .jpeg
-    title: "AI-Powered Legal Chat",
+    image: require("../../assets/onboardingImages/page_2.png"),
+    title: "LexSee isn’t a shortcut to fluency",
     description:
-      "Ask legal questions and get instant, accurate responses from our advanced AI trained on legal documents and precedents.",
+      "Real English comes from reading, listening, and using the language in real life.",
   },
   {
     id: 3,
-    image: require("../../assets/carouselImages/bgImage3.png"), // Using splash-icon as placeholder
-    title: "Document Analysis",
+    image: require("../../assets/onboardingImages/page_3.png"),
+    title: "Small daily learning beats intense bursts",
     description:
-      "Upload and analyze legal documents with AI assistance for quick insights and comprehensive understanding.",
+      "A few minutes a day, done consistently, is how progress compounds.",
+  },
+  {
+    id: 4,
+    image: require("../../assets/onboardingImages/page_4.png"),
+    title: "Trust the process",
+    description: "LexSee handles the science so you can focus on learning.",
   },
 ];
 
 export default function AuthIndexScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const fadeAnims = useState(() =>
-    carouselData.map((_, index) => new Animated.Value(index === 0 ? 1 : 0))
-  )[0];
+  const isAnimatingRef = useRef(false);
 
-  // Animated values for indicator bars
-  const indicatorWidths = useState(() =>
-    carouselData.map((_, index) => new Animated.Value(index === 0 ? 148 : 45))
-  )[0];
+  // Create animated values once
+  const fadeAnims = useMemo(
+    () => carouselData.map((_, i) => new RNAnimated.Value(i === 0 ? 1 : 0)),
+    []
+  );
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const nextIndex = (currentIndex + 1) % carouselData.length;
+ 
 
-      // Fade out current image and fade in next image
-      Animated.timing(fadeAnims[currentIndex], {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
-      }).start();
-
-      Animated.timing(fadeAnims[nextIndex], {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }).start();
-
-      // Animate indicator bars
-      // Shrink current indicator
-      Animated.timing(indicatorWidths[currentIndex], {
-        toValue: 45,
-        duration: 300,
-        useNativeDriver: false,
-      }).start();
-
-      // Expand next indicator
-      Animated.timing(indicatorWidths[nextIndex], {
-        toValue: 148,
-        duration: 300,
-        useNativeDriver: false,
-      }).start();
-
-      setCurrentIndex(nextIndex);
-    }, 4000);
-
-    return () => clearInterval(interval);
-  }, [currentIndex, fadeAnims, indicatorWidths]);
-
+  const isLast = currentIndex === carouselData.length - 1;
   const currentSlide = carouselData[currentIndex];
+
+  const goToIndex = (nextIndex: number) => {
+    if (isAnimatingRef.current) return;
+    if (nextIndex < 0 || nextIndex >= carouselData.length) return;
+    if (nextIndex === currentIndex) return;
+
+    isAnimatingRef.current = true;
+
+    // Fade out current & fade in next
+    const fadeOut = RNAnimated.timing(fadeAnims[currentIndex], {
+      toValue: 0,
+      duration: 350,
+      useNativeDriver: true,
+    });
+
+    const fadeIn = RNAnimated.timing(fadeAnims[nextIndex], {
+      toValue: 1,
+      duration: 350,
+      useNativeDriver: true,
+    });
+
+    // Run in parallel then update index (or update first; either is fine)
+    RNAnimated.parallel([fadeOut, fadeIn]).start(() => {
+      setCurrentIndex(nextIndex);
+      isAnimatingRef.current = false;
+    });
+  };
+
+  const onNext = () => {
+    if (isLast) {
+      router.replace("/(auth)/sign-in");
+      return;
+    }
+    goToIndex(currentIndex + 1);
+  };
+
+  const onStart = () => {
+    console.log('onboarding finished ')
+    router.replace("/(auth)/sign-in");
+  }
 
   return (
     <View className="flex-1 relative">
@@ -93,98 +154,90 @@ export default function AuthIndexScreen() {
       <View
         style={{
           position: "absolute",
-          width: width,
-          height: height,
+          width,
+          height,
           backgroundColor: "#080A10",
         }}
       />
 
-      {/* Multiple Background Images with Gradient */}
+      {/* Background Images */}
       {carouselData.map((slide, index) => (
-        <Animated.View
+        <RNAnimated.View
           key={slide.id}
           style={{
             position: "absolute",
-            width: width,
-            height: height,
+            width,
+            height,
             opacity: fadeAnims[index],
           }}
         >
           <GradientBackground imagePath={slide.image} />
-        </Animated.View>
+        </RNAnimated.View>
       ))}
 
       {/* Content Overlay */}
-      <View className="flex-1 justify-between ">
-        <View className=" h-[40%]" />
-        <View className=" flex-1 flex-col   px-6  justify-start items-center">
+      <View className="flex-1 justify-between">
+        <View className="h-[46%]" />
+
+        <View className="flex-1 flex-col mt-auto px-6 justify-start items-center">
           {/* Top Section - Title and Description */}
-          <View
-            style={{
-              height: 200,
-            }}
-            className=" flex  flex-col "
-          >
-            <Text
-              style={{
-                fontSize: 46,
-              }}
-              className=" font-bold text-white  text-center"
-            >
-              {currentIndex === 0 ? (
-                <>
-                  Welcome to{" "}
-                  <Text style={{ color: "#FA541C", opacity: 0.9 }}>LexSee</Text>
-                </>
-              ) : (
-                currentSlide.title
-              )}
+          <View style={{ height: 200 }} className="pt-12 flex-col">
+            <Text style={{ fontSize: 32 }} className="font-bold text-white text-center">
+              {currentSlide.title}
             </Text>
             <Text
-              style={{
-                fontSize: 14,
-              }}
-              className="   text-white opacity-100 text-center my-3 leading-6 px-4"
+              style={{ fontSize: 16 }}
+              className="text-white opacity-70 text-center my-3 leading-6 px-4"
             >
               {currentSlide.description}
             </Text>
           </View>
 
-          {/* Middle Section - Indicators */}
-          <View className="flex-row justify-center items-center gap-1 my-20">
-            {carouselData.map((_, index) => (
-              <Animated.View
-                key={index}
-                style={{
-                  width: indicatorWidths[index],
-                  height: 5,
-                  backgroundColor:
-                    index === currentIndex ? "#FA541C" : "#FFFFFF",
-                  opacity: index === currentIndex ? 1 : 0.5,
-                  borderRadius: 2.5,
-                }}
-              />
-            ))}
-          </View>
+          {/* Indicators */}
+          <View className="flex-row justify-center items-center  my-14">
+          {carouselData.map((_, index) => (
+                    <IndicatorBar
+                    key={index}
+                    active={index === currentIndex}
+                    onPress={() => goToIndex(index)}
+                  />
+          ))}
+        </View>
 
-          {/* Bottom Section - Action Button */}
-          <View className="mb-8 w-full">
+          {/* Buttons row: Skip + Next */}
+          <View className="w-full flex-row justify-between items-center mb-6">
+            {
+              !isLast && (
+                <TouchableOpacity
+              onPress={onStart}
+              className="py-3 px-2"
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text className="text-white opacity-70 font-semibold">Skip</Text>
+            </TouchableOpacity>
+              )
+            }
+
             <TouchableOpacity
-              style={{
+              style={[{
                 height: 44,
                 backgroundColor: "#FA541C",
                 borderRadius: 9,
+                paddingHorizontal: 18,
+                minWidth: 120,
+                
+              }, isLast && {marginLeft: 'auto'}]}
+              className="flex justify-center items-center"
+              onPress={()=>{
+                if(isLast) {
+                  onStart();
+                } else {
+                  onNext();
+                }
               }}
-              className="  flex justify-center items-center"
-              onPress={() => router.replace("/(auth)/sign-in")}
             >
-              <Text
-                style={{
-                  fontSize: 15,
-                }}
-                className="text-white  font-semibold "
-              >
-                Get Started
+              <Text style={{ fontSize: 15 }} className="text-white font-semibold">
+                {isLast ? "Get Started" : "Next"}
               </Text>
             </TouchableOpacity>
           </View>

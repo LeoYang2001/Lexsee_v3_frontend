@@ -180,7 +180,7 @@ export function useLaunchSequence() {
 
       setAuthMode("guest");
 
-      setRouteOnce("/(auth)/sign-in");
+      setRouteOnce("/(auth)");
       setAppReady(true);
    } catch (error) {
       console.log('[LaunchSequence] Error during auth fail handling:', error);

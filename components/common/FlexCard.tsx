@@ -53,7 +53,7 @@ const FlexCard = ({ word, ifDetail, ifGraphic, index }: FlexCardProps) => {
       <Animated.View
         entering={FadeInRight.delay(300 + index*140)}
         className="overflow-hidden  relative"
-        style={[style, animatedStyle]}
+        style={[style, animatedStyle, {alignSelf:'stretch', width: '100%'}]}
       >
         <Image
           source={{ uri: word.imgUrl }}
@@ -61,7 +61,7 @@ const FlexCard = ({ word, ifDetail, ifGraphic, index }: FlexCardProps) => {
           resizeMode="cover"
           className="absolute top-0 opacity-70 left-0 w-full h-full"
         />
-        <View className="w-full h-full flex flex-col justify-start p-4 ">
+        <View className="w-full h-full flex flex-coljustify-start p-4 ">
           <View className="w-full flex flex-row items-center justify-between">
             <Text style={{ fontSize: 24 }} className="text-white font-semibold">
               {word.word}
