@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Hub } from "@aws-amplify/core";
 import { fetchUserAttributes, getCurrentUser, signOut } from "aws-amplify/auth";
-import { AppState } from "react-native";
+import { Alert, AppState } from "react-native";
 import { client } from "../app/client";
 import { setProfile, UserProfile } from "../store/slices/profileSlice";
 import { useDispatch } from "react-redux";
@@ -31,6 +31,12 @@ import RevenueCatUI from "react-native-purchases-ui";
 
 type AuthMode = "unknown" | "authed" | "guest";
 const REVENUECAT_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY;
+
+const timeout = (ms: number) => {
+  return new Promise((_, reject) => 
+    setTimeout(() => reject(new Error("TIMEOUT")), ms)
+  );
+};
 
 
 export function useLaunchSequence() {
@@ -80,19 +86,29 @@ export function useLaunchSequence() {
     let mounted = true;
 
     const resolveInitialAuth = async () => {
-      console.log("[LaunchSequence] Cold start: checking auth");
+    console.log("[LaunchSequence] Cold start started");
 
-      try {
-         await getCurrentUser();
+    try {
+      // 🚀 THE UMBRELLA TIMEOUT
+      // This covers BOTH getCurrentUser AND handleAuthSuccess (initializeData)
+      await Promise.race([
+        (async () => {
+          const user = await getCurrentUser();
+          if (!mounted) return;
+          await handleAuthSuccess("cold_start");
+        })(),
+        timeout(8000) // Give the whole "Log in + Sync" process 8 seconds
+      ]);
 
-        if (!mounted) return;
-        await handleAuthSuccess("cold_start");
-      } catch {
-        if (!mounted) return;
-        handleAuthFail("cold_start_not_authenticated");
-      }
-    };
-
+    } catch (error: any) {
+      if (!mounted) return;
+      
+      // If it times out or getCurrentUser fails, 
+      // handleAuthFail will clear the splash screen and move to Login.
+      console.log("[LaunchSequence] Launch failed or timed out:", error.message);
+      handleAuthFail(error.message === "TIMEOUT" ? "network_timeout" : "auth_error");
+    }
+  };
     resolveInitialAuth();
 
     // Hub reactive auth changes (runtime)
@@ -158,6 +174,16 @@ export function useLaunchSequence() {
    */
   const handleAuthFail = async (reason?: string) => {
     console.log("[LaunchSequence] Auth failed:", reason ?? "unknown");
+
+    if (reason === "network_timeout") {
+    // Maybe show a specific Toast or Banner: "Offline mode enabled"
+    Alert.alert(
+      "Network issues",
+      "We had trouble connecting to the server. Please check your internet connection and try again.",
+      [{ text: "Retry", onPress: () => handleAuthFail("network_timeout") }],
+    );
+    return;
+  }
 
     // 1. Close WebSockets
    try {

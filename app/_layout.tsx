@@ -28,15 +28,6 @@ Notifications.setNotificationHandler({
 
 SplashScreen.preventAutoHideAsync();
 
-async function requestNotificationPermissions() {
-  const { status } = await Notifications.requestPermissionsAsync();
-  if (status !== "granted") {
-    alert("Permission not granted for notifications!");
-    return false;
-  }
-
-  return true;
-}
 
 function AppContent() {
   // Run launch sequence - handles all initialization:
