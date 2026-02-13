@@ -7,7 +7,12 @@ import {
   SafeAreaView,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, {
+  FadeInDown,
+  FadeInLeft,
+  FadeOut,
+  FadeOutRight,
+} from "react-native-reanimated";
 import { Feather } from "@expo/vector-icons";
 
 export default function InfoDetailed() {
@@ -38,14 +43,12 @@ export default function InfoDetailed() {
 
   // 2. Cleanup Logic: We clear the tag when navigation starts
   // to prevent the "Ghost Registration" in the native stack.
-  const [activeTag, setActiveTag] = useState(`card_container_${id}`);
+  const [hideTitle, setHideTitle] = useState(false);
 
   const handleBack = () => {
     console.log("route back");
-    setActiveTag(""); // Clear the tag locally
-    setTimeout(() => {
-      router.back();
-    }, 50); // Small delay to let the Native thread "un-register" the luggage
+    setHideTitle(true);
+    router.back();
   };
 
   // If the record isn't found, safety check
@@ -63,66 +66,38 @@ export default function InfoDetailed() {
         <Animated.Image
           sharedTransitionTag={`card_image_${id}`}
           source={currentTab.image}
-          style={styles.heroImage}
+          style={{ height: 400 }}
           resizeMode="cover"
-          className="absolute top-0 left-0 border border-red-50"
+          className="absolute top-0  w-full left-0"
         />
 
         {/* 2. BACK BUTTON */}
-        <SafeAreaView className=" border border-red-500  flex flex-1 w-full h-full">
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Feather name="arrow-left" size={24} color="white" />
-          </TouchableOpacity>
-        </SafeAreaView>
+        <View className="  flex flex-col flex-1">
+          <View className=" w-12 flex">
+            <TouchableOpacity className="mt-20   p-2" onPress={handleBack}>
+              <Feather name="arrow-left" size={24} color="white" />
+            </TouchableOpacity>
+          </View>
+          <View className=" w-full h-[30%] flex"></View>
+          <Animated.View
+            entering={FadeInLeft.delay(300).duration(500)}
+            className=" w-full  flex"
+          >
+            {!hideTitle && (
+              <Text
+                style={{
+                  fontSize: 32,
+                  fontWeight: "bold",
+                  color: "white",
+                  marginBottom: 16,
+                }}
+              >
+                {currentTab.title}
+              </Text>
+            )}
+          </Animated.View>
+        </View>
       </Animated.View>
     </View>
   );
 }
-
-//  <Animated.Text
-//           sharedTransitionTag={`card_title_${id}`}
-//           style={styles.title}
-//         >
-//           {currentTab.title}
-//         </Animated.Text>
-const styles = StyleSheet.create({
-  heroImage: {
-    width: "100%",
-    height: 400,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-  },
-  headerOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    zIndex: 20,
-  },
-  backButton: {
-    margin: 20,
-    padding: 10,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    borderRadius: 25,
-  },
-  contentContainer: {
-    padding: 24,
-    flex: 1,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "white",
-    marginBottom: 16,
-  },
-  divider: {
-    height: 2,
-    backgroundColor: "#E44814",
-    width: 60,
-    marginBottom: 20,
-  },
-  description: {
-    fontSize: 18,
-    color: "#9CA3AF",
-    lineHeight: 28,
-  },
-});

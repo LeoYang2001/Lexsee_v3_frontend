@@ -10,31 +10,33 @@ import Animated, {
   interpolateColor,
   interpolate,
   Extrapolate,
+  FadeOutRight,
+  FadeInUp,
 } from "react-native-reanimated";
 
 const AnimatedView = Animated.createAnimatedComponent(View);
 const { width: windowWidth } = Dimensions.get("window");
 
 // --- 1. Sub-Component for each Tab ---
-const InfoTab = ({
-  tab,
-  index,
-  scrollX,
-  snapInterval,
-  tabWidth,
-  gap,
-  activeId,
-  setActiveId,
-}: any) => {
-  const isActive = activeId === tab.id;
+const InfoTab = ({ tab, index, scrollX, snapInterval, tabWidth, gap }: any) => {
+  const [hideTitle, setHideTitle] = useState(false);
 
   const handlePress = () => {
-    setActiveId(tab.id); // mark THIS one as the shared element source
+    setHideTitle(true);
     router.push({
       pathname: "/(home)/drawer/info/detail",
       params: { id: tab.id },
     });
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      // when Info screen is focused again
+      setHideTitle(false);
+
+      return () => {};
+    }, []),
+  );
 
   const animatedStyle = useAnimatedStyle(() => {
     const centerOfTab = index * snapInterval;
@@ -79,13 +81,14 @@ const InfoTab = ({
           alignItems: "center",
         }}
       >
-        <Animated.Text
-          style={{ fontSize: 36 }}
-          sharedTransitionTag={`card_title_${tab.id}`}
-          className="text-white font-semibold text-center"
-        >
-          {tab.title}
-        </Animated.Text>
+        {!hideTitle && (
+          <Text
+            style={{ fontSize: 36 }}
+            className="text-white font-semibold text-center"
+          >
+            {tab.title}
+          </Text>
+        )}
       </View>
 
       <TouchableOpacity
@@ -121,11 +124,10 @@ const Info = () => {
   const bgColors = ["#f57300", "#1f7f5d", "#FF511B", "#D939D9"];
   const inputRange = [0, snapInterval, snapInterval * 2, snapInterval * 3];
 
-  const [activeId, setActiveId] = useState<string | null>(null);
-
   useFocusEffect(
     useCallback(() => {
-      return () => setActiveId(null);
+      console.log("do nothing but can fix transition problem!");
+      return () => {};
     }, []),
   );
 
@@ -190,7 +192,7 @@ const Info = () => {
 
       {/* Drawer Toggle */}
       <TouchableOpacity
-        className="ml-auto mt-20 py-4 mb-2 px-3 z-50"
+        className="ml-auto mt-20 py-4 mb-2 px-3  mr-2 z-50"
         onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
       >
         <View style={{ width: 18 }} className="w-8 flex gap-1">
@@ -220,8 +222,6 @@ const Info = () => {
               tabWidth={tabWidth}
               gap={gap}
               snapInterval={snapInterval}
-              activeId={activeId}
-              setActiveId={setActiveId}
             />
           ))}
         </Animated.ScrollView>
