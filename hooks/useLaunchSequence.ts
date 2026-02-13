@@ -99,6 +99,19 @@ const [reviewScheduleWordSubscription, setReviewScheduleWordSubscription] = useS
       try {
         await getCurrentUser();
         console.log("[LaunchSequence] Resume: session still valid");
+        // If the app becomes active, check if all the subscriptions are still active
+        if (!wordsSubscription) {
+          subscribeToWords();
+        }
+        if (!reviewScheduleSubscription) {
+          subscribeToReviewSchedules();
+        }
+        if (!completedReviewScheduleSubscription) {
+          subscribeToCompletedReviewSchedules();
+        }
+        if (!reviewScheduleWordSubscription) {
+          subscribeToReviewScheduleWords();
+        }
       } catch {
         handleAuthFail("resume_session_invalid");
       }
