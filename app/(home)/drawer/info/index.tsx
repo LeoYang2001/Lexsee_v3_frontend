@@ -67,6 +67,7 @@ const InfoTab = ({
       ]}
       className="bg-[#131416] relative rounded-lg p-4"
       // Expanding the whole card
+      sharedTransitionTag={`card_container_${tab.id}`}
     >
       <View
         style={{
@@ -78,12 +79,13 @@ const InfoTab = ({
           alignItems: "center",
         }}
       >
-        <Text
+        <Animated.Text
           style={{ fontSize: 36 }}
+          sharedTransitionTag={`card_title_${tab.id}`}
           className="text-white font-semibold text-center"
         >
           {tab.title}
-        </Text>
+        </Animated.Text>
       </View>
 
       <TouchableOpacity

@@ -52,29 +52,39 @@ export default function InfoDetailed() {
   if (!currentTab) return null;
 
   return (
-    <Animated.View
-      // 🔑 The KEY is critical: it forces a re-mount if focus changes,
-      // which is what fixes the "one-time-only" animation issue.
-      style={{ flex: 1, backgroundColor: "#131416" }}
-    >
-      {/* 1. HERO IMAGE */}
-      <Animated.Image
-        sharedTransitionTag={`card_image_${id}`}
-        source={currentTab.image}
-        style={styles.heroImage}
-        resizeMode="cover"
-      />
+    <View className=" flex-1 w-full bg-[#131416]">
+      <Animated.View
+        sharedTransitionTag={`card_container_${id}`}
+        // 🔑 The KEY is critical: it forces a re-mount if focus changes,
+        // which is what fixes the "one-time-only" animation issue.
+        className="flex-1 bg-[#131416] flex flex-col "
+      >
+        {/* 1. HERO IMAGE */}
+        <Animated.Image
+          sharedTransitionTag={`card_image_${id}`}
+          source={currentTab.image}
+          style={styles.heroImage}
+          resizeMode="cover"
+          className="absolute top-0 left-0 border border-red-50"
+        />
 
-      {/* 2. BACK BUTTON */}
-      <SafeAreaView style={styles.headerOverlay}>
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color="white" />
-        </TouchableOpacity>
-      </SafeAreaView>
-    </Animated.View>
+        {/* 2. BACK BUTTON */}
+        <SafeAreaView className=" border border-red-500  flex flex-1 w-full h-full">
+          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+            <Feather name="arrow-left" size={24} color="white" />
+          </TouchableOpacity>
+        </SafeAreaView>
+      </Animated.View>
+    </View>
   );
 }
 
+//  <Animated.Text
+//           sharedTransitionTag={`card_title_${id}`}
+//           style={styles.title}
+//         >
+//           {currentTab.title}
+//         </Animated.Text>
 const styles = StyleSheet.create({
   heroImage: {
     width: "100%",
