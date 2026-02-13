@@ -47,38 +47,35 @@ export const fetchTodaySchedule = createAsyncThunk(
 
       let todayAndPastDueWords = [];
 
-      const pastDueSchedules = await (client.models as any).ReviewSchedule.list(
-        {
-          filter: {
-            and: [
-              { userProfileId: { eq: userProfileId } },
-              { scheduleDate: { lt: currentDate } },
-            ],
-          },
-          limit: 1000,
+      const pastDueSchedules = await (
+        client.models as any
+      ).ReviewSchedule.listReviewSchduleByUserProfileId({
+        userProfileId: userProfileId,
+        filter: {
+          scheduleDate: { lt: currentDate },
         },
-      );
+        limit: 1000,
+      });
 
       const pastDueScheduleIds = pastDueSchedules.data
         ? pastDueSchedules.data.map((schedule: any) => schedule.id)
         : [];
 
-      let pastDueWordEntities = { data: [] };
+      let pastDueWords: any[] = [];
       if (pastDueScheduleIds.length > 0) {
-        const orConditions = pastDueScheduleIds.map((id: string) => ({
-          reviewScheduleId: { eq: id },
-        }));
+        const pastDueWordsPromises = pastDueScheduleIds.map((id: string) =>
+          (
+            client.models as any
+          ).ReviewScheduleWord.listReviewScheduleWordByReviewScheduleId({
+            reviewScheduleId: id,
+          }),
+        );
 
-        pastDueWordEntities = await (
-          client.models as any
-        ).ReviewScheduleWord.list({
-          filter: {
-            or: orConditions,
-          },
-          limit: 1000,
-        });
+        const pastDueWordResults = await Promise.all(pastDueWordsPromises);
+        pastDueWords = pastDueWordResults.flatMap(
+          (result) => result.data || [],
+        );
       }
-      const pastDueWords = pastDueWordEntities.data || [];
 
       // Clean the review words data to remove non-serializable functions
       // Filter out REVIEWED words, only keep TO_REVIEW
@@ -100,12 +97,12 @@ export const fetchTodaySchedule = createAsyncThunk(
         }));
 
       // Fetch today's schedule
-      const todaySchedule = await (client.models as any).ReviewSchedule.list({
+      const todaySchedule = await (
+        client.models as any
+      ).ReviewSchedule.listReviewSchduleByUserProfileId({
+        userProfileId: userProfileId,
         filter: {
-          and: [
-            { userProfileId: { eq: userProfileId } },
-            { scheduleDate: { eq: currentDate } },
-          ],
+          scheduleDate: { eq: currentDate },
         },
         limit: 1000,
       });
@@ -117,24 +114,20 @@ export const fetchTodaySchedule = createAsyncThunk(
           ? todaySchedule.data.map((schedule: any) => schedule.id)
           : [];
 
-        let todayWordEntities = { data: [] };
+        let todayWords: any[] = [];
 
         if (todayScheduleIds.length > 0) {
-          const orConditions = todayScheduleIds.map((id: string) => ({
-            reviewScheduleId: { eq: id },
-          }));
+          const todayWordsPromises = todayScheduleIds.map((id: string) =>
+            (
+              client.models as any
+            ).ReviewScheduleWord.listReviewScheduleWordByReviewScheduleId({
+              reviewScheduleId: id,
+            }),
+          );
 
-          todayWordEntities = await (
-            client.models as any
-          ).ReviewScheduleWord.list({
-            filter: {
-              or: orConditions,
-            },
-            limit: 1000,
-          });
+          const todayWordResults = await Promise.all(todayWordsPromises);
+          todayWords = todayWordResults.flatMap((result) => result.data || []);
         }
-
-        const todayWords = todayWordEntities.data || [];
 
         // Clean the review words data to remove non-serializable functions
         // Filter out REVIEWED words, only keep TO_REVIEW
