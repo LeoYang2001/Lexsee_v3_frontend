@@ -31,30 +31,33 @@ export default function SignInScreen() {
   const router = useRouter();
 
   const handleSignIn = async () => {
-  if (!email || !password) {
-    Alert.alert("Error", "Please fill in all fields");
-    return;
-  }
-
-  setLoading(true);
-  try {
-    const { isSignedIn, nextStep } = await signIn({ username: email, password });
-    
-    if (isSignedIn) {
-       console.log("✅ Auth success. Letting LaunchSequence take over...");
-       // DON'T navigate. DON'T dispatch fetchUserInfo.
-       // The Hub listener in useLaunchSequence will catch this and handle the data.
-       setTimeout(() => {
-        setLoading(false);
-      }, 2000);
-    } else if (nextStep.signInStep === "CONFIRM_SIGN_UP") {
-       router.push({ pathname: "/(auth)/verify-email", params: { email } });
-        setLoading(false);
+    if (!email || !password) {
+      Alert.alert("Error", "Please fill in all fields");
+      return;
     }
-  } catch (error) {
-    Alert.alert("Sign In Error", (error as Error).message);
-  } 
-};
+
+    setLoading(true);
+    try {
+      const { isSignedIn, nextStep } = await signIn({
+        username: email,
+        password,
+      });
+
+      if (isSignedIn) {
+        console.log("✅ Auth success. Letting LaunchSequence take over...");
+        // DON'T navigate. DON'T dispatch fetchUserInfo.
+        // The Hub listener in useLaunchSequence will catch this and handle the data.
+        setTimeout(() => {
+          setLoading(false);
+        }, 2000);
+      } else if (nextStep.signInStep === "CONFIRM_SIGN_UP") {
+        router.push({ pathname: "/(auth)/verify-email", params: { email } });
+        setLoading(false);
+      }
+    } catch (error) {
+      Alert.alert("Sign In Error", (error as Error).message);
+    }
+  };
 
   const handleSignInWithGoogle = async () => {
     try {
@@ -69,7 +72,6 @@ export default function SignInScreen() {
     } catch (e) {
       setLoading(false);
       console.error("Error signing in with Google:", e);
-      
     }
   };
 
@@ -79,7 +81,7 @@ export default function SignInScreen() {
       await signInWithRedirect({
         provider: "Apple",
       });
-        setTimeout(() => {
+      setTimeout(() => {
         setLoading(false);
       }, 2000);
     } catch (e) {
@@ -276,7 +278,7 @@ export default function SignInScreen() {
                 </Link>
               </View>
 
-              <Button title="Reset Auth State" onPress={() => signOut()} />
+              {/* <Button title="Reset Auth State" onPress={() => signOut()} /> */}
             </View>
           </View>
         </ScrollView>
