@@ -28,7 +28,6 @@ Notifications.setNotificationHandler({
 
 SplashScreen.preventAutoHideAsync();
 
-
 function AppContent() {
   // Run launch sequence - handles all initialization:
   // 1. China user check (useCheckChina)
@@ -39,7 +38,7 @@ function AppContent() {
   //      c. Fetch all-time review schedules (only if profile exists)
   //    - If failed: redirect to login
   // 3. Setup schedule subscription (when profile is loaded)
-  const { appReady, targetRoute} = useLaunchSequence();
+  const { appReady, targetRoute } = useLaunchSequence();
   const navigatedRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -56,50 +55,48 @@ function AppContent() {
     };
 
     run();
-    
   }, [appReady, targetRoute]);
   return (
-   <View className="flex-1">
-     <Stack>
-      
-      <Stack.Screen
-        name="index"
-        options={{ headerShown: false, animation: "fade" }}
-      />
-      <Stack.Screen
-        name="(auth)"
-        options={{ headerShown: false, animation: "fade" }}
-      />
-      <Stack.Screen
-        name="(home)"
-        options={{ headerShown: false, animation: "fade" }}
-      />
-      <Stack.Screen name="(about)" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="(definition)"
-        options={{ headerShown: false, animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="(gallery)"
-        options={{ headerShown: false, animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="(inventory)"
-        options={{ headerShown: false, animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="(reviewQueue)"
-        options={{ headerShown: false, animation: "fade" }}
-      />
-      <Stack.Screen
-        name="(progress)"
-        options={{ headerShown: false, animation: "slide_from_right" }}
-      />
-    
-      <Stack.Screen name="+not-found" options={{ title: "Not Found" }} />
-    </Stack>
-    <OnboardingOverlay />
-   </View>
+    <View className="flex-1">
+      <Stack>
+        <Stack.Screen
+          name="index"
+          options={{ headerShown: false, animation: "fade" }}
+        />
+        <Stack.Screen
+          name="(auth)"
+          options={{ headerShown: false, animation: "fade" }}
+        />
+        <Stack.Screen
+          name="(home)"
+          options={{ headerShown: false, animation: "fade" }}
+        />
+        <Stack.Screen name="(about)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="(definition)"
+          options={{ headerShown: false, animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="(gallery)"
+          options={{ headerShown: false, animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="(inventory)"
+          options={{ headerShown: false, animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="(reviewQueue)"
+          options={{ headerShown: false, animation: "fade" }}
+        />
+        <Stack.Screen
+          name="(progress)"
+          options={{ headerShown: false, animation: "slide_from_right" }}
+        />
+
+        <Stack.Screen name="+not-found" options={{ title: "Not Found" }} />
+      </Stack>
+      <OnboardingOverlay />
+    </View>
   );
 }
 
@@ -108,11 +105,11 @@ export default function RootLayout() {
     <ThemeProvider>
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
-        <Authenticator.Provider>
-          <OnboardingProvider>
-            <AppContent />
-          </OnboardingProvider>
-        </Authenticator.Provider>
+          <Authenticator.Provider>
+            <OnboardingProvider>
+              <AppContent />
+            </OnboardingProvider>
+          </Authenticator.Provider>
         </PersistGate>
       </Provider>
     </ThemeProvider>
