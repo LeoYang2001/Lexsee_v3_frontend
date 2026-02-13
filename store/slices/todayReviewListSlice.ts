@@ -68,6 +68,7 @@ export const fetchTodaySchedule = createAsyncThunk(
             client.models as any
           ).ReviewScheduleWord.listReviewScheduleWordByReviewScheduleId({
             reviewScheduleId: id,
+            limit: 1000,
           }),
         );
 
@@ -122,6 +123,7 @@ export const fetchTodaySchedule = createAsyncThunk(
               client.models as any
             ).ReviewScheduleWord.listReviewScheduleWordByReviewScheduleId({
               reviewScheduleId: id,
+              limit: 1000,
             }),
           );
 

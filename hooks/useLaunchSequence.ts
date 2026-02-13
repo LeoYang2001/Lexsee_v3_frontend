@@ -363,7 +363,6 @@ export function useLaunchSequence() {
       client as any
     ).models.UserProfile.listUserProfileByUserId({
       userId,
-      limit: 1000,
     });
 
     const profileData = response?.data?.[0];
