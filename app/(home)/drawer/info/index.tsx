@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, TouchableOpacity, Dimensions } from "react-native";
-import { router, useNavigation } from "expo-router";
+import { router, useFocusEffect, useNavigation } from "expo-router";
 import { DrawerActions } from "@react-navigation/routers";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
@@ -16,10 +16,20 @@ const AnimatedView = Animated.createAnimatedComponent(View);
 const { width: windowWidth } = Dimensions.get("window");
 
 // --- 1. Sub-Component for each Tab ---
-const InfoTab = ({ tab, index, scrollX, snapInterval, tabWidth, gap }: any) => {
+const InfoTab = ({
+  tab,
+  index,
+  scrollX,
+  snapInterval,
+  tabWidth,
+  gap,
+  activeId,
+  setActiveId,
+}: any) => {
+  const isActive = activeId === tab.id;
+
   const handlePress = () => {
-    // We navigate to the detail page, passing the ID
-    // The sharedTransitionTag will be constructed identically on both sides
+    setActiveId(tab.id); // mark THIS one as the shared element source
     router.push({
       pathname: "/(home)/drawer/info/detail",
       params: { id: tab.id },
@@ -57,7 +67,6 @@ const InfoTab = ({ tab, index, scrollX, snapInterval, tabWidth, gap }: any) => {
       ]}
       className="bg-[#131416] relative rounded-lg p-4"
       // Expanding the whole card
-      sharedTransitionTag={`card_container_${tab.id}`}
     >
       <View
         style={{
@@ -109,6 +118,14 @@ const Info = () => {
   const scrollX = useSharedValue(0);
   const bgColors = ["#f57300", "#1f7f5d", "#FF511B", "#D939D9"];
   const inputRange = [0, snapInterval, snapInterval * 2, snapInterval * 3];
+
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => setActiveId(null);
+    }, []),
+  );
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -201,6 +218,8 @@ const Info = () => {
               tabWidth={tabWidth}
               gap={gap}
               snapInterval={snapInterval}
+              activeId={activeId}
+              setActiveId={setActiveId}
             />
           ))}
         </Animated.ScrollView>

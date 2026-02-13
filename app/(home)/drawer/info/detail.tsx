@@ -56,7 +56,6 @@ export default function InfoDetailed() {
       // 🔑 The KEY is critical: it forces a re-mount if focus changes,
       // which is what fixes the "one-time-only" animation issue.
       style={{ flex: 1, backgroundColor: "#131416" }}
-      sharedTransitionTag={`card_container_${id}`}
     >
       {/* 1. HERO IMAGE */}
       <Animated.Image
