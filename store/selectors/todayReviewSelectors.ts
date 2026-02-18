@@ -64,21 +64,6 @@ export const getReviewWordsForToday = createSelector(
       (sw) => sw.status === "TO_REVIEW",
     );
 
-    const allActiveWords_withDetails = allActiveWords.map((sw) => {
-      const detail = words.find((w) => w.id === sw.wordId);
-
-      if (!detail) {
-        console.warn(`[Selector] ⚠️ Missing word detail for ID: ${sw.wordId}`);
-      }
-
-      return {
-        ...sw, // Includes sw.id, sw.status, sw.reviewScheduleId
-        ...detail, // Includes word, meanings, phonetics, etc.
-        scheduleWordId: sw.id, // Explicitly naming it for clarity in your handlers
-        ifPastDue: sw.reviewScheduleId !== todaySchedule?.id,
-      };
-    });
-
     // 1. Join Words
 
     const toBeReviewedActiveWords_withDetails = toBeReviewedActiveWords.map(
@@ -112,13 +97,29 @@ export const getReviewWordsForToday = createSelector(
     ).length;
     const todayCount = toBeReviewedActiveWords_withDetails.length - pastCount;
 
+    console.log("COUNT DATA:", {
+      totalCount,
+      completedCount,
+      pastCount,
+      todayCount,
+    });
+
     // 3. Determine ReviewStatus
     let finalStatus: "review_begin" | "review_in_progress" | "viewProgress" =
       "viewProgress";
 
-    console.log(
-      `[Selector] ✅ Final Stats -> Total: ${totalCount}, Done: ${completedCount}, Status: ${finalStatus}`,
-    );
+    if (totalCount === 0) {
+      finalStatus = "viewProgress";
+    } else {
+      if (completedCount === 0) {
+        finalStatus = "review_begin";
+      } else if (completedCount < totalCount) {
+        finalStatus = "review_in_progress";
+      } else {
+        finalStatus = "viewProgress";
+      }
+    }
+
     return {
       todayScheduleId: todaySchedule?.id || null,
       pastScheduleIds,

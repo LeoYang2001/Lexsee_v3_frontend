@@ -18,8 +18,6 @@ import Animated, {
 } from "react-native-reanimated";
 import { ConversationResponse } from "../../apis/AIFeatures";
 
-
-
 interface ReviewFlexCardProps {
   word: any;
   familiarityLevel: string;
@@ -32,7 +30,6 @@ interface ReviewFlexCardProps {
 
 const { width, height } = Dimensions.get("window");
 const BORDER_RADIUS = Math.min(width, height) * 0.06;
-
 
 const AnimatedLoadingMessages = () => {
   const messages = [
@@ -190,7 +187,7 @@ const ReviewFlexCard = ({
   familiarityLevel,
   isLoading = false,
   conversationData,
-  ifShowConfirmPage
+  ifShowConfirmPage,
 }: ReviewFlexCardProps) => {
   const [isImageZoomed, setIsImageZoomed] = useState(false);
   const [contentHeight, setContentHeight] = useState(200);
@@ -307,9 +304,13 @@ const ReviewFlexCard = ({
           <Text style={{ fontSize: 14 }} className="color-white opacity-30">
             Remember the word?
           </Text>
-          <View className="mt-6">
-            <PhoneticAudio size={32} phonetics={word.phonetics} />
+          <Text className=" my-6" style={{ fontSize: 32, color: "white" }}>
+            {word.word}
+          </Text>
+          <View>
+            <PhoneticAudio size={18} phonetics={word.phonetics} />
           </View>
+
           <View className="mt-4 flex-row flex-wrap gap-2">
             {word?.meanings.map((meaning: any, index: number) => (
               <View
@@ -483,10 +484,6 @@ const ReviewFlexCard = ({
               >
                 <View
                   style={{
-                    position: "absolute",
-                    top: "50%",
-                    left: "50%",
-                    transform: [{ translateX: `-50%` }, { translateY: `-50%` }],
                     backgroundColor: "rgba(0, 0, 0, 0.6)",
                     borderRadius: 8,
                     paddingHorizontal: 12,
@@ -534,7 +531,7 @@ const ReviewFlexCard = ({
                               const messageText = item.message;
                               const regex = new RegExp(
                                 `\\b(${targetWord})\\b`,
-                                "gi"
+                                "gi",
                               );
                               const parts = messageText.split(regex);
 
@@ -564,14 +561,14 @@ const ReviewFlexCard = ({
                                       </Text>
                                     ) : (
                                       <Text key={idx}>{part}</Text>
-                                    )
+                                    ),
                                   )}
                                   "
                                 </Text>
                               );
                             })()}
                           </View>
-                        )
+                        ),
                       )}
                     </View>
                   );
@@ -606,13 +603,11 @@ const ReviewFlexCard = ({
           onLayout={() => measureContent("poor")}
           className="flex-col pt-6 pb-8 items-center"
         >
-          {
-            !ifShowConfirmPage && (
+          {!ifShowConfirmPage && (
             <Text style={{ fontSize: 14 }} className="color-white opacity-30">
               Don't worry! Let's review the word together.
             </Text>
-            )
-          }
+          )}
           <Text className=" my-6" style={{ fontSize: 32, color: "white" }}>
             {word.word}
           </Text>
@@ -677,7 +672,7 @@ const ReviewFlexCard = ({
             </View>
           )}
           <View className="mt-4 px-2 w-full">
-            {word?.meanings.map((meaning: any, index: number  ) => (
+            {word?.meanings.map((meaning: any, index: number) => (
               <View key={index} className="mb-3 flex flex-col">
                 <Text
                   style={{ fontSize: 14 }}
@@ -719,12 +714,18 @@ const ReviewFlexCard = ({
       >
         {/* Animated Content */}
         <Animated.View style={[animatedContentStyle, { flex: 1 }]}>
-          { (familiarityLevel === "excellent" && !ifShowConfirmPage) && (
+          {familiarityLevel === "excellent" && !ifShowConfirmPage && (
             <ExcellentContent isLoading={isLoading} />
           )}
-          { (familiarityLevel === "good" && !ifShowConfirmPage) && <GoodContent isLoading={isLoading} />}
-          { (familiarityLevel === "fair" && !ifShowConfirmPage) && <FairContent isLoading={isLoading} />}
-          {(familiarityLevel === "poor" ||  ifShowConfirmPage) && <PoorContent isLoading={isLoading} />}
+          {familiarityLevel === "good" && !ifShowConfirmPage && (
+            <GoodContent isLoading={isLoading} />
+          )}
+          {familiarityLevel === "fair" && !ifShowConfirmPage && (
+            <FairContent isLoading={isLoading} />
+          )}
+          {(familiarityLevel === "poor" || ifShowConfirmPage) && (
+            <PoorContent isLoading={isLoading} />
+          )}
         </Animated.View>
       </Animated.View>
     </>
