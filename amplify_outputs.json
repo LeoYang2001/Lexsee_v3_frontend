@@ -1,9 +1,9 @@
 {
   "auth": {
-    "user_pool_id": "us-east-2_imFCm4J4g",
+    "user_pool_id": "us-east-2_Eu0ihSMKy",
     "aws_region": "us-east-2",
-    "user_pool_client_id": "65n1k10bec2gnrbn9gm6pe49bi",
-    "identity_pool_id": "us-east-2:7bde6980-7f70-4197-8edb-7458924267f5",
+    "user_pool_client_id": "3qggq1qlj2belidn4s4hspak4e",
+    "identity_pool_id": "us-east-2:65559298-7a7e-44da-aa2d-071266b40989",
     "mfa_methods": [],
     "standard_required_attributes": [],
     "username_attributes": [
@@ -40,12 +40,12 @@
         "profile",
         "aws.cognito.signin.user.admin"
       ],
-      "domain": "5484d37ab3d9535a075e.auth.us-east-2.amazoncognito.com"
+      "domain": "2c95cc0093e69f5cbada.auth.us-east-2.amazoncognito.com"
     },
     "unauthenticated_identities_enabled": true
   },
   "data": {
-    "url": "https://xutqdrczgbbqzgjkvkpoo26yxq.appsync-api.us-east-2.amazonaws.com/graphql",
+    "url": "https://kblrhxcrmrdrhc4edve5q4azmu.appsync-api.us-east-2.amazonaws.com/graphql",
     "aws_region": "us-east-2",
     "default_authorization_type": "AMAZON_COGNITO_USER_POOLS",
     "authorization_types": [
@@ -188,16 +188,6 @@
             {
               "type": "model",
               "properties": {}
-            },
-            {
-              "type": "key",
-              "properties": {
-                "name": "userProfilesByUserId",
-                "queryField": "listUserProfileByUserId",
-                "fields": [
-                  "userId"
-                ]
-              }
             },
             {
               "type": "auth",
@@ -559,16 +549,6 @@
               "properties": {}
             },
             {
-              "type": "key",
-              "properties": {
-                "name": "reviewSchedulesByUserProfileId",
-                "queryField": "listReviewScheduleByUserProfileId",
-                "fields": [
-                  "userProfileId"
-                ]
-              }
-            },
-            {
               "type": "auth",
               "properties": {
                 "rules": [
@@ -723,16 +703,6 @@
             {
               "type": "model",
               "properties": {}
-            },
-            {
-              "type": "key",
-              "properties": {
-                "name": "reviewScheduleWordsByReviewScheduleId",
-                "queryField": "listReviewScheduleWordByReviewScheduleId",
-                "fields": [
-                  "reviewScheduleId"
-                ]
-              }
             },
             {
               "type": "auth",
