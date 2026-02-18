@@ -335,10 +335,7 @@ export function useLaunchSequence() {
       console.log("🏁 [Sequence] All systems GO.");
       return true;
     } catch (error) {
-      console.error(
-        "❌ [Sequence] Critical failure during init:",
-        JSON.stringify(error),
-      );
+      console.error("❌ [Sequence] Critical failure during init:", error);
       signOut();
 
       // if fail error is [NoSignedUser: No current user]
@@ -357,11 +354,12 @@ export function useLaunchSequence() {
   };
   const fetchProfile = async (userId: string) => {
     console.log("⏳ [Fetch] Checking for profile...");
-
+    console.log(
+      "🔍 DEBUG - UserProfile Methods:",
+      Object.keys((client as any).models.UserProfile),
+    );
     /// 1. Fetch with Selection Set
-    const response = await (
-      client as any
-    ).models.UserProfile.listUserProfileByUserId({
+    const response = await (client as any).models.UserProfile.listByUserId({
       userId,
     });
 
