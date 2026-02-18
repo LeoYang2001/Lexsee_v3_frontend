@@ -49,7 +49,7 @@ export const fetchTodaySchedule = createAsyncThunk(
 
       const pastDueSchedules = await (
         client.models as any
-      ).ReviewSchedule.listReviewSchduleByUserProfileId({
+      ).ReviewSchedule.listReviewScheduleByUserProfileId({
         userProfileId: userProfileId,
         filter: {
           scheduleDate: { lt: currentDate },
@@ -100,7 +100,7 @@ export const fetchTodaySchedule = createAsyncThunk(
       // Fetch today's schedule
       const todaySchedule = await (
         client.models as any
-      ).ReviewSchedule.listReviewSchduleByUserProfileId({
+      ).ReviewSchedule.listReviewScheduleByUserProfileId({
         userProfileId: userProfileId,
         filter: {
           scheduleDate: { eq: currentDate },

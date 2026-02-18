@@ -14,7 +14,7 @@ const getOrCreateReviewSchedule = async (
     // Check if schedule already exists for this date
     const existing = await (
       client as any
-    ).models.ReviewSchedule.listReviewSchduleByUserProfileId({
+    ).models.ReviewSchedule.listReviewScheduleByUserProfileId({
       userProfileId: userProfileId,
       filter: {
         scheduleDate: { eq: scheduleDate },
