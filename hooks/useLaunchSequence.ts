@@ -5,7 +5,12 @@ import { Alert, AppState } from "react-native";
 import { client } from "../app/client";
 import { setProfile, UserProfile } from "../store/slices/profileSlice";
 import { useDispatch } from "react-redux";
-import {  checkIfTrialExpired, cleanSchedules, cleanScheduleWords, cleanWords } from "../util/utli";
+import {
+  checkIfTrialExpired,
+  cleanSchedules,
+  cleanScheduleWords,
+  cleanWords,
+} from "../util/utli";
 import { setSynced, setWords } from "../store/slices/wordsListSlice";
 import {
   setReviewSchedules,
@@ -28,16 +33,14 @@ import { setProStatus } from "../store/slices/subscriptionSlice";
 import { store } from "../store";
 import RevenueCatUI from "react-native-purchases-ui";
 
-
 type AuthMode = "unknown" | "authed" | "guest";
 const REVENUECAT_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY;
 
 const timeout = (ms: number) => {
-  return new Promise((_, reject) => 
-    setTimeout(() => reject(new Error("TIMEOUT")), ms)
+  return new Promise((_, reject) =>
+    setTimeout(() => reject(new Error("TIMEOUT")), ms),
   );
 };
-
 
 export function useLaunchSequence() {
   const router = useRouter();
@@ -50,7 +53,6 @@ export function useLaunchSequence() {
   // AI settings from Redux
   const { hasTested } = useAppSelector((state) => state.aiSettings);
 
-
   //Subscription to Words WebSocket
   const [wordsSubscription, setWordsSubscription] = useState<any>(null);
   const [reviewScheduleSubscription, setReviewScheduleSubscription] =
@@ -61,7 +63,6 @@ export function useLaunchSequence() {
   ] = useState<any>(null);
   const [reviewScheduleWordSubscription, setReviewScheduleWordSubscription] =
     useState<any>(null);
-
 
   // Redux dispatch
   const dispatch = useDispatch();
@@ -86,36 +87,39 @@ export function useLaunchSequence() {
     let mounted = true;
 
     const resolveInitialAuth = async () => {
-    console.log("[LaunchSequence] Cold start started");
+      console.log("[LaunchSequence] Cold start started");
 
-    try {
-      // 🚀 THE UMBRELLA TIMEOUT
-      // This covers BOTH getCurrentUser AND handleAuthSuccess (initializeData)
-      await Promise.race([
-        (async () => {
-          const user = await getCurrentUser();
-          if (!mounted) return;
-          await handleAuthSuccess("cold_start");
-        })(),
-        timeout(8000) // Give the whole "Log in + Sync" process 8 seconds
-      ]);
+      try {
+        // 🚀 THE UMBRELLA TIMEOUT
+        // This covers BOTH getCurrentUser AND handleAuthSuccess (initializeData)
+        await Promise.race([
+          (async () => {
+            const user = await getCurrentUser();
+            if (!mounted) return;
+            await handleAuthSuccess("cold_start");
+          })(),
+          timeout(8000), // Give the whole "Log in + Sync" process 8 seconds
+        ]);
+      } catch (error: any) {
+        if (!mounted) return;
 
-    } catch (error: any) {
-      if (!mounted) return;
-      
-      // If it times out or getCurrentUser fails, 
-      // handleAuthFail will clear the splash screen and move to Login.
-      console.log("[LaunchSequence] Launch failed or timed out:", error.message);
-      handleAuthFail(error.message === "TIMEOUT" ? "network_timeout" : "auth_error");
-    }
-  };
+        // If it times out or getCurrentUser fails,
+        // handleAuthFail will clear the splash screen and move to Login.
+        console.log(
+          "[LaunchSequence] Launch failed or timed out:",
+          error.message,
+        );
+        handleAuthFail(
+          error.message === "TIMEOUT" ? "network_timeout" : "auth_error",
+        );
+      }
+    };
     resolveInitialAuth();
 
     // Hub reactive auth changes (runtime)
     const unsubscribe = Hub.listen("auth", ({ payload }) => {
       const event = payload.event;
       console.log("[LaunchSequence] Hub event:", event);
-      
 
       if (event === "signedOut") {
         handleAuthFail("hub_signedOut");
@@ -176,41 +180,43 @@ export function useLaunchSequence() {
     console.log("[LaunchSequence] Auth failed:", reason ?? "unknown");
 
     if (reason === "network_timeout") {
-    // Maybe show a specific Toast or Banner: "Offline mode enabled"
-    Alert.alert(
-      "Network issues",
-      "We had trouble connecting to the server. Please check your internet connection and try again.",
-      [{ text: "Retry", onPress: () => handleAuthFail("network_timeout") }],
-    );
-    return;
-  }
+      // Maybe show a specific Toast or Banner: "Offline mode enabled"
+      Alert.alert(
+        "Network issues",
+        "We had trouble connecting to the server. Please check your internet connection and try again.",
+        [{ text: "Retry", onPress: () => handleAuthFail("network_timeout") }],
+      );
+      return;
+    }
 
     // 1. Close WebSockets
-   try {
-     unsubscribeAll();
-     
-     // 2. Safely log out of RevenueCat
-    const isConfigured = await Purchases.isConfigured();
-    if (isConfigured) {
-      // Check if the user is actually identified before logging out
-      const isAnonymous = await Purchases.isAnonymous();
-      
-      if (!isAnonymous) {
-        await Purchases.logOut();
-        console.log("🧹 [Cleanup] RevenueCat identified user logged out.");
-      } else {
-        console.log("ℹ️ [Cleanup] User already anonymous, skipping RC logout.");
+    try {
+      unsubscribeAll();
+
+      // 2. Safely log out of RevenueCat
+      const isConfigured = await Purchases.isConfigured();
+      if (isConfigured) {
+        // Check if the user is actually identified before logging out
+        const isAnonymous = await Purchases.isAnonymous();
+
+        if (!isAnonymous) {
+          await Purchases.logOut();
+          console.log("🧹 [Cleanup] RevenueCat identified user logged out.");
+        } else {
+          console.log(
+            "ℹ️ [Cleanup] User already anonymous, skipping RC logout.",
+          );
+        }
       }
-    }
-      dispatch({ type: 'USER_LOGOUT' });
+      dispatch({ type: "USER_LOGOUT" });
 
       setAuthMode("guest");
 
       setRouteOnce("/(auth)");
       setAppReady(true);
-   } catch (error) {
-      console.log('[LaunchSequence] Error during auth fail handling:', error);
-   }
+    } catch (error) {
+      console.log("[LaunchSequence] Error during auth fail handling:", error);
+    }
   };
 
   /**
@@ -220,68 +226,72 @@ export function useLaunchSequence() {
     setAuthMode("authed");
 
     // 1. Settle period for Hub events
-  if (source === "hub") await new Promise(res => setTimeout(res, 200));
+    if (source === "hub") await new Promise((res) => setTimeout(res, 200));
 
-  let retryCount = 0;
-  const maxRetries = 3;
+    let retryCount = 0;
+    const maxRetries = 3;
 
-  const tryInitialize = async () => {
-    try {
-      const user = await getCurrentUser();
-      const success = await initializeData(user.userId);
-      if (success) {
-        setRouteOnce("/(home)");
-        // setRouteOnce("/(auth)/provision");
-        setAppReady(true);
+    const tryInitialize = async () => {
+      try {
+        const user = await getCurrentUser();
+        const success = await initializeData(user.userId);
+        if (success) {
+          setRouteOnce("/(home)");
+          // setRouteOnce("/(auth)/provision");
+          setAppReady(true);
+        }
+      } catch (err) {
+        if (retryCount < maxRetries) {
+          retryCount++;
+          console.log(`⚠️ Auth race detected. Retry ${retryCount}...`);
+          setTimeout(tryInitialize, 500 * retryCount); // Exponential backoff
+        } else {
+          handleAuthFail("auth_initialization_retry_exhausted");
+        }
       }
-    } catch (err) {
-      if (retryCount < maxRetries) {
-        retryCount++;
-        console.log(`⚠️ Auth race detected. Retry ${retryCount}...`);
-        setTimeout(tryInitialize, 500 * retryCount); // Exponential backoff
-      } else {
-        handleAuthFail("auth_initialization_retry_exhausted");
-      }
-    }
-  };
+    };
 
-  tryInitialize();
-  
+    tryInitialize();
   };
 
   // Initialize user data after authentication
   const initializeData = async (userId: string) => {
-
-    
     console.log("🚀 [Sequence] Phase 2: Starting Data Initialization...");
     try {
       // Phase 1: Identity
       if (REVENUECAT_API_KEY) {
-      const isConfigured = await Purchases.isConfigured(); 
-      if (!isConfigured) {
-        Purchases.configure({ apiKey: REVENUECAT_API_KEY, appUserID: userId });
-        console.log('✅ RevenueCat Configured');
-      }
-      
-      // 🛡️ BLOCKING IDENTITY SYNC
-      // This ensures the SDK is locked to your Cognito userId BEFORE anything else happens
-      const loginResult = await Purchases.logIn(userId); 
-      
-      // Immediately update Redux so the rest of the app knows the status
-      const currentIsPro = !!loginResult.customerInfo.entitlements.active['LexSee Pro'];
-      dispatch(setProStatus(currentIsPro));
-      
-      console.log(`✅ [RC] Identity Synced for ${userId}. Pro Status: ${currentIsPro}`);
+        const isConfigured = await Purchases.isConfigured();
+        if (!isConfigured) {
+          Purchases.configure({
+            apiKey: REVENUECAT_API_KEY,
+            appUserID: userId,
+          });
+          console.log("✅ RevenueCat Configured");
+        }
 
-      }
-      else{
-        console.log('REVENUECAT_API_KEY is not set')
+        // 🛡️ BLOCKING IDENTITY SYNC
+        // This ensures the SDK is locked to your Cognito userId BEFORE anything else happens
+        const loginResult = await Purchases.logIn(userId);
+
+        // Immediately update Redux so the rest of the app knows the status
+        const currentIsPro =
+          !!loginResult.customerInfo.entitlements.active["LexSee Pro"];
+        dispatch(setProStatus(currentIsPro));
+
+        console.log(
+          `✅ [RC] Identity Synced for ${userId}. Pro Status: ${currentIsPro}`,
+        );
+      } else {
+        console.log("REVENUECAT_API_KEY is not set");
       }
       const profile = await fetchProfile(userId);
-      console.log('fetched profile from initializeData:', JSON.stringify(profile))
+      console.log(
+        "fetched profile from initializeData:",
+        JSON.stringify(profile),
+      );
 
       console.log("🔔 [Sequence] Checking notification permissions...");
-    await requestNotificationPermissions();
+      await requestNotificationPermissions();
 
       // Start the AI Probe (Silent / Non-blocking)
       checkAISettings();
@@ -306,32 +316,38 @@ export function useLaunchSequence() {
         await loadProfileIntoRedux(profile);
       }
 
-
       // 2. Subscriptions
       console.log("📡 [Sequence] Opening data streams (Subscriptions)...");
 
-      await subscribeToPurchases()
+      await subscribeToPurchases();
       subscribeToWords();
       subscribeToReviewSchedules();
       subscribeToCompletedReviewSchedules();
       subscribeToReviewScheduleWords();
 
-
-      const isPro = store.getState().subscription.isPro; 
-    if (checkIfTrialExpired(profile.createdAt) && !isPro) {
-      await RevenueCatUI.presentPaywallIfNeeded({
-        requiredEntitlementIdentifier: "pro",
-      });
-    }
+      const isPro = store.getState().subscription.isPro;
+      if (checkIfTrialExpired(profile.createdAt) && !isPro) {
+        await RevenueCatUI.presentPaywallIfNeeded({
+          requiredEntitlementIdentifier: "pro",
+        });
+      }
 
       console.log("🏁 [Sequence] All systems GO.");
       return true;
     } catch (error) {
-      console.error("❌ [Sequence] Critical failure during init:", JSON.stringify(error));
-        signOut();
+      console.error(
+        "❌ [Sequence] Critical failure during init:",
+        JSON.stringify(error),
+      );
+      signOut();
 
       // if fail error is [NoSignedUser: No current user]
-      if (error && typeof error === 'object' && 'name' in error && error.name === "NoSignedUser") {
+      if (
+        error &&
+        typeof error === "object" &&
+        "name" in error &&
+        error.name === "NoSignedUser"
+      ) {
         console.warn("⚠️ [Sequence] No signed-in user found.");
         // fall back
         signOut();
@@ -343,10 +359,10 @@ export function useLaunchSequence() {
     console.log("⏳ [Fetch] Checking for profile...");
 
     /// 1. Fetch with Selection Set
-    const response = await (client as any).models.UserProfile.list({
-      filter: { userId: { eq: userId } },
-      
-      limit: 1000,
+    const response = await (
+      client as any
+    ).models.UserProfile.listUserProfileByUserId({
+      userId,
     });
 
     const profileData = response?.data?.[0];
@@ -386,13 +402,12 @@ export function useLaunchSequence() {
 
   const loadProfileIntoRedux = async (profile: any) => {
     console.log("⏳ [Redux] Syncing profile to global state...");
-    console.log('loading profile info:', JSON.stringify(profile))
+    console.log("loading profile info:", JSON.stringify(profile));
     try {
-
       const attributes = await fetchUserAttributes();
 
       let providerType = undefined;
-      if(attributes.identities){
+      if (attributes.identities) {
         const parsedIdentities = JSON.parse(attributes.identities);
         providerType = parsedIdentities?.[0]?.providerType;
       }
@@ -444,8 +459,6 @@ export function useLaunchSequence() {
 
           return timeB - timeA; // Newest first
         });
-
-
 
         // 2. Update Redux with the data
         dispatch(setWords(cleanedItems));
@@ -580,51 +593,52 @@ export function useLaunchSequence() {
     return true;
   };
 
+  const subscribeToPurchases = async () => {
+    console.log("💎 [Sequence] Opening purchase stream...");
 
- const subscribeToPurchases = async () => {
-  console.log("💎 [Sequence] Opening purchase stream...");
+    // 1. Set up the Live Listener
+    Purchases.addCustomerInfoUpdateListener((info) => {
+      const activeEntitlements = Object.keys(info.entitlements.active);
+      const isPro = !!info.entitlements.active["LexSee Pro"];
 
-  // 1. Set up the Live Listener
-  Purchases.addCustomerInfoUpdateListener((info) => {
-    const activeEntitlements = Object.keys(info.entitlements.active);
-    const isPro = !!info.entitlements.active['LexSee Pro'];
-    
-    console.log("🔔 [RC Listener] Update Received");
-    console.log("   > Active Entitlements:", activeEntitlements);
-    console.log("   > Target 'LexSee Pro' found?:", isPro);
-    
-    dispatch(setProStatus(isPro));
-  });
+      console.log("🔔 [RC Listener] Update Received");
+      console.log("   > Active Entitlements:", activeEntitlements);
+      console.log("   > Target 'LexSee Pro' found?:", isPro);
 
-  // 2. Immediate Initial Check
-  try {
-    console.log("⏳ [RC Check] Fetching current CustomerInfo...");
-    const info = await Purchases.getCustomerInfo();
-    
-    const allEntitlements = Object.keys(info.entitlements.all);
-    const activeEntitlements = Object.keys(info.entitlements.active);
-    const isPro = !!info.entitlements.active['LexSee Pro'];
-
-    console.log("✅ [RC Check] Success");
-    console.log("   > All Entitlements in Dashboard:", allEntitlements);
-    console.log("   > Currently Active:", activeEntitlements);
-    console.log("   > Identified User ID:", info.originalAppUserId);
-    console.log("   > Resulting isPro:", isPro);
-
-    dispatch(setProStatus(isPro));
-  } catch (e: any) {
-    console.error("❌ [RC Check] Failed to fetch initial CustomerInfo", {
-      message: e.message,
-      code: e.code,
-      underlyingError: e.underlyingError
+      dispatch(setProStatus(isPro));
     });
-  }
-};
+
+    // 2. Immediate Initial Check
+    try {
+      console.log("⏳ [RC Check] Fetching current CustomerInfo...");
+      const info = await Purchases.getCustomerInfo();
+
+      const allEntitlements = Object.keys(info.entitlements.all);
+      const activeEntitlements = Object.keys(info.entitlements.active);
+      const isPro = !!info.entitlements.active["LexSee Pro"];
+
+      console.log("✅ [RC Check] Success");
+      console.log("   > All Entitlements in Dashboard:", allEntitlements);
+      console.log("   > Currently Active:", activeEntitlements);
+      console.log("   > Identified User ID:", info.originalAppUserId);
+      console.log("   > Resulting isPro:", isPro);
+
+      dispatch(setProStatus(isPro));
+    } catch (e: any) {
+      console.error("❌ [RC Check] Failed to fetch initial CustomerInfo", {
+        message: e.message,
+        code: e.code,
+        underlyingError: e.underlyingError,
+      });
+    }
+  };
 
   const checkAISettings = async () => {
     // If Redux-Persist already loaded 'hasTested: true' from storage, stop here.
     if (hasTested) {
-      console.log("🤖 [AI] Model preference loaded from storage. Skipping probe.");
+      console.log(
+        "🤖 [AI] Model preference loaded from storage. Skipping probe.",
+      );
       return;
     }
 
@@ -633,39 +647,38 @@ export function useLaunchSequence() {
     dispatch(probeOpenAIConnection() as any);
   };
 
-
   const unsubscribeAll = () => {
-  console.log("🧹 [Cleanup] Closing all data streams...");
-  wordsSubscription?.unsubscribe();
-  reviewScheduleSubscription?.unsubscribe();
-  completedReviewScheduleSubscription?.unsubscribe();
-  reviewScheduleWordSubscription?.unsubscribe();
-  
-  setWordsSubscription(null);
-  setReviewScheduleSubscription(null);
-  setCompletedReviewScheduleSubscription(null);
-  setReviewScheduleWordSubscription(null);
-};
+    console.log("🧹 [Cleanup] Closing all data streams...");
+    wordsSubscription?.unsubscribe();
+    reviewScheduleSubscription?.unsubscribe();
+    completedReviewScheduleSubscription?.unsubscribe();
+    reviewScheduleWordSubscription?.unsubscribe();
 
-const requestNotificationPermissions = async () => {
-  // 1. Check current status
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
+    setWordsSubscription(null);
+    setReviewScheduleSubscription(null);
+    setCompletedReviewScheduleSubscription(null);
+    setReviewScheduleWordSubscription(null);
+  };
 
-  // 2. Only ask if we don't have it yet
-  if (existingStatus !== "granted") {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
+  const requestNotificationPermissions = async () => {
+    // 1. Check current status
+    const { status: existingStatus } =
+      await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
 
+    // 2. Only ask if we don't have it yet
+    if (existingStatus !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
 
-  if (finalStatus !== "granted") {
-    console.warn("Permission not granted for notifications!");
-    return false;
-  }
+    if (finalStatus !== "granted") {
+      console.warn("Permission not granted for notifications!");
+      return false;
+    }
 
-  return true;
-};
+    return true;
+  };
   return {
     authMode,
     targetRoute,
