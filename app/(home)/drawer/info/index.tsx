@@ -10,9 +10,9 @@ import Animated, {
   interpolateColor,
   interpolate,
   Extrapolate,
-  FadeOutRight,
-  FadeInUp,
+  FadeIn,
 } from "react-native-reanimated";
+import { LEXSEE_SCIENCE_TABS } from "./data";
 
 const AnimatedView = Animated.createAnimatedComponent(View);
 const { width: windowWidth } = Dimensions.get("window");
@@ -74,7 +74,7 @@ const InfoTab = ({ tab, index, scrollX, snapInterval, tabWidth, gap }: any) => {
       <View
         style={{
           position: "absolute",
-          top: -160,
+          top: -220,
           left: 0,
           right: 0,
           zIndex: 10,
@@ -82,19 +82,29 @@ const InfoTab = ({ tab, index, scrollX, snapInterval, tabWidth, gap }: any) => {
         }}
       >
         {!hideTitle && (
-          <Text
-            style={{ fontSize: 36 }}
-            className="text-white font-semibold text-center"
-          >
-            {tab.title}
-          </Text>
+          <View>
+            <Text
+              style={{ fontSize: 32, fontWeight: "bold", color: "white" }}
+              className=" text-center"
+            >
+              {tab.title}
+            </Text>
+            {tab.quote && (
+              <Text
+                style={{ fontSize: 14 }}
+                className=" text-center  mt-4 text-white opacity-50"
+              >
+                {tab.quote}
+              </Text>
+            )}
+          </View>
         )}
       </View>
 
       <TouchableOpacity
         onPress={handlePress}
         activeOpacity={0.9}
-        className="mt-8 flex-1 flex justify-center items-center"
+        className="mt-8 flex-1 flex justify-center  items-center"
       >
         <Animated.Image
           source={tab.imagePath}
@@ -105,6 +115,7 @@ const InfoTab = ({ tab, index, scrollX, snapInterval, tabWidth, gap }: any) => {
             borderRadius: 12,
           }}
           resizeMode="cover"
+          className="  overflow-visible"
         />
       </TouchableOpacity>
     </AnimatedView>
@@ -121,7 +132,7 @@ const Info = () => {
   const contentOffset = (windowWidth - tabWidth) / 2;
 
   const scrollX = useSharedValue(0);
-  const bgColors = ["#f57300", "#1f7f5d", "#FF511B", "#D939D9"];
+  const bgColors = LEXSEE_SCIENCE_TABS.map((tab) => tab.backgroundColor);
   const inputRange = [0, snapInterval, snapInterval * 2, snapInterval * 3];
 
   useFocusEffect(
@@ -146,33 +157,11 @@ const Info = () => {
     return { backgroundColor };
   });
 
-  const tabs = [
-    {
-      id: "1",
-      title: "What LexSee Is",
-      imagePath: require("../../../../assets/lexseeScience/tab_1.png"),
-    },
-    {
-      id: "2",
-      title: "How Memory Works",
-      imagePath: require("../../../../assets/lexseeScience/tab_2.png"),
-    },
-    {
-      id: "3",
-      title: "How LexSee Helps Memory",
-      imagePath: require("../../../../assets/lexseeScience/tab_3.png"),
-    },
-    {
-      id: "4",
-      title: "How to Use LexSee Well",
-      imagePath: require("../../../../assets/lexseeScience/tab_1.png"),
-    },
-  ];
-
   return (
     <View className="flex-1 bg-[#191D24]">
       {/* Background Layer */}
       <AnimatedView
+        entering={FadeIn.delay(300).duration(700)}
         style={[
           { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
           animatedBgStyle,
@@ -213,7 +202,7 @@ const Info = () => {
           contentContainerStyle={{ paddingHorizontal: contentOffset }}
           className="mt-12 overflow-visible"
         >
-          {tabs.map((tab, index) => (
+          {LEXSEE_SCIENCE_TABS.map((tab, index) => (
             <InfoTab
               key={tab.id}
               tab={tab}
