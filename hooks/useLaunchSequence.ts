@@ -260,22 +260,24 @@ export function useLaunchSequence() {
     try {
       // Phase 1: Identity
       if (REVENUECAT_API_KEY) {
-        const isConfigured = await Purchases.isConfigured();
-        if (!isConfigured) {
-          Purchases.configure({
-            apiKey: REVENUECAT_API_KEY,
-            appUserID: userId,
-          });
-          console.log("✅ RevenueCat Configured");
-        }
+        // const isConfigured = await Purchases.isConfigured();
+        // if (!isConfigured) {
+        //   Purchases.configure({
+        //     apiKey: REVENUECAT_API_KEY,
+        //     appUserID: userId,
+        //   });
+        //   console.log("✅ RevenueCat Configured");
+        // }
 
         // 🛡️ BLOCKING IDENTITY SYNC
         // This ensures the SDK is locked to your Cognito userId BEFORE anything else happens
-        const loginResult = await Purchases.logIn(userId);
+        // const loginResult = await Purchases.logIn(userId);
 
         // Immediately update Redux so the rest of the app knows the status
-        const currentIsPro =
-          !!loginResult.customerInfo.entitlements.active["LexSee Pro"];
+        // const currentIsPro =
+        //   !!loginResult.customerInfo.entitlements.active["LexSee Pro"];
+        const currentIsPro = true;
+
         dispatch(setProStatus(currentIsPro));
 
         console.log(
@@ -319,18 +321,18 @@ export function useLaunchSequence() {
       // 2. Subscriptions
       console.log("📡 [Sequence] Opening data streams (Subscriptions)...");
 
-      await subscribeToPurchases();
+      // await subscribeToPurchases();
       subscribeToWords();
       subscribeToReviewSchedules();
       subscribeToCompletedReviewSchedules();
       subscribeToReviewScheduleWords();
 
-      const isPro = store.getState().subscription.isPro;
-      if (checkIfTrialExpired(profile.createdAt) && !isPro) {
-        await RevenueCatUI.presentPaywallIfNeeded({
-          requiredEntitlementIdentifier: "pro",
-        });
-      }
+      // const isPro = store.getState().subscription.isPro;
+      // if (checkIfTrialExpired(profile.createdAt) && !isPro) {
+      //   await RevenueCatUI.presentPaywallIfNeeded({
+      //     requiredEntitlementIdentifier: "pro",
+      //   });
+      // }
 
       console.log("🏁 [Sequence] All systems GO.");
       return true;
@@ -353,11 +355,6 @@ export function useLaunchSequence() {
     }
   };
   const fetchProfile = async (userId: string) => {
-    console.log("⏳ [Fetch] Checking for profile...");
-    console.log(
-      "🔍 DEBUG - UserProfile Methods:",
-      Object.keys((client as any).models.UserProfile),
-    );
     /// 1. Fetch with Selection Set
     const response = await (client as any).models.UserProfile.listByUserId({
       userId,

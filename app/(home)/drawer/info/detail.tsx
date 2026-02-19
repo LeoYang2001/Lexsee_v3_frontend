@@ -179,12 +179,13 @@ export default function InfoDetailed() {
                       onPress={() => {
                         scrollToSection(index);
                       }}
-                      className="px-4 py-2 flex justify-center items-center"
+                      className="px-2 py-2 flex justify-center items-center"
                     >
                       <Text
                         style={{
                           color:
                             activeSection === index ? TAB_THEME_COLOR : "white",
+                          fontSize: 14,
                         }}
                       >
                         {item}
@@ -204,7 +205,7 @@ export default function InfoDetailed() {
                       numberOfLines={1}
                       ellipsizeMode="tail"
                       style={{
-                        fontSize: 28,
+                        fontSize: 24,
                         fontWeight: "bold",
                         color: "white",
                         marginBottom: 16,
@@ -239,8 +240,8 @@ export default function InfoDetailed() {
                       >
                         <View className=" flex flex-row items-center  mb-4 gap-3">
                           <Text
-                            style={{ color: TAB_THEME_COLOR }}
-                            className="  text-2xl font-bold"
+                            style={{ color: TAB_THEME_COLOR, fontSize: 20 }}
+                            className="font-bold"
                           >
                             {section.title}
                           </Text>
@@ -268,12 +269,20 @@ export default function InfoDetailed() {
                             }}
                             className="  border-l-2  px-4 py-3 mb-4"
                           >
-                            <Text className="text-white font-bold">
+                            <Text
+                              style={{ fontSize: 14 }}
+                              className="text-white font-bold"
+                            >
                               {section.takeaway}
                             </Text>
                           </View>
                         )}
-                        <Text className="text-white text-lg opacity-70 leading-7">
+                        <Text
+                          style={{
+                            fontSize: 14,
+                          }}
+                          className="text-white text-lg opacity-70 leading-7"
+                        >
                           {section.content}
                         </Text>
                       </View>

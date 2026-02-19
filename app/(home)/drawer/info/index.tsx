@@ -84,7 +84,7 @@ const InfoTab = ({ tab, index, scrollX, snapInterval, tabWidth, gap }: any) => {
         {!hideTitle && (
           <View>
             <Text
-              style={{ fontSize: 32, fontWeight: "bold", color: "white" }}
+              style={{ fontSize: 28, fontWeight: "bold", color: "white" }}
               className=" text-center"
             >
               {tab.title}
