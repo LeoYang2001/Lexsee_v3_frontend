@@ -9,6 +9,7 @@
     "scheme": "lexsee-v3",
     "ios": {
       "supportsTablet": true,
+      "usesAppleSignIn": true,
       "bundleIdentifier": "com.leotab.lexsee",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -18,9 +19,7 @@
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "plugins": [
       "expo-router",
       [
