@@ -17,7 +17,13 @@
     "internal": {
       "extends": "preview"
     },
+    "testflight": {
+      "distribution": "store",
+      "autoIncrement": true,
+      "environment": "preview"
+    },
     "production": {
+      "distribution": "store",
       "autoIncrement": true,
       "environment": "production"
     }
