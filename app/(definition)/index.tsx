@@ -30,22 +30,35 @@ import Animated, {
   withTiming,
   interpolateColor,
 } from "react-native-reanimated";
-import { fetchDefinition, fetchQuickConversation, generatePhoneticText } from "../../apis/AIFeatures";
+import {
+  fetchDefinition,
+  fetchQuickConversation,
+  generatePhoneticText,
+} from "../../apis/AIFeatures";
 import type { ConversationResponse } from "../../apis/AIFeatures";
 import { fetchAudioUrl } from "../../apis/fetchPhonetics";
 
 import { client } from "../client";
 import ConversationView from "../../components/definition/ConversationView";
-import { handleScheduleNotification, uncollectWord } from "../../apis/setSchedule";
+import {
+  handleScheduleNotification,
+  uncollectWord,
+} from "../../apis/setSchedule";
 import { getLocalDate } from "../../util/utli";
 import { useOnboarding } from "../../hooks/useOnboarding";
 
-function CollectBtn({ saveStatus, handleSaveOrUnsave, handleSaveWithoutPicture }: { saveStatus: string, handleSaveOrUnsave: () => void, handleSaveWithoutPicture: () => void }) {
+function CollectBtn({
+  saveStatus,
+  handleSaveOrUnsave,
+  handleSaveWithoutPicture,
+}: {
+  saveStatus: string;
+  handleSaveOrUnsave: () => void;
+  handleSaveWithoutPicture: () => void;
+}) {
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
   const colorProgress = useSharedValue(0);
-
-  
 
   const getBtnStyle = () => {
     switch (saveStatus) {
@@ -97,7 +110,7 @@ function CollectBtn({ saveStatus, handleSaveOrUnsave, handleSaveWithoutPicture }
           scale.value = withSpring(1, { damping: 12, stiffness: 200 });
           opacity.value = withTiming(1, { duration: 150 });
         },
-        saveStatus === "saving" ? 0 : 150
+        saveStatus === "saving" ? 0 : 150,
       );
     }
   }, [saveStatus]);
@@ -106,13 +119,13 @@ function CollectBtn({ saveStatus, handleSaveOrUnsave, handleSaveWithoutPicture }
     const backgroundColor = interpolateColor(
       colorProgress.value,
       [0, 0.5, 1],
-      ["#39404e", "#3c444c", "#31221f"]
+      ["#39404e", "#3c444c", "#31221f"],
     );
 
     const borderColor = interpolateColor(
       colorProgress.value,
       [0, 0.5, 1],
-      ["#39404e", "#3c444c", "#31221f"]
+      ["#39404e", "#3c444c", "#31221f"],
     );
 
     return {
@@ -154,64 +167,61 @@ function CollectBtn({ saveStatus, handleSaveOrUnsave, handleSaveWithoutPicture }
   });
 
   return (
-     <TouchableOpacity
-          onPress={handleSaveOrUnsave}
-          onLongPress={()=>{
-            if(saveStatus === "unsaved"){
-              //handle save without picture
-              handleSaveWithoutPicture();
-            }
-          }}
-                    disabled={saveStatus === "saving"}
-                  >
-
-
-    <Animated.View
-      style={[
-        {
-          width: 48,
-          height: 48,
-          borderRadius: 12,
-          justifyContent: "center",
-          alignItems: "center",
-          borderWidth: 1,
-          shadowColor: "#000",
-          shadowOffset: {
-            width: 0,
-            height: 2,
-          },
-          shadowOpacity: 0.1,
-          shadowRadius: 3,
-          elevation: 3,
-        },
-        animatedContainerStyle,
-      ]}
+    <TouchableOpacity
+      onPress={handleSaveOrUnsave}
+      onLongPress={() => {
+        if (saveStatus === "unsaved") {
+          //handle save without picture
+          handleSaveWithoutPicture();
+        }
+      }}
+      disabled={saveStatus === "saving"}
     >
-      {/* Loading Indicator */}
       <Animated.View
         style={[
           {
-            position: "absolute",
+            width: 48,
+            height: 48,
+            borderRadius: 12,
+            justifyContent: "center",
+            alignItems: "center",
+            borderWidth: 1,
+            shadowColor: "#000",
+            shadowOffset: {
+              width: 0,
+              height: 2,
+            },
+            shadowOpacity: 0.1,
+            shadowRadius: 3,
+            elevation: 3,
           },
-          animatedLoadingStyle,
+          animatedContainerStyle,
         ]}
       >
-        <ActivityIndicator size="small" color="#ffffff" />
-      </Animated.View>
+        {/* Loading Indicator */}
+        <Animated.View
+          style={[
+            {
+              position: "absolute",
+            },
+            animatedLoadingStyle,
+          ]}
+        >
+          <ActivityIndicator size="small" color="#ffffff" />
+        </Animated.View>
 
-      {/* Bookmark Icon */}
-      <Animated.View style={animatedIconStyle}>
-        <Bookmark
-          size={20}
-          fill={style.bookMarkColor}
-          color={style.bookMarkColor}
-          strokeWidth={2}
-        />
+        {/* Bookmark Icon */}
+        <Animated.View style={animatedIconStyle}>
+          <Bookmark
+            size={20}
+            fill={style.bookMarkColor}
+            color={style.bookMarkColor}
+            strokeWidth={2}
+          />
+        </Animated.View>
       </Animated.View>
-    </Animated.View>
     </TouchableOpacity>
   );
-
 }
 
 // Add this skeleton component at the top of your file
@@ -244,11 +254,12 @@ export default function DefinitionPage() {
   const theme = useTheme();
   const params = useLocalSearchParams();
   const { words } = useAppSelector((state) => state.wordsList);
- const profile = useAppSelector((state) => state.profile.data);
+  const profile = useAppSelector((state) => state.profile.data);
 
- const reviewScheduleWords = useAppSelector((state) => state.reviewScheduleWords.items);
- const reviewSchedules = useAppSelector((state) => state.reviewSchedule.items);
-
+  const reviewScheduleWords = useAppSelector(
+    (state) => state.reviewScheduleWords.items,
+  );
+  const reviewSchedules = useAppSelector((state) => state.reviewSchedule.items);
 
   const [wordInfo, setWordInfo] = useState<Word | undefined>(undefined);
 
@@ -278,58 +289,62 @@ export default function DefinitionPage() {
 
   const userProfile = useAppSelector((state) => state.profile.data);
 
-
   const aiSettings = useAppSelector((state) => state.aiSettings);
   const activeModel = aiSettings.activeModel;
 
-  //USER GUIDE 
-   const { activeStep, setTargetLayout } = useOnboarding();
-    const definitionRef = useRef<ScrollView>(null);
-  
-    const handleLayout = () => {
-  // Only measure if the "Director" says we are in the 'DEFINITION_STEP_1' stage
-  if (activeStep === 'DEFINITION_STEP_1') {
-    
-    const tryMeasure = (retries = 5) => {
-      (definitionRef.current as any).measureInWindow((x: number, y: number, width: number, height: number) => {
-        // Check if layout is valid (not zero and not undefined/null)
-        const isValid = width > 0 && height > 0;
+  //USER GUIDE
+  const { activeStep, setTargetLayout } = useOnboarding();
+  const definitionRef = useRef<ScrollView>(null);
 
-        if (isValid) {
-          setTargetLayout({ x, y, width, height });
-        } else if (retries > 0) {
-          // If we got 0,0,0,0, wait 100ms and try again
-          setTimeout(() => tryMeasure(retries - 1), 100);
-        } else {
-          console.warn("Onboarding: Failed to measure DEFINITION_STEP_1 after 5 attempts.");
-        }
-      });
-    };
+  const handleLayout = () => {
+    // Only measure if the "Director" says we are in the 'DEFINITION_STEP_1' stage
+    if (activeStep === "DEFINITION_STEP_1") {
+      const tryMeasure = (retries = 5) => {
+        (definitionRef.current as any).measureInWindow(
+          (x: number, y: number, width: number, height: number) => {
+            // Check if layout is valid (not zero and not undefined/null)
+            const isValid = width > 0 && height > 0;
 
-    tryMeasure();
-  }
-};
- 
+            if (isValid) {
+              setTargetLayout({ x, y, width, height });
+            } else if (retries > 0) {
+              // If we got 0,0,0,0, wait 100ms and try again
+              setTimeout(() => tryMeasure(retries - 1), 100);
+            } else {
+              console.warn(
+                "Onboarding: Failed to measure DEFINITION_STEP_1 after 5 attempts.",
+              );
+            }
+          },
+        );
+      };
 
+      tryMeasure();
+    }
+  };
 
   const handleSaveWord = async (wordInfo: Word, conversation?: any) => {
     // save/resave, we reset the schedule
 
-
     let wordInfoToSave = {
       ...wordInfo,
       phonetics: phonetics || undefined,
-      exampleSentences: JSON.stringify(conversation) || JSON.stringify(conversationData) || null,
+      exampleSentences:
+        JSON.stringify(conversation) ||
+        JSON.stringify(conversationData) ||
+        null,
     };
 
-    console.log('generate convo first and save :', JSON.stringify(conversation))
-
+    console.log(
+      "generate convo first and save :",
+      JSON.stringify(conversation),
+    );
 
     setSaveStatus("saving");
     try {
       //step1: check if the word exist
       const existingWord = words.find(
-        (word) => word.word === wordInfoToSave.word
+        (word) => word.word === wordInfoToSave.word,
       );
       if (existingWord) {
         const updateData = {
@@ -358,24 +373,24 @@ export default function DefinitionPage() {
     }
     // initiate sheduling only when theres no shceduleWord that exists for this word and still has TO_REVIEW status
     const existingScheduleWord = reviewScheduleWords.find(
-      (sw) => sw.wordId === wordInfoToSave.id && sw.status === "TO_REVIEW"
+      (sw) => sw.wordId === wordInfoToSave.id && sw.status === "TO_REVIEW",
     );
-    
-   if(!existingScheduleWord) {
-    //initiate scheduling notification update
-    const currentLocalDate = getLocalDate();
-    // newNextDue should be the day after currentLocalDate
-    const newNextDue = new Date(currentLocalDate);
-    newNextDue.setDate(newNextDue.getDate() + wordInfoToSave.review_interval);
-    if (userProfile) {
-      const ifSuccess = await handleScheduleNotification(
-        userProfile,
-        wordInfoToSave.id,
-        newNextDue
-      );
-      console.log("Handle schedule notification success:", ifSuccess);
+
+    if (!existingScheduleWord) {
+      //initiate scheduling notification update
+      const currentLocalDate = getLocalDate();
+      // newNextDue should be the day after currentLocalDate
+      const newNextDue = new Date(currentLocalDate);
+      newNextDue.setDate(newNextDue.getDate() + wordInfoToSave.review_interval);
+      if (userProfile) {
+        const ifSuccess = await handleScheduleNotification(
+          userProfile,
+          wordInfoToSave.id,
+          newNextDue,
+        );
+        console.log("Handle schedule notification success:", ifSuccess);
+      }
     }
-   }
     // 4. Force refresh to get accurate state
     setSaveStatus("saved");
   };
@@ -384,7 +399,7 @@ export default function DefinitionPage() {
   //optionally receive two parameters: partOfSpeech and definition
   const fetchConversationExample = async (
     partOfSpeech?: string,
-    definition?: string
+    definition?: string,
   ) => {
     if (!wordInfo?.word) return;
 
@@ -401,7 +416,7 @@ export default function DefinitionPage() {
         wordInfo.word,
         partOfSpeech,
         definition,
-        activeModel
+        activeModel,
       );
 
       if (conversation) {
@@ -420,15 +435,13 @@ export default function DefinitionPage() {
       setIsLoadingConversation(false);
     }
 
-
-     //this step should not block displaying loaded definition
+    //this step should not block displaying loaded definition
     //save or update definition to the wordInfo
     // updating word triggered only when the saveStatus is saved (ie. already saved before)
     if (saveStatus === "saved" && wordInfo) {
-      console.log('coversation:', JSON.stringify(conversation))
+      console.log("coversation:", JSON.stringify(conversation));
       handleSaveWord(wordInfo, conversation);
     }
-
   };
 
   // Get current word consistently
@@ -460,7 +473,7 @@ export default function DefinitionPage() {
           selectedImageUrl: undefined,
         });
       }
-    }, [params.fromGallery, params.selectedImageUrl, wordInfo?.word]) // Only depend on word, not entire wordInfo object
+    }, [params.fromGallery, params.selectedImageUrl, wordInfo?.word]), // Only depend on word, not entire wordInfo object
   );
 
   useEffect(() => {
@@ -469,13 +482,18 @@ export default function DefinitionPage() {
         // If audio is missing, fetch it
         if (!wordInfo.phonetics?.audioUrl) {
           setIsLoadingPhonetics(true);
-          const audioUrl = await fetchAudioUrl(wordInfo.word);
+          const audioUrl = await fetchAudioUrl(
+            wordInfo.word,
+            activeModel !== "openai",
+          );
           let phoneticText;
-          if(!wordInfo.phonetics?.text)
-          {
-             console.log('No phonetics! No phonetic text available for word:', wordInfo.word)
-              phoneticText = await generatePhoneticText(wordInfo.word);
-             console.log('Generated phonetic text:', phoneticText);
+          if (!wordInfo.phonetics?.text) {
+            console.log(
+              "No phonetics! No phonetic text available for word:",
+              wordInfo.word,
+            );
+            phoneticText = await generatePhoneticText(wordInfo.word);
+            console.log("Generated phonetic text:", phoneticText);
           }
           // Ensure text is always a string to satisfy Phonetics type (fallback to empty string)
           const existing = wordInfo.phonetics || { text: "" };
@@ -484,7 +502,7 @@ export default function DefinitionPage() {
             text: existing.text || phoneticText || "",
             audioUrl,
           };
-          console.log('Safe phonetics object:', JSON.stringify(safePhonetics));
+          console.log("Safe phonetics object:", JSON.stringify(safePhonetics));
           // Use the safe phonetics object
           setPhonetics(safePhonetics);
           setIsLoadingPhonetics(false);
@@ -546,7 +564,6 @@ export default function DefinitionPage() {
         setDefinitionSource("dictionary");
         setIsLoadingDefinition(false);
 
-
         // Set phonetics from existing word
         if (existingWord.phonetics) {
           setPhonetics(existingWord.phonetics);
@@ -557,7 +574,7 @@ export default function DefinitionPage() {
           try {
             // Parse the conversation data from JSON string
             const parsedConversation = JSON.parse(
-              existingWord.exampleSentences as string
+              existingWord.exampleSentences as string,
             );
 
             // If exampleSentences exist, do not play the animation again
@@ -567,7 +584,7 @@ export default function DefinitionPage() {
               setPlayMessageAnimation(false); // Don't play animation for existing conversations
             } else {
               console.warn(
-                "⚠️ Invalid conversation format in exampleSentences"
+                "⚠️ Invalid conversation format in exampleSentences",
               );
             }
           } catch (error) {
@@ -619,7 +636,7 @@ export default function DefinitionPage() {
         const fetchedWord = await fetchDefinition(
           searchWord,
           callbacks,
-          activeModel
+          activeModel,
         );
 
         if (fetchedWord) {
@@ -698,33 +715,33 @@ export default function DefinitionPage() {
   const definitionHeight = useSharedValue(definitionSectionHeight);
   const conversationHeight = useSharedValue(0);
 
-const handleSaveWithoutPicture = async () => {
-  if (!wordInfo) return;
+  const handleSaveWithoutPicture = async () => {
+    if (!wordInfo) return;
 
-  Alert.alert(
-    "Save without picture?", // Title
-    "Are you sure you want to save this word without an image?", // Message
-    [
-      {
-        text: "Cancel",
-        style: "cancel", // This styling only shows on iOS
-        onPress: () => console.log("User cancelled"),
-      },
-      {
-        text: "Save",
-        onPress: () => {
-          const updatedWordInfo = {
-            ...wordInfo,
-            imgUrl: undefined,
-          };
-          setWordInfo(updatedWordInfo);
-          handleSaveWord(updatedWordInfo);
+    Alert.alert(
+      "Save without picture?", // Title
+      "Are you sure you want to save this word without an image?", // Message
+      [
+        {
+          text: "Cancel",
+          style: "cancel", // This styling only shows on iOS
+          onPress: () => console.log("User cancelled"),
         },
-      },
-    ],
-    { cancelable: true } // Allows tapping outside the alert to close (Android only)
-  );
-};
+        {
+          text: "Save",
+          onPress: () => {
+            const updatedWordInfo = {
+              ...wordInfo,
+              imgUrl: undefined,
+            };
+            setWordInfo(updatedWordInfo);
+            handleSaveWord(updatedWordInfo);
+          },
+        },
+      ],
+      { cancelable: true }, // Allows tapping outside the alert to close (Android only)
+    );
+  };
 
   const handleSaveOrUnsave = async () => {
     if (saveStatus === "saved") {
@@ -745,35 +762,47 @@ const handleSaveWithoutPicture = async () => {
   };
 
   const handleUnsaveWord = async (wordInfo: Word) => {
-        // - [ ] UNCOLLECT A WORD
-        // 1. Get the review entity to get the review schedule based on date 
-        //     1. First,  get the id of entity based on word id 
-        //     2. Second, get the entity id to get schedule id 
-        // 2. If there’s only one entity
-        //     1. Cancel notification
-        //     2. Delete entity & schedule
-        // 3. If its not the only one
-        //     1. Delete entity
-        //     2. Update notification
-        // 4. Delete the word 
-        //     1. Remove from wordlist 
-        //     2. Delete the word 
+    // - [ ] UNCOLLECT A WORD
+    // 1. Get the review entity to get the review schedule based on date
+    //     1. First,  get the id of entity based on word id
+    //     2. Second, get the entity id to get schedule id
+    // 2. If there’s only one entity
+    //     1. Cancel notification
+    //     2. Delete entity & schedule
+    // 3. If its not the only one
+    //     1. Delete entity
+    //     2. Update notification
+    // 4. Delete the word
+    //     1. Remove from wordlist
+    //     2. Delete the word
 
     setSaveStatus("saving");
 
-    const unreviewScheduleWords = reviewScheduleWords.filter((rsw: any) => rsw.status === "TO_REVIEW");
-    const correspondingScheduleWord = unreviewScheduleWords.find((rsw: any) => rsw.wordId === wordInfo.id);
-    const correspondingSchedule = reviewSchedules.find((rs: any) => rs.id === correspondingScheduleWord?.reviewScheduleId);
-    if(!wordInfo.id || !correspondingScheduleWord?.id || !correspondingSchedule?.id) {
+    const unreviewScheduleWords = reviewScheduleWords.filter(
+      (rsw: any) => rsw.status === "TO_REVIEW",
+    );
+    const correspondingScheduleWord = unreviewScheduleWords.find(
+      (rsw: any) => rsw.wordId === wordInfo.id,
+    );
+    const correspondingSchedule = reviewSchedules.find(
+      (rs: any) => rs.id === correspondingScheduleWord?.reviewScheduleId,
+    );
+    if (
+      !wordInfo.id ||
+      !correspondingScheduleWord?.id ||
+      !correspondingSchedule?.id
+    ) {
       console.error("❌ Missing required IDs for unsaving word");
       setSaveStatus("unsaved");
       return;
-    }
-    else{
-      await uncollectWord(wordInfo.id, correspondingScheduleWord, correspondingSchedule);
+    } else {
+      await uncollectWord(
+        wordInfo.id,
+        correspondingScheduleWord,
+        correspondingSchedule,
+      );
     }
     try {
-      
       if (wordInfo.id) {
         const deleteData = {
           id: wordInfo.id,
@@ -799,7 +828,7 @@ const handleSaveWithoutPicture = async () => {
           damping: 15,
           stiffness: 120,
           mass: 0.8,
-        }
+        },
       );
     } else {
       definitionHeight.value = withSpring(definitionSectionHeight, {
@@ -971,30 +1000,30 @@ const handleSaveWithoutPicture = async () => {
                     <SkeletonBox width={200} height={36} />
                   ) : (
                     <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 8,
-                  // Ensure the container doesn't push off screen
-                  flexShrink: 1, 
-                  overflow: 'hidden'
-                }}
-              >
-                <Text
-                  // 1. Force a single line
-                  numberOfLines={1} 
-                  // 2. Add the "..." at the end
-                  ellipsizeMode="tail" 
-                  style={{
-                    fontSize: 30,
-                    // 3. Allow text to shrink if container is tight
-                    flexShrink: 1, 
-                  }}
-                  className="text-white font-bold"
-                >
-                  {wordInfo?.word}
-                </Text>
-              </View>
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                        // Ensure the container doesn't push off screen
+                        flexShrink: 1,
+                        overflow: "hidden",
+                      }}
+                    >
+                      <Text
+                        // 1. Force a single line
+                        numberOfLines={1}
+                        // 2. Add the "..." at the end
+                        ellipsizeMode="tail"
+                        style={{
+                          fontSize: 30,
+                          // 3. Allow text to shrink if container is tight
+                          flexShrink: 1,
+                        }}
+                        className="text-white font-bold"
+                      >
+                        {wordInfo?.word}
+                      </Text>
+                    </View>
                   )}
 
                   {/* Phonetics - Skeleton or Real */}
@@ -1011,7 +1040,6 @@ const handleSaveWithoutPicture = async () => {
                         phonetics={phonetics}
                         key={`${currentWord}-${phonetics.audioUrl}`}
                       />
-                     
                     )
                   )}
                 </View>
@@ -1019,8 +1047,11 @@ const handleSaveWithoutPicture = async () => {
                 <View
                   style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
                 >
-                 
-                    <CollectBtn saveStatus={saveStatus} handleSaveOrUnsave={handleSaveOrUnsave} handleSaveWithoutPicture={handleSaveWithoutPicture}/>
+                  <CollectBtn
+                    saveStatus={saveStatus}
+                    handleSaveOrUnsave={handleSaveOrUnsave}
+                    handleSaveWithoutPicture={handleSaveWithoutPicture}
+                  />
                 </View>
               </View>
 
@@ -1125,10 +1156,11 @@ const handleSaveWithoutPicture = async () => {
                   )}
 
                   <ScrollView
-                  ref={definitionRef}
-                  onLayout={handleLayout}
-                  className=" w-full py-4 flex-1 mb-10 mt-2">
-                    <View className=" text-white  opacity-70" >
+                    ref={definitionRef}
+                    onLayout={handleLayout}
+                    className=" w-full py-4 flex-1 mb-10 mt-2"
+                  >
+                    <View className=" text-white  opacity-70">
                       {isLoadingDefinition ? (
                         // Skeleton definitions
                         <>
@@ -1147,7 +1179,7 @@ const handleSaveWithoutPicture = async () => {
                             onPress={() => {
                               fetchConversationExample(
                                 meaning.partOfSpeech,
-                                meaning.definition
+                                meaning.definition,
                               );
                             }}
                           >
