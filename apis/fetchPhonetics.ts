@@ -1,36 +1,36 @@
-export const fetchAudioUrl = async (text: string) => {
-  const apiUrl =
-    "https://converttexttospeech-lcwrfk4hzq-uc.a.run.app/convert-text-to-speech";
-
-  // Prepare the request payload
+export const fetchAudioUrl = async (text: string, ifChina: boolean = false) => {
+  // Update with your new AWS API Gateway endpoint
+  const apiUrl = process.env.EXPO_PUBLIC_PHONETIC_API_ENDPOINT;
+  if (!apiUrl) return alert("Phonetic API endpoint is not configured");
   const requestData = {
     text: text,
+    ifChina: ifChina,
   };
 
   try {
-    // Send POST request to the API
     const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json", // Set the content type to JSON
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify(requestData), // Convert the data to JSON
+      body: JSON.stringify(requestData),
     });
 
-    // Check if the response is OK (status 200-299)
     if (response.ok) {
-      const data = await response.json(); // Parse the response JSON
-      return data.audioUrl; // Return the audio URL
+      const data = await response.json();
+      // Your Lambda returns { url, key, cached, ... }
+      return data.url;
     } else {
+      const errorData = await response.json().catch(() => ({}));
       console.error(
-        "Failed to fetch audio URL:",
+        "TTS Error:",
         response.status,
-        response.statusText
+        errorData.error || response.statusText,
       );
       return null;
     }
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Network Error:", error);
     return null;
   }
 };
