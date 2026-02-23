@@ -7,6 +7,7 @@ import {
   Modal,
   Dimensions,
   Pressable,
+  ActivityIndicator,
 } from "react-native";
 import Animated, {
   useSharedValue,
@@ -16,19 +17,20 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import ImageZoomModal from "../common/ImageZoomModal";
+import { GalleryImageResult } from "../../apis/getGalleryImages";
 
 interface ImageSelectionModalProps {
   visible: boolean;
-  imageUri: string;
-  currentWord: string;
-  onConfirm: (imageUri: string) => void;
+  imageItem: GalleryImageResult | null;
+  onConfirm: (item: GalleryImageResult) => void;
   onCancel: () => void;
+  isPromoting: boolean;
 }
 
 export default function ImageSelectionModal({
   visible,
-  imageUri,
-  currentWord,
+  imageItem,
+  isPromoting,
   onConfirm,
   onCancel,
 }: ImageSelectionModalProps) {
@@ -87,7 +89,8 @@ export default function ImageSelectionModal({
   };
 
   const handleConfirm = () => {
-    onConfirm(imageUri);
+    if (isPromoting) return;
+    onConfirm(imageItem!);
   };
 
   const handleBackdropPress = () => {
@@ -160,7 +163,7 @@ export default function ImageSelectionModal({
                 activeOpacity={0.9}
               >
                 <Image
-                  source={{ uri: imageUri }}
+                  source={{ uri: imageItem?.url }}
                   style={{
                     width: "100%",
                     height: "100%",
@@ -239,18 +242,41 @@ export default function ImageSelectionModal({
                   paddingHorizontal: 20,
                   borderRadius: 8,
                   alignItems: "center",
+                  opacity: isPromoting ? 0.7 : 1,
                 }}
                 activeOpacity={0.8}
+                disabled={isPromoting}
               >
-                <Text
-                  style={{
-                    color: "#FFFFFF",
-                    fontSize: 16,
-                    fontWeight: "600",
-                  }}
-                >
-                  Confirm
-                </Text>
+                {isPromoting ? (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <ActivityIndicator color="#FFFFFF" />
+                    <Text
+                      style={{
+                        color: "#FFFFFF",
+                        fontSize: 16,
+                        fontWeight: "600",
+                      }}
+                    >
+                      Voting...
+                    </Text>
+                  </View>
+                ) : (
+                  <Text
+                    style={{
+                      color: "#FFFFFF",
+                      fontSize: 16,
+                      fontWeight: "600",
+                    }}
+                  >
+                    Confirm
+                  </Text>
+                )}
               </TouchableOpacity>
             </View>
           </Animated.View>
@@ -265,7 +291,7 @@ export default function ImageSelectionModal({
       {/* Image Zoom Modal */}
       <ImageZoomModal
         visible={isImageZoomed}
-        imageUri={imageUri}
+        imageUri={imageItem?.url || ""}
         onClose={handleCloseImageZoom}
         showCloseHint={true}
         backgroundColor="rgba(0, 0, 0, 0.95)"

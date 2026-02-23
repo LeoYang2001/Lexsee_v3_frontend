@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
-import { ChevronLeft } from "lucide-react-native";
+import { ChevronLeft, AlertCircle } from "lucide-react-native";
 
 interface GalleryHeaderProps {
   currentWord: string;
@@ -8,16 +8,14 @@ interface GalleryHeaderProps {
   hasMoreImages: boolean;
   isLoading: boolean;
   onBackPress: () => void;
+  onUploadPress: () => void;
   borderRadius: number;
 }
 
 export default function GalleryHeader({
   currentWord,
-  imageCount,
-  hasMoreImages,
-  isLoading,
   onBackPress,
-  borderRadius,
+  onUploadPress,
 }: GalleryHeaderProps) {
   return (
     <View
@@ -33,12 +31,39 @@ export default function GalleryHeader({
         style={{
           flexDirection: "row",
           alignItems: "center",
-          justifyContent: "flex-start",
+          justifyContent: "space-between",
           marginBottom: 20,
         }}
       >
         <TouchableOpacity onPress={onBackPress}>
           <ChevronLeft color="#ffffff" size={24} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={onUploadPress}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: "rgba(228, 76, 33, 0.15)",
+            paddingVertical: 8,
+            paddingHorizontal: 12,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: "rgba(228, 76, 33, 0.3)",
+          }}
+          activeOpacity={0.7}
+        >
+          <AlertCircle color="#E44C21" size={18} />
+          <Text
+            style={{
+              color: "#E44C21",
+              fontSize: 14,
+              fontWeight: "600",
+              marginLeft: 6,
+            }}
+          >
+            No good image?
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -63,8 +88,8 @@ export default function GalleryHeader({
                 lineHeight: 24,
               }}
             >
-              Find the picture that accurately describes the word{"\n"}
-              or something similar to help you remember
+              Choose an image to help you remember this word.{"\n"}
+              Images with votes are recommended by other users.
             </Text>
           </View>
         ) : (
