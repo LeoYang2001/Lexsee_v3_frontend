@@ -1,9 +1,9 @@
 export interface GalleryImageResult {
-  url: string; // Changed from 'link' to match new backend
-  thumb: string; // Changed from 'image.thumbnailLink'
+  url: string;
+  thumb: string;
   title: string;
   userSelected: boolean;
-  sourceType: "internal" | "external";
+  sourceType: "internal" | "external" | "user-upload"; // Added to differentiate sources
   votes?: number;
   imageHash?: string; // Added for tracking image uniqueness
 }
@@ -90,6 +90,56 @@ export const promoteImage = async (word: string, image: GalleryImageResult) => {
     return data;
   } catch (error) {
     console.error("Selection Error:", error);
+    throw error;
+  }
+};
+
+// apis/uploadUserImage.ts
+
+interface UploadResponse {
+  uploadUrl: string;
+  finalUrl: string;
+  imageHash: string;
+}
+
+export const uploadImageToS3 = async (
+  word: string,
+  localUri: string,
+): Promise<{ finalUrl: string; imageHash: string }> => {
+  try {
+    // 1. Get Pre-signed URL from Lambda
+    const ticketResponse = await fetch(
+      "https://fgpcgs7s1i.execute-api.us-east-2.amazonaws.com/select",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "getUploadUrl",
+          word,
+        }),
+      },
+    );
+
+    if (!ticketResponse.ok) throw new Error("Failed to get upload URL");
+    const { uploadUrl, finalUrl, imageHash }: UploadResponse =
+      await ticketResponse.json();
+
+    // 2. Convert URI to Blob
+    const imgFetch = await fetch(localUri);
+    const blob = await imgFetch.blob();
+
+    // 3. PUT directly to S3
+    const s3Response = await fetch(uploadUrl, {
+      method: "PUT",
+      body: blob,
+      headers: { "Content-Type": "image/jpeg" },
+    });
+
+    if (!s3Response.ok) throw new Error("S3 upload failed");
+
+    return { finalUrl, imageHash };
+  } catch (error) {
+    console.error("API Upload Error:", error);
     throw error;
   }
 };

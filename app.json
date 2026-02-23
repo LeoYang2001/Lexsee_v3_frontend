@@ -12,7 +12,8 @@
       "usesAppleSignIn": true,
       "bundleIdentifier": "com.leotab.lexsee",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photos so you can upload custom images for vocabulary words."
       }
     },
     "web": {
@@ -39,6 +40,12 @@
         {
           "supportsBackgroundPlayback": true,
           "supportsPictureInPicture": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share images for vocabulary words."
         }
       ]
     ],

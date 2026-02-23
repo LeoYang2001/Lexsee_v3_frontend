@@ -1,30 +1,42 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, Modal, Pressable } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  Pressable,
+  Image,
+  ActivityIndicator,
+} from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
   withTiming,
   runOnJS,
-  useAnimatedGestureHandler,
 } from "react-native-reanimated";
-import { PanGestureHandler } from "react-native-gesture-handler";
 import { AlertCircle, Upload, X } from "lucide-react-native";
 
 interface FeedbackModalProps {
   visible: boolean;
   currentWord: string;
+  selectedImageUri?: string | null;
+  isUploading?: boolean;
   onClose: () => void;
   onReportIssue: () => void;
   onUploadImage: () => void;
+  onConfirmUpload?: () => void;
 }
 
 export default function FeedbackModal({
   visible,
   currentWord,
+  selectedImageUri,
+  isUploading,
   onClose,
   onReportIssue,
   onUploadImage,
+  onConfirmUpload,
 }: FeedbackModalProps) {
   const [showModal, setShowModal] = useState(false);
 
@@ -115,7 +127,7 @@ export default function FeedbackModal({
                   fontWeight: "700",
                 }}
               >
-                Help us improve
+                {selectedImageUri ? "Upload your image" : "Help us improve"}
               </Text>
               <Text
                 style={{
@@ -142,108 +154,184 @@ export default function FeedbackModal({
             </TouchableOpacity>
           </View>
 
-          {/* Options */}
-          <View style={{ gap: 12 }}>
-            {/* Report Issue Option */}
-            <TouchableOpacity
-              onPress={onReportIssue}
+          {/* Image Preview - Show if selectedImageUri exists */}
+          {selectedImageUri && (
+            <View
               style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: "#1F2937",
-                padding: 18,
+                marginBottom: 24,
                 borderRadius: 12,
-                borderWidth: 1,
-                borderColor: "rgba(228, 76, 33, 0.2)",
+                overflow: "hidden",
               }}
-              activeOpacity={0.7}
             >
-              <View
+              <Image
+                source={{ uri: selectedImageUri }}
                 style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 24,
-                  backgroundColor: "rgba(239, 68, 68, 0.1)",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginRight: 16,
+                  width: "100%",
+                  height: 200,
                 }}
-              >
-                <AlertCircle color="#EF4444" size={24} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={{
-                    color: "#FFFFFF",
-                    fontSize: 16,
-                    fontWeight: "600",
-                    marginBottom: 4,
-                  }}
-                >
-                  Report an Issue
-                </Text>
-                <Text
-                  style={{
-                    color: "#9CA3AF",
-                    fontSize: 14,
-                    lineHeight: 18,
-                  }}
-                >
-                  No appropriate picture for this word
-                </Text>
-              </View>
-            </TouchableOpacity>
+                resizeMode="cover"
+              />
+            </View>
+          )}
 
-            {/* Upload Image Option */}
-            <TouchableOpacity
-              onPress={onUploadImage}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: "#1F2937",
-                padding: 18,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: "rgba(228, 76, 33, 0.2)",
-              }}
-              activeOpacity={0.7}
-            >
-              <View
+          {/* Options */}
+          {!selectedImageUri ? (
+            <View style={{ gap: 12 }}>
+              {/* Report Issue Option */}
+              <TouchableOpacity
+                onPress={onReportIssue}
                 style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 24,
-                  backgroundColor: "rgba(228, 76, 33, 0.1)",
+                  flexDirection: "row",
                   alignItems: "center",
-                  justifyContent: "center",
-                  marginRight: 16,
+                  backgroundColor: "#1F2937",
+                  padding: 18,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: "rgba(228, 76, 33, 0.2)",
                 }}
+                activeOpacity={0.7}
               >
-                <Upload color="#E44C21" size={24} />
-              </View>
-              <View style={{ flex: 1 }}>
+                <View
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 24,
+                    backgroundColor: "rgba(239, 68, 68, 0.1)",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginRight: 16,
+                  }}
+                >
+                  <AlertCircle color="#EF4444" size={24} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      color: "#FFFFFF",
+                      fontSize: 16,
+                      fontWeight: "600",
+                      marginBottom: 4,
+                    }}
+                  >
+                    Report an Issue
+                  </Text>
+                  <Text
+                    style={{
+                      color: "#9CA3AF",
+                      fontSize: 14,
+                      lineHeight: 18,
+                    }}
+                  >
+                    No appropriate picture for this word
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Upload Image Option */}
+              <TouchableOpacity
+                onPress={onUploadImage}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: "#1F2937",
+                  padding: 18,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: "rgba(228, 76, 33, 0.2)",
+                }}
+                activeOpacity={0.7}
+              >
+                <View
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 24,
+                    backgroundColor: "rgba(228, 76, 33, 0.1)",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginRight: 16,
+                  }}
+                >
+                  <Upload color="#E44C21" size={24} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      color: "#FFFFFF",
+                      fontSize: 16,
+                      fontWeight: "600",
+                      marginBottom: 4,
+                    }}
+                  >
+                    Upload Pictures
+                  </Text>
+                  <Text
+                    style={{
+                      color: "#9CA3AF",
+                      fontSize: 14,
+                      lineHeight: 18,
+                    }}
+                  >
+                    Share your own images for this word
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={{ gap: 12 }}>
+              {/* Action Buttons when image is selected */}
+              <TouchableOpacity
+                onPress={onConfirmUpload}
+                disabled={isUploading}
+                style={{
+                  backgroundColor: "#E44C21",
+                  paddingVertical: 14,
+                  paddingHorizontal: 24,
+                  borderRadius: 12,
+                  alignItems: "center",
+                  opacity: isUploading ? 0.7 : 1,
+                }}
+                activeOpacity={0.8}
+              >
+                {isUploading ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text
+                    style={{
+                      color: "#FFFFFF",
+                      fontSize: 16,
+                      fontWeight: "600",
+                    }}
+                  >
+                    Confirm & Upload
+                  </Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={onUploadImage}
+                style={{
+                  backgroundColor: "#1F2937",
+                  paddingVertical: 14,
+                  paddingHorizontal: 24,
+                  borderRadius: 12,
+                  alignItems: "center",
+                  borderWidth: 1,
+                  borderColor: "rgba(228, 76, 33, 0.3)",
+                }}
+                activeOpacity={0.7}
+              >
                 <Text
                   style={{
-                    color: "#FFFFFF",
+                    color: "#E44C21",
                     fontSize: 16,
                     fontWeight: "600",
-                    marginBottom: 4,
                   }}
                 >
-                  Upload Pictures
+                  Choose Another
                 </Text>
-                <Text
-                  style={{
-                    color: "#9CA3AF",
-                    fontSize: 14,
-                    lineHeight: 18,
-                  }}
-                >
-                  Share your own images for this word
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </View>
+              </TouchableOpacity>
+            </View>
+          )}
         </Animated.View>
       </Animated.View>
     </Modal>
