@@ -1,171 +1,95 @@
 export interface GalleryImageResult {
-  link: string;
-  title?: string;
-  displayLink?: string;
-  snippet?: string;
-  image?: {
-    contextLink?: string;
-    height?: number;
-    width?: number;
-    byteSize?: number;
-    thumbnailLink?: string;
-    thumbnailHeight?: number;
-    thumbnailWidth?: number;
-  };
+  url: string; // Changed from 'link' to match new backend
+  thumb: string; // Changed from 'image.thumbnailLink'
+  title: string;
+  userSelected: boolean;
+  sourceType: "internal" | "external";
+  votes?: number;
+  imageHash?: string; // Added for tracking image uniqueness
 }
 
 export interface GallerySearchResponse {
   items: GalleryImageResult[];
-  hasMore: boolean;
-  totalResults?: number;
-  searchTime?: number;
+  word: string;
+  count: number;
   error?: string;
 }
 
 export const searchGalleryImages = async (
   searchWord: string,
-  page: number = 1,
-  resultsPerPage: number = 10
 ): Promise<GallerySearchResponse> => {
   try {
-    const apiKey = "AIzaSyDLKsMGMoJOmf5xz6JzHHhRONt96GmMG80";
-    const cx = "2121e0d2556664ff3";
-
-    // Validate inputs
     if (!searchWord || searchWord.trim().length === 0) {
       throw new Error("Search word is required");
     }
 
-    // Clean and encode the search word
-    const cleanWord = searchWord.trim().toLowerCase();
-    const urlWord = encodeURIComponent(cleanWord);
+    const cleanWord = `${searchWord.trim().toLowerCase()}`;
 
-    // Calculate start index (Google Custom Search API uses 1-based indexing)
-    const startIndex = Math.max(1, (page - 1) * resultsPerPage + 1);
-
-    // Ensure resultsPerPage is within Google's limits (1-10)
-    const limitedResultsPerPage = Math.min(Math.max(1, resultsPerPage), 10);
-
-    // Build the URL with proper parameters
-    const searchParams = new URLSearchParams({
-      q: `the illustration of ${cleanWord}`,
-      cx: cx,
-      key: apiKey,
-      searchType: "image",
-      start: startIndex.toString(),
-      num: limitedResultsPerPage.toString(),
-      safe: "active",
-    });
-
-    const url = `https://www.googleapis.com/customsearch/v1?${searchParams.toString()}`;
+    // Your new API Gateway URL
+    const baseUrl =
+      "https://fgpcgs7s1i.execute-api.us-east-2.amazonaws.com/search";
+    const url = `${baseUrl}?q=${encodeURIComponent(cleanWord)}`;
 
     const response = await fetch(url, {
       method: "GET",
       headers: {
         Accept: "application/json",
-        "Content-Type": "application/json",
       },
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("API Error Response:", errorText);
-
-      let errorMessage = `HTTP error! status: ${response.status}`;
-
-      try {
-        const errorData = JSON.parse(errorText);
-        if (errorData.error?.message) {
-          errorMessage = errorData.error.message;
-        }
-      } catch (parseError) {
-        // Use default error message if JSON parsing fails
-      }
-
-      throw new Error(errorMessage);
+      throw new Error(`Search failed with status: ${response.status}`);
     }
 
     const data = await response.json();
 
-    if (data.error) {
-      throw new Error(data.error.message || "API Error");
-    }
-
-    const validImages = data.items
-      ? data.items.filter((item: any) => {
-          if (!item.link) return false;
-
-          // Check for valid URL
-          const isValidUrl =
-            item.link.startsWith("http://") || item.link.startsWith("https://");
-
-          // Check for common image extensions
-          const hasImageExtension = /\.(jpg|jpeg|png|gif|webp|bmp)(\?|$)/i.test(
-            item.link
-          );
-
-          return (
-            isValidUrl && (hasImageExtension || item.mime?.startsWith("image/"))
-          );
-        })
-      : [];
-
+    console.log("data:", JSON.stringify(data));
+    // Map the backend 'images' array to our 'items' interface
     return {
-      items: validImages,
-      hasMore: data.items ? data.items.length === limitedResultsPerPage : false,
-      totalResults: data.searchInformation?.totalResults
-        ? parseInt(data.searchInformation.totalResults)
-        : 0,
-      searchTime: data.searchInformation?.searchTime
-        ? parseFloat(data.searchInformation.searchTime)
-        : 0,
+      items: data.images || [],
+      word: data.word || cleanWord,
+      count: data.count || 0,
     };
   } catch (error) {
     console.error("Error fetching gallery images:", error);
-
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error occurred";
-
     return {
       items: [],
-      hasMore: false,
-      totalResults: 0,
-      searchTime: 0,
-      error: errorMessage,
+      word: searchWord,
+      count: 0,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
     };
   }
 };
 
-// Utility function with fallback for testing
-export const testImageSearch = async (word: string): Promise<boolean> => {
+export const promoteImage = async (word: string, image: GalleryImageResult) => {
   try {
-    const result = await searchGalleryImages(word, 1, 1);
-    return result.items.length > 0 || !result.error;
+    const response = await fetch(
+      "https://fgpcgs7s1i.execute-api.us-east-2.amazonaws.com/select",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          word: word,
+          imageUrl: image.url, // Original web URL
+          title: image.title,
+          source: image.sourceType,
+          imageHash: image.imageHash,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to promote image");
+    }
+
+    const data = await response.json();
+
+    // Returns { url: "cloudfront_url", newVoteCount: X }
+    return data;
   } catch (error) {
-    console.error("Test search failed:", error);
-    return false;
+    console.error("Selection Error:", error);
+    throw error;
   }
-};
-
-// Mock data function for development/testing
-export const getMockImages = (
-  word: string,
-  count: number = 15
-): GallerySearchResponse => {
-  const mockImages: GalleryImageResult[] = Array.from(
-    { length: count },
-    (_, index) => ({
-      link: `https://picsum.photos/300/200?random=${word}-${index}`,
-      title: `${word} illustration ${index + 1}`,
-      displayLink: "example.com",
-      snippet: `Beautiful illustration of ${word}`,
-    })
-  );
-
-  return {
-    items: mockImages,
-    hasMore: count === 15,
-    totalResults: count * 10,
-    searchTime: 0.1,
-  };
 };

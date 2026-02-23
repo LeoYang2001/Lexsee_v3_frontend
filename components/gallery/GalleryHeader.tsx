@@ -63,8 +63,8 @@ export default function GalleryHeader({
                 lineHeight: 24,
               }}
             >
-              Find the picture that accurately describes the word{"\n"}
-              or something similar to help you remember
+              Choose an image to help you remember this word.{"\n"}
+              Images with votes are recommended by other users.
             </Text>
           </View>
         ) : (

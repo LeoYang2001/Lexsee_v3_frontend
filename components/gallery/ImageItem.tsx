@@ -1,5 +1,5 @@
 import React from "react";
-import { TouchableOpacity, Image, Dimensions } from "react-native";
+import { TouchableOpacity, Image, Dimensions, Text, View } from "react-native";
 import Animated, {
   FadeIn,
   useSharedValue,
@@ -12,7 +12,7 @@ import { type GalleryImageResult } from "../../apis/getGalleryImages";
 interface ImageItemProps {
   item: GalleryImageResult;
   index: number;
-  onPress: (imageUri: string) => void;
+  onPress: (item: any) => void;
 }
 
 export default function ImageItem({ item, index, onPress }: ImageItemProps) {
@@ -48,7 +48,7 @@ export default function ImageItem({ item, index, onPress }: ImageItemProps) {
     });
 
     // Call the parent handler
-    runOnJS(onPress)(item.link);
+    runOnJS(onPress)(item);
   };
 
   return (
@@ -70,17 +70,42 @@ export default function ImageItem({ item, index, onPress }: ImageItemProps) {
           backgroundColor: "#1F2937",
           borderRadius: 10,
           overflow: "hidden",
+          borderWidth: item.userSelected ? 2 : 0,
+          borderColor: item.userSelected ? "#E44C21" : "transparent",
         }}
         activeOpacity={1} // We handle opacity manually
       >
         <Image
-          source={{ uri: item.link }}
+          source={{ uri: item.url }}
           style={{
             width: "100%",
             height: 179,
           }}
           resizeMode="cover"
         />
+        {item.userSelected ? (
+          <View
+            style={{
+              position: "absolute",
+              top: 8,
+              left: 8,
+              backgroundColor: "rgba(228, 76, 33, 0.9)",
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+              borderRadius: 999,
+            }}
+          >
+            <Text
+              style={{
+                color: "#FFFFFF",
+                fontSize: 12,
+                fontWeight: "600",
+              }}
+            >
+              {item.votes} {item.votes === 1 ? "vote" : "votes"}
+            </Text>
+          </View>
+        ) : null}
       </TouchableOpacity>
     </Animated.View>
   );
