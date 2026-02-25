@@ -81,6 +81,10 @@ function AppContent() {
           options={{ headerShown: false, animation: "slide_from_right" }}
         />
         <Stack.Screen
+          name="(reviewGallery)"
+          options={{ headerShown: false, animation: "slide_from_right" }}
+        />
+        <Stack.Screen
           name="(inventory)"
           options={{ headerShown: false, animation: "slide_from_right" }}
         />
