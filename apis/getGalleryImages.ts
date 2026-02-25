@@ -5,6 +5,7 @@ export interface GalleryImageResult {
   userSelected: boolean;
   sourceType: "internal" | "external" | "user-upload"; // Added to differentiate sources
   votes?: number;
+  voter_ids?: string[]; // Track which users have voted
   imageHash?: string; // Added for tracking image uniqueness
 }
 
@@ -61,7 +62,11 @@ export const searchGalleryImages = async (
   }
 };
 
-export const promoteImage = async (word: string, image: GalleryImageResult) => {
+export const promoteImage = async (
+  word: string,
+  image: GalleryImageResult,
+  userId: string,
+) => {
   try {
     const response = await fetch(
       "https://fgpcgs7s1i.execute-api.us-east-2.amazonaws.com/select",
@@ -72,10 +77,11 @@ export const promoteImage = async (word: string, image: GalleryImageResult) => {
         },
         body: JSON.stringify({
           word: word,
-          imageUrl: image.url, // Original web URL
+          imageUrl: image.url,
           title: image.title,
           source: image.sourceType,
           imageHash: image.imageHash,
+          userId: userId, // Pass the UID here
         }),
       },
     );
@@ -86,7 +92,7 @@ export const promoteImage = async (word: string, image: GalleryImageResult) => {
 
     const data = await response.json();
 
-    // Returns { url: "cloudfront_url", newVoteCount: X }
+    // Data now returns: { url, imageHash, voteCount, voter_ids, hasVoted }
     return data;
   } catch (error) {
     console.error("Selection Error:", error);

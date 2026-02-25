@@ -83,7 +83,7 @@ export default function ImageItem({ item, index, onPress }: ImageItemProps) {
           }}
           resizeMode="cover"
         />
-        {item.userSelected ? (
+        {item.userSelected && item.voter_ids && item.voter_ids.length > 0 ? (
           <View
             style={{
               position: "absolute",
@@ -102,7 +102,8 @@ export default function ImageItem({ item, index, onPress }: ImageItemProps) {
                 fontWeight: "600",
               }}
             >
-              {item.votes} {item.votes === 1 ? "vote" : "votes"}
+              {item.voter_ids?.length}{" "}
+              {item.voter_ids?.length === 1 ? "vote" : "votes"}
             </Text>
           </View>
         ) : null}

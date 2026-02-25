@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, use } from "react";
 import {
   View,
   FlatList,
@@ -24,6 +24,8 @@ import {
 } from "../../apis/getGalleryImages";
 import * as ImagePicker from "expo-image-picker";
 import emailjs from "@emailjs/react-native";
+import { useAppSelector } from "../../store/hooks";
+import { getCurrentUser } from "aws-amplify/auth";
 
 const SERVICE_ID = "service_8m223te";
 const TEMPLATE_ID = "template_2ozcmnn";
@@ -52,6 +54,8 @@ export default function GalleryPage() {
   );
   const [isUploading, setIsUploading] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
+
+  const [userId, setUserId] = useState<string | null>(null);
 
   const pickImage = async () => {
     // 1. Check existing permission status
@@ -99,22 +103,24 @@ export default function GalleryPage() {
     if (!selectedLocalImage) return;
     setIsUploading(true);
 
+    return alert("under development, please check back later!");
+
     try {
       // 1. Execute the S3 Upload (Pre-signed URL flow)
-      const { finalUrl, imageHash } = await uploadImageToS3(
-        currentWord,
-        selectedLocalImage,
-      );
+      // const { finalUrl, imageHash } = await uploadImageToS3(
+      //   currentWord,
+      //   selectedLocalImage,
+      // );
       // 2. Save Metadata to DynamoDB
       // We reuse your existing promoteImage function!
-      await promoteImage(currentWord, {
-        url: finalUrl,
-        thumb: finalUrl,
-        title: `Community upload for ${currentWord}`,
-        userSelected: false,
-        imageHash: imageHash,
-        sourceType: "user-upload",
-      });
+      // await promoteImage(currentWord, {
+      //   url: finalUrl,
+      //   thumb: finalUrl,
+      //   title: `Community upload for ${currentWord}`,
+      //   userSelected: false,
+      //   imageHash: imageHash,
+      //   sourceType: "user-upload",
+      // });
 
       // 3. Success UI
       Alert.alert("Success", "Your image is now live in the gallery!");
@@ -134,6 +140,17 @@ export default function GalleryPage() {
 
   // Trigger search immediately when page loads
   useEffect(() => {
+    // get user id
+    const fetchUserId = async () => {
+      try {
+        const user = await getCurrentUser();
+        setUserId(user.userId);
+      } catch (error) {
+        console.error("Failed to fetch user ID:", error);
+      }
+    };
+    fetchUserId();
+
     if (currentWord) {
       fetchImagesForWord(currentWord);
     }
@@ -184,7 +201,7 @@ export default function GalleryPage() {
 
     // 4. Fire and Forget the API Call
     // We don't 'await' this. It runs in the background.
-    promoteImage(currentWord, item)
+    promoteImage(currentWord, item, userId || "anonymous")
       .then((response) => {
         console.log("Background promotion success:", response);
       })

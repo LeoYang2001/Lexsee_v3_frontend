@@ -14,7 +14,6 @@ import {
 import { Link, useRouter } from "expo-router";
 import { signIn, signInWithRedirect, signOut } from "aws-amplify/auth";
 import { useAppDispatch } from "../../store/hooks";
-import { fetchUserInfo } from "../../store/slices/userSlice";
 import GradientBackground from "../../components/common/GradientBackground";
 import { BlurView } from "expo-blur";
 

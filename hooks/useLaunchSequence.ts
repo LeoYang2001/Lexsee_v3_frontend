@@ -95,6 +95,8 @@ export function useLaunchSequence() {
         await Promise.race([
           (async () => {
             const user = await getCurrentUser();
+            // set user slice
+            
             if (!mounted) return;
             await handleAuthSuccess("cold_start");
           })(),
