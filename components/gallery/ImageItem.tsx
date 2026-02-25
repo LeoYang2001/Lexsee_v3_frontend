@@ -70,8 +70,18 @@ export default function ImageItem({ item, index, onPress }: ImageItemProps) {
           backgroundColor: "#1F2937",
           borderRadius: 10,
           overflow: "hidden",
-          borderWidth: item.userSelected ? 2 : 0,
-          borderColor: item.userSelected ? "#E44C21" : "transparent",
+          borderWidth:
+            item.sourceType === "internal" && item.contributorId
+              ? 2
+              : item.userSelected
+                ? 2
+                : 0,
+          borderColor:
+            item.sourceType === "internal" && item.contributorId
+              ? "#F59E0B"
+              : item.userSelected
+                ? "#E44C21"
+                : "transparent",
         }}
         activeOpacity={1} // We handle opacity manually
       >
@@ -83,6 +93,31 @@ export default function ImageItem({ item, index, onPress }: ImageItemProps) {
           }}
           resizeMode="cover"
         />
+        {item.sourceType === "internal" && item.contributorId ? (
+          <View
+            style={{
+              position: "absolute",
+              left: 8,
+              bottom: 8,
+              backgroundColor: "rgba(0, 0, 0, 0.7)",
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+              borderRadius: 8,
+              maxWidth: "85%",
+            }}
+          >
+            <Text
+              style={{
+                color: "#FFFFFF",
+                fontSize: 11,
+                fontWeight: "600",
+              }}
+              numberOfLines={1}
+            >
+              by {item.contributorName || item.userName || "contributor"}
+            </Text>
+          </View>
+        ) : null}
         {item.userSelected && item.voter_ids && item.voter_ids.length > 0 ? (
           <View
             style={{

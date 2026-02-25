@@ -8,6 +8,8 @@ import {
   Keyboard,
   FlatList,
   ActivityIndicator,
+  Modal,
+  Alert,
 } from "react-native";
 import { useTheme } from "../../theme/ThemeContext";
 import { ChevronLeft } from "lucide-react-native";
@@ -27,14 +29,15 @@ export default function SearchPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [showAdminModal, setShowAdminModal] = useState(false);
+  const [adminPasskey, setAdminPasskey] = useState("");
   const inputRef = useRef<TextInput>(null);
-  const userProfile = useAppSelector((state) => state.profile.data);
+  const adminPasskeyRef = useRef<TextInput>(null);
 
+  const ADMIN_PASSKEY = process.env.EXPO_PUBLIC_REVIEWER_PASSKEY;
 
   // 1. Use your new Local Hook
-  const { history, addToHistory, clearHistory } = useSearchHistory()
-
- 
+  const { history, addToHistory, clearHistory } = useSearchHistory();
 
   // Debounced search suggestions
   useEffect(() => {
@@ -53,14 +56,53 @@ export default function SearchPage() {
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
 
-
-
   const handleWordSelect = (word: string) => {
-    addToHistory(word); 
+    // Check for admin entry trigger
+    if (word.toLowerCase() === "admin-review") {
+      setShowAdminModal(true);
+      setSearchQuery("");
+      setSuggestions([]);
+      Keyboard.dismiss();
+      return;
+    }
+
+    addToHistory(word);
     setSearchQuery("");
     setSuggestions([]);
     Keyboard.dismiss();
     router.push(`/(definition)?word=${encodeURIComponent(word)}`);
+  };
+
+  const handleAdminPasskeySubmit = () => {
+    if (adminPasskey === ADMIN_PASSKEY) {
+      setShowAdminModal(false);
+      setAdminPasskey("");
+      router.push("/(reviewGallery)");
+    } else {
+      Alert.alert("Invalid Passkey", "The passkey you entered is incorrect.", [
+        {
+          text: "Try Again",
+          onPress: () => {
+            setAdminPasskey("");
+            if (adminPasskeyRef.current) {
+              adminPasskeyRef.current.focus();
+            }
+          },
+        },
+        {
+          text: "Cancel",
+          onPress: () => {
+            setShowAdminModal(false);
+            setAdminPasskey("");
+          },
+        },
+      ]);
+    }
+  };
+
+  const handleCloseAdminModal = () => {
+    setShowAdminModal(false);
+    setAdminPasskey("");
   };
 
   useEffect(() => {
@@ -169,9 +211,7 @@ export default function SearchPage() {
                   style={{
                     fontSize: 12,
                     opacity:
-                      isHistoryLoading || history.length === 0
-                        ? 0.5
-                        : 0.9,
+                      isHistoryLoading || history.length === 0 ? 0.5 : 0.9,
                   }}
                   className="text-white"
                 >
@@ -233,7 +273,9 @@ export default function SearchPage() {
                       onPress={() => handleWordSelect(item.word)}
                     >
                       <View className="flex flex-row items-center justify-between">
-                        <Text className="text-white text-base">{item.word}</Text>
+                        <Text className="text-white text-base">
+                          {item.word}
+                        </Text>
                         <AntDesign name="clockcircleo" size={14} color="#666" />
                       </View>
                     </TouchableOpacity>
@@ -243,6 +285,107 @@ export default function SearchPage() {
             )}
           </ScrollView>
         </View>
+
+        {/* Admin Passkey Modal */}
+        <Modal
+          visible={showAdminModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={handleCloseAdminModal}
+        >
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: "rgba(0, 0, 0, 0.7)",
+              justifyContent: "flex-start",
+              alignItems: "center",
+              paddingTop: "60%",
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: theme.background,
+                borderRadius: 16,
+                padding: 24,
+                width: "80%",
+                maxWidth: 350,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 20,
+                  fontWeight: "600",
+                  color: "white",
+                  marginBottom: 8,
+                }}
+              >
+                Developer Access
+              </Text>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: "#aaa",
+                  marginBottom: 20,
+                }}
+              >
+                Enter passkey to access admin panel
+              </Text>
+
+              <TextInput
+                ref={adminPasskeyRef}
+                value={adminPasskey}
+                onChangeText={setAdminPasskey}
+                placeholder="Enter passkey"
+                placeholderTextColor="#666"
+                secureTextEntry={true}
+                style={{
+                  backgroundColor: "#2b2c2d",
+                  borderRadius: 8,
+                  paddingHorizontal: 12,
+                  paddingVertical: 12,
+                  color: "white",
+                  fontSize: 16,
+                  marginBottom: 20,
+                  borderWidth: 1,
+                  borderColor: "#444",
+                }}
+                returnKeyType="done"
+                onSubmitEditing={handleAdminPasskeySubmit}
+              />
+
+              <View style={{ flexDirection: "row", gap: 12 }}>
+                <TouchableOpacity
+                  onPress={handleCloseAdminModal}
+                  style={{
+                    flex: 1,
+                    backgroundColor: "#444",
+                    borderRadius: 8,
+                    paddingVertical: 12,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ color: "white", fontWeight: "500" }}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleAdminPasskeySubmit}
+                  style={{
+                    flex: 1,
+                    backgroundColor: "#6366f1",
+                    borderRadius: 8,
+                    paddingVertical: 12,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ color: "white", fontWeight: "500" }}>
+                    Submit
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </TouchableWithoutFeedback>
   );

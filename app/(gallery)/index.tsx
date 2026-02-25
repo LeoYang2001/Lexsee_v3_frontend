@@ -7,6 +7,7 @@ import {
   Text,
   Linking,
   Alert,
+  Image,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import ImageItem from "../../components/gallery/ImageItem";
@@ -17,19 +18,18 @@ import GalleryHeader from "../../components/gallery/GalleryHeader";
 import ImageSelectionModal from "../../components/gallery/ImageSelectionModal"; // New import
 import FeedbackModal from "../../components/gallery/FeedbackModal";
 import {
+  fetchUserUploads,
   promoteImage,
   searchGalleryImages,
-  uploadImageToS3,
+  uploadImageToReviewQueue,
   type GalleryImageResult,
 } from "../../apis/getGalleryImages";
 import * as ImagePicker from "expo-image-picker";
 import emailjs from "@emailjs/react-native";
-import { useAppSelector } from "../../store/hooks";
 import { getCurrentUser } from "aws-amplify/auth";
 
 const SERVICE_ID = "service_8m223te";
 const TEMPLATE_ID = "template_2ozcmnn";
-const PUBLIC_KEY = process.env.EXPO_PUBLIC_EMAILJS_API_KEY;
 
 export default function GalleryPage() {
   const params = useLocalSearchParams();
@@ -44,6 +44,7 @@ export default function GalleryPage() {
   const [fetchedImages, setFetchedImages] = useState<GalleryImageResult[]>([]);
   const [isLoadingImages, setIsLoadingImages] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [userUploadedImages, setUserUploadedImages] = useState<any[]>([]);
 
   const { width, height } = Dimensions.get("window");
   const BORDER_RADIUS = Math.min(width, height) * 0.06;
@@ -54,6 +55,8 @@ export default function GalleryPage() {
   );
   const [isUploading, setIsUploading] = useState(false);
   const [isReporting, setIsReporting] = useState(false);
+
+  const [ifSelectedPendingImage, setIfSelectedPendingImage] = useState(false);
 
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -103,33 +106,36 @@ export default function GalleryPage() {
     if (!selectedLocalImage) return;
     setIsUploading(true);
 
-    return alert("under development, please check back later!");
-
     try {
-      // 1. Execute the S3 Upload (Pre-signed URL flow)
-      // const { finalUrl, imageHash } = await uploadImageToS3(
-      //   currentWord,
-      //   selectedLocalImage,
-      // );
-      // 2. Save Metadata to DynamoDB
-      // We reuse your existing promoteImage function!
-      // await promoteImage(currentWord, {
-      //   url: finalUrl,
-      //   thumb: finalUrl,
-      //   title: `Community upload for ${currentWord}`,
-      //   userSelected: false,
-      //   imageHash: imageHash,
-      //   sourceType: "user-upload",
-      // });
+      // 1. Execute the S3 Upload to the Pending Bucket
+      // We pass userId and userName to track the contributor
+      if (!userId)
+        return alert("User not authenticated. Please log in to upload images.");
 
-      // 3. Success UI
-      Alert.alert("Success", "Your image is now live in the gallery!");
+      await uploadImageToReviewQueue(
+        currentWord,
+        userId, // Assuming you have access to user context
+        "anonymous", // You can replace this with actual user name if available
+        selectedLocalImage,
+      );
+
+      // 2. Success UI
+      // Note the change in messaging: "Live" vs "Submitted"
+      Alert.alert(
+        "Submitted",
+        "Your image has been sent for review! It will appear in your results shortly.",
+      );
+      // fetch images again to include the user's pending upload in the list (it will be marked as pending)
+      await fetchImagesUploadedByUser(currentWord, userId);
+
       setIsFeedbackModalVisible(false);
       setSelectedLocalImage(null);
 
-      // Refresh the list to show the user's new image
+      // 3. Refresh Logic
+      // This will now fetch both public images AND the user's pending image
       fetchImagesForWord(currentWord);
     } catch (error) {
+      console.error("Upload process failed:", error);
       Alert.alert("Error", "Failed to upload image. Please try again.");
     } finally {
       setIsUploading(false);
@@ -151,10 +157,11 @@ export default function GalleryPage() {
     };
     fetchUserId();
 
-    if (currentWord) {
+    if (currentWord && userId) {
       fetchImagesForWord(currentWord);
+      fetchImagesUploadedByUser(currentWord, userId);
     }
-  }, [currentWord]);
+  }, [currentWord, userId]);
 
   const fetchImagesForWord = async (word: string) => {
     if (isLoadingImages) return;
@@ -171,8 +178,28 @@ export default function GalleryPage() {
     }
   };
 
+  const fetchImagesUploadedByUser = async (word: string, userId: string) => {
+    try {
+      const result = await fetchUserUploads(userId, word);
+      // Store user's uploaded images separately, but only pending ones
+      if (result && Array.isArray(result)) {
+        const pendingImages = result.filter((img) => img.isPending === true);
+        setUserUploadedImages(pendingImages);
+        console.log("setUserUploadedImages (pending only):", pendingImages);
+      }
+      console.log("User uploaded images:", JSON.stringify(result));
+    } catch (error) {
+      console.log("Error fetching user uploaded images:", error);
+    }
+  };
+
   // Simplified image press handler
-  const handleImagePress = (item: GalleryImageResult) => {
+  const handleImagePress = (
+    item: GalleryImageResult,
+    pendingImage?: boolean,
+  ) => {
+    const isPending = pendingImage ?? false;
+    setIfSelectedPendingImage(isPending);
     setSelectedImage(item);
     setIsSelectionModalVisible(true);
     console.log("Selected image:", JSON.stringify(item));
@@ -198,6 +225,8 @@ export default function GalleryPage() {
         // Optional: you could pass a 'isSyncing' flag if you want to show a small spinner there
       });
     }, 50);
+
+    if (ifSelectedPendingImage) return;
 
     // 4. Fire and Forget the API Call
     // We don't 'await' this. It runs in the background.
@@ -273,6 +302,146 @@ export default function GalleryPage() {
       onPress={handleImagePress} // Simplified - just passes imageUri
     />
   );
+
+  const renderUserPendingImages = () => {
+    if (userUploadedImages.length === 0) return null;
+
+    return (
+      <View style={{ paddingHorizontal: 8, marginBottom: 16 }}>
+        {/* Header */}
+        <Text
+          style={{
+            color: "#9CA3AF",
+            fontSize: 12,
+            fontWeight: "600",
+            marginBottom: 12,
+            marginLeft: 8,
+            textTransform: "uppercase",
+            letterSpacing: 0.5,
+          }}
+        >
+          Your Submissions
+        </Text>
+
+        {/* Pending Images - Full Width */}
+        {userUploadedImages.map((image, index) => (
+          <View
+            key={`user-upload-${index}`}
+            style={{
+              marginBottom: 12,
+              position: "relative",
+            }}
+          >
+            <TouchableOpacity
+              onPress={() =>
+                handleImagePress(
+                  {
+                    url: image.displayUrl,
+                    thumb: image.displayUrl,
+                    title: image.word,
+                    userSelected: true,
+                    sourceType: "user-upload",
+                  },
+                  true,
+                )
+              }
+              style={{
+                width: "100%",
+                aspectRatio: 1,
+                borderRadius: 12,
+                overflow: "hidden",
+              }}
+            >
+              <Image
+                source={{ uri: image.displayUrl }}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  backgroundColor: "#2b2c2d",
+                  borderWidth: 1,
+                  borderColor: "#f97316",
+                  borderRadius: 12,
+                }}
+                resizeMode="cover"
+              />
+            </TouchableOpacity>
+
+            {/* Pending Badge */}
+            {image.isPending && (
+              <View
+                style={{
+                  position: "absolute",
+                  top: 8,
+                  right: 8,
+                  backgroundColor: "#f97316",
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
+                  borderRadius: 6,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <View
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: 3,
+                    backgroundColor: "#fef3c7",
+                  }}
+                />
+                <Text
+                  style={{
+                    color: "white",
+                    fontSize: 11,
+                    fontWeight: "600",
+                  }}
+                >
+                  Under Review
+                </Text>
+              </View>
+            )}
+
+            {/* Word Label */}
+            <View
+              style={{
+                marginTop: 8,
+                paddingHorizontal: 8,
+              }}
+            >
+              <Text
+                style={{
+                  color: "white",
+                  fontWeight: "600",
+                  fontSize: 14,
+                }}
+              >
+                {image.word}
+              </Text>
+              <Text
+                style={{
+                  color: "#888",
+                  fontSize: 12,
+                  marginTop: 2,
+                }}
+              >
+                Submitted on {new Date(image.createdAt).toLocaleDateString()}
+              </Text>
+            </View>
+          </View>
+        ))}
+
+        {/* Divider */}
+        <View
+          style={{
+            height: 1,
+            backgroundColor: "#333",
+            marginVertical: 16,
+          }}
+        />
+      </View>
+    );
+  };
 
   const renderFooter = () => {
     // 1. If still fetching initial or more images, show the spinner
@@ -416,13 +585,12 @@ export default function GalleryPage() {
             renderItem={renderImageItem}
             keyExtractor={(item, index) => `image-${index}`}
             numColumns={2}
-            // onEndReached={handleLoadMore}
-            // onEndReachedThreshold={0.5}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{
               padding: 8,
               paddingBottom: 20,
             }}
+            ListHeaderComponent={renderUserPendingImages}
             ListFooterComponent={renderFooter}
             ListEmptyComponent={isLoadingImages ? null : renderEmptyState}
           />
