@@ -18,6 +18,20 @@ import { ScrollView } from "react-native-gesture-handler";
 import { useSearchHistory } from "../../hooks/useSearchHistory";
 import { SearchHistoryItem } from "../../types/common/SearchHistoryItem";
 import { useSQLiteContext } from "expo-sqlite";
+import Animated, {
+  SharedTransition,
+  withSpring,
+} from "react-native-reanimated";
+
+const snappyTransition = SharedTransition.custom((values) => {
+  "worklet";
+  return {
+    height: withSpring(values.targetHeight, { damping: 20, stiffness: 200 }),
+    width: withSpring(values.targetWidth, { damping: 20, stiffness: 200 }),
+    originX: withSpring(values.targetOriginX, { damping: 20, stiffness: 200 }),
+    originY: withSpring(values.targetOriginY, { damping: 20, stiffness: 200 }),
+  };
+});
 
 interface SearchSuggestionItem {
   word: string;
@@ -157,7 +171,16 @@ export default function SearchPage() {
           </TouchableOpacity>
         </View>
         <View className=" w-full mt-3">
-          <View style={{ position: "relative", width: "100%", height: 49 }}>
+          <Animated.View
+            sharedTransitionTag="searchBar" // Identical tag
+            sharedTransitionStyle={snappyTransition}
+            style={{
+              height: 49,
+              backgroundColor: "#2b2c2d",
+              borderRadius: 12,
+              width: "100%",
+            }}
+          >
             <TextInput
               ref={inputRef}
               autoFocus
@@ -216,7 +239,7 @@ export default function SearchPage() {
                 />
               </TouchableOpacity>
             )}
-          </View>
+          </Animated.View>
         </View>
 
         {/* SEARCH SUGGESTIONS OR HISTORY */}
