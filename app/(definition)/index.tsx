@@ -34,6 +34,7 @@ import {
   fetchDefinition,
   fetchQuickConversation,
   generatePhoneticText,
+  translateMeanings,
 } from "../../apis/AIFeatures";
 import type { ConversationResponse } from "../../apis/AIFeatures";
 import { fetchAudioUrl } from "../../apis/fetchPhonetics";
@@ -46,15 +47,16 @@ import {
 } from "../../apis/setSchedule";
 import { getLocalDate } from "../../util/utli";
 import { useOnboarding } from "../../hooks/useOnboarding";
+import SaveOptionsModal from "../../components/definition/SaveOptionsModal";
 
 function CollectBtn({
   saveStatus,
   handleSaveOrUnsave,
-  handleSaveWithoutPicture,
+  onLongPress,
 }: {
   saveStatus: string;
   handleSaveOrUnsave: () => void;
-  handleSaveWithoutPicture: () => void;
+  onLongPress: () => void;
 }) {
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
@@ -171,8 +173,7 @@ function CollectBtn({
       onPress={handleSaveOrUnsave}
       onLongPress={() => {
         if (saveStatus === "unsaved") {
-          //handle save without picture
-          handleSaveWithoutPicture();
+          onLongPress();
         }
       }}
       disabled={saveStatus === "saving"}
@@ -267,6 +268,16 @@ export default function DefinitionPage() {
   const [viewMode, setViewMode] = useState("definition");
   const [isLoadingDefinition, setIsLoadingDefinition] = useState(false);
   const [isImageZoomed, setIsImageZoomed] = useState(false);
+  const [showSaveOptionsModal, setShowSaveOptionsModal] = useState(false);
+  const [collectBtnLayout, setCollectBtnLayout] = useState<
+    | {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      }
+    | undefined
+  >(undefined);
 
   // Separate phonetics state with persistence
   const [phonetics, setPhonetics] = useState<Phonetics | undefined>(undefined);
@@ -285,7 +296,14 @@ export default function DefinitionPage() {
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const [isConversationLoaded, setIsConversationLoaded] = useState(false);
   const [showConversationView, setShowConversationView] = useState(false);
-  const [playMessageAnimation, setPlayMessageAnimation] = useState(false); // New state for animation
+  const [playMessageAnimation, setPlayMessageAnimation] = useState(false);
+
+  //TRANSLATION FEATURE
+  const [ifTranslating, setIfTranslating] = useState(false);
+  const [ifDisplayTranslation, setIfDisplayTranslation] = useState(false);
+  const [translatedMeanings, setTranslatedMeanings] = useState<
+    { definition: string; partOfSpeech: string }[] | null
+  >(null);
 
   const userProfile = useAppSelector((state) => state.profile.data);
 
@@ -295,6 +313,7 @@ export default function DefinitionPage() {
   //USER GUIDE
   const { activeStep, setTargetLayout } = useOnboarding();
   const definitionRef = useRef<ScrollView>(null);
+  const collectBtnRef = useRef<View>(null);
 
   const handleLayout = () => {
     // Only measure if the "Director" says we are in the 'DEFINITION_STEP_1' stage
@@ -320,6 +339,18 @@ export default function DefinitionPage() {
       };
 
       tryMeasure();
+    }
+  };
+
+  const measureCollectBtn = () => {
+    if (collectBtnRef.current) {
+      (collectBtnRef.current as any).measureInWindow(
+        (x: number, y: number, width: number, height: number) => {
+          if (width > 0 && height > 0) {
+            setCollectBtnLayout({ x, y, width, height });
+          }
+        },
+      );
     }
   };
 
@@ -393,6 +424,32 @@ export default function DefinitionPage() {
     }
     // 4. Force refresh to get accurate state
     setSaveStatus("saved");
+  };
+
+  const fetchTranslation = async (wordInfo: Word) => {
+    console.log("calling translation...");
+    if (!wordInfo.meanings || wordInfo.meanings.length === 0) {
+      return console.log("No meanings available for translation.");
+    }
+    const translationParameter = wordInfo.meanings.map((meaning) => ({
+      definition: meaning.definition,
+      partOfSpeech: meaning.partOfSpeech,
+    }));
+
+    setIfTranslating(true);
+
+    try {
+      const response = await translateMeanings(
+        translationParameter,
+        activeModel,
+      );
+      setTranslatedMeanings(response);
+      setIfDisplayTranslation(true);
+    } catch (error) {
+      console.log("error fetching translation:", error);
+    } finally {
+      setIfTranslating(false);
+    }
   };
 
   // Function to fetch conversation
@@ -887,6 +944,18 @@ export default function DefinitionPage() {
     }
   };
 
+  const handleTranslation = () => {
+    if (translatedMeanings) {
+      setIfDisplayTranslation(true);
+      alert("Translation already fetched.");
+      return;
+    }
+    if (wordInfo) {
+      fetchTranslation(wordInfo);
+      setShowSaveOptionsModal(false);
+    }
+  };
+
   // ADDED: Auto cleanup when cache gets too large
   useEffect(() => {
     const cacheKeys = Object.keys(phoneticsCached);
@@ -913,6 +982,24 @@ export default function DefinitionPage() {
       }}
       className="flex w-full h-full flex-col justify-start"
     >
+      {/* Save Options Modal */}
+      <SaveOptionsModal
+        visible={showSaveOptionsModal}
+        translatedMeanings={translatedMeanings}
+        onClose={() => setShowSaveOptionsModal(false)}
+        onSaveWithPicture={() => {
+          setShowSaveOptionsModal(false);
+          handleSaveOrUnsave();
+        }}
+        onSaveWithoutPicture={() => {
+          setShowSaveOptionsModal(false);
+          handleSaveWithoutPicture();
+        }}
+        onExtraDiagPress={handleTranslation}
+        saveStatus={saveStatus}
+        collectBtnLayout={collectBtnLayout}
+      />
+
       {/* Image Zoom Modal */}
       <ImageZoomModal
         visible={isImageZoomed}
@@ -1045,11 +1132,15 @@ export default function DefinitionPage() {
 
                 <View
                   style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+                  ref={collectBtnRef}
                 >
                   <CollectBtn
                     saveStatus={saveStatus}
                     handleSaveOrUnsave={handleSaveOrUnsave}
-                    handleSaveWithoutPicture={handleSaveWithoutPicture}
+                    onLongPress={() => {
+                      measureCollectBtn();
+                      setShowSaveOptionsModal(true);
+                    }}
                   />
                 </View>
               </View>
@@ -1157,30 +1248,51 @@ export default function DefinitionPage() {
                   <ScrollView
                     ref={definitionRef}
                     onLayout={handleLayout}
-                    className=" w-full py-4 flex-1 mb-10 mt-2"
+                    className=" w-full py-4 flex-1 mb-10 mt-2 relative "
                   >
-                    <View className=" text-white  opacity-70">
-                      {isLoadingDefinition ? (
-                        // Skeleton definitions
-                        <>
-                          <View className=" mb-4 flex flex-col gap-2">
-                            <SkeletonBox width={80} height={20} />
-                            <SkeletonBox width="100%" height={16} />
-                            <SkeletonBox width="90%" height={16} />
-                            <SkeletonBox width="95%" height={16} />
-                          </View>
-                        </>
-                      ) : (
-                        wordInfo?.meanings.map((meaning, index) => (
-                          <TouchableOpacity
+                    {translatedMeanings && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          if (ifDisplayTranslation) {
+                            setIfDisplayTranslation(false);
+                          } else {
+                            setIfDisplayTranslation(true);
+                          }
+                        }}
+                        className=" absolute -top-4 right-0 z-10 p-1"
+                      >
+                        {ifDisplayTranslation ? (
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              color: "#fff",
+                              opacity: 0.5,
+                            }}
+                            className=" mb-4"
+                          >
+                            Tap to view original.
+                          </Text>
+                        ) : (
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              color: "#fff",
+                              opacity: 0.5,
+                            }}
+                            className=" mb-4"
+                          >
+                            Tap to view translation.
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    )}
+                    {ifTranslating ? (
+                      <View className=" text-white  opacity-70">
+                        {wordInfo?.meanings.map((meaning, index) => (
+                          <View
                             key={index}
                             className=" mb-4 flex flex-col gap-2"
-                            onPress={() => {
-                              fetchConversationExample(
-                                meaning.partOfSpeech,
-                                meaning.definition,
-                              );
-                            }}
+                            style={{ opacity: 0.5 }}
                           >
                             <Text
                               style={{
@@ -1190,6 +1302,7 @@ export default function DefinitionPage() {
                             >
                               {meaning.partOfSpeech}
                             </Text>
+
                             <Text
                               style={{
                                 fontSize: 14,
@@ -1198,10 +1311,89 @@ export default function DefinitionPage() {
                             >
                               {meaning.definition}
                             </Text>
-                          </TouchableOpacity>
-                        ))
-                      )}
-                    </View>
+                          </View>
+                        ))}
+                        <View className=" flex flex-row items-center gap-2">
+                          <ActivityIndicator size="small" color="#ce4319" />
+                          <Text
+                            style={{
+                              color: "#ce4319",
+                            }}
+                            className=" text-sm"
+                          >
+                            Loading translation...
+                          </Text>
+                        </View>
+                      </View>
+                    ) : (
+                      <View className=" text-white  opacity-70">
+                        {isLoadingDefinition ? (
+                          // Skeleton definitions
+                          <>
+                            <View className=" mb-4 flex flex-col gap-2">
+                              <SkeletonBox width={80} height={20} />
+                              <SkeletonBox width="100%" height={16} />
+                              <SkeletonBox width="90%" height={16} />
+                              <SkeletonBox width="95%" height={16} />
+                            </View>
+                          </>
+                        ) : (
+                          wordInfo?.meanings.map((meaning, index) => (
+                            <TouchableOpacity
+                              key={index}
+                              className=" mb-4 flex flex-col gap-2"
+                              onPress={() => {
+                                fetchConversationExample(
+                                  meaning.partOfSpeech,
+                                  meaning.definition,
+                                );
+                              }}
+                            >
+                              {ifDisplayTranslation && translatedMeanings ? (
+                                <Text
+                                  style={{
+                                    fontSize: 16,
+                                  }}
+                                  className="text-white opacity-70 font-bold"
+                                >
+                                  {translatedMeanings[index]?.partOfSpeech ||
+                                    meaning.partOfSpeech}
+                                </Text>
+                              ) : (
+                                <Text
+                                  style={{
+                                    fontSize: 16,
+                                  }}
+                                  className="text-white opacity-70 font-bold"
+                                >
+                                  {meaning.partOfSpeech}
+                                </Text>
+                              )}
+                              {ifDisplayTranslation && translatedMeanings ? (
+                                <Text
+                                  style={{
+                                    fontSize: 14,
+                                  }}
+                                  className="text-white opacity-90"
+                                >
+                                  {translatedMeanings[index]?.definition ||
+                                    meaning.definition}
+                                </Text>
+                              ) : (
+                                <Text
+                                  style={{
+                                    fontSize: 14,
+                                  }}
+                                  className="text-white opacity-90"
+                                >
+                                  {meaning.definition}
+                                </Text>
+                              )}
+                            </TouchableOpacity>
+                          ))
+                        )}
+                      </View>
+                    )}
                   </ScrollView>
                   <View className=" absolute bottom-3">
                     <AIStatusIndicator />

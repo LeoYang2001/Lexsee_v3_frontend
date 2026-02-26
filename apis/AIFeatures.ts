@@ -199,8 +199,6 @@ export async function fetchDefinition(
 
     const data = await response.json();
 
-    console.log("data from dictionary api:", JSON.stringify(data));
-
     if (!data || !Array.isArray(data) || data.length === 0) {
       console.log(
         `📝 No data received for word "${word}", trying AI fallback...`,
@@ -942,3 +940,69 @@ export const generatePhoneticText = async (
     return "";
   }
 };
+
+export async function translateMeanings(
+  meanings: { definition: string; partOfSpeech: string }[],
+  provider: AIProvider = DEFAULT_AI_PROVIDER,
+  targetLang: string = "Chinese",
+): Promise<{ definition: string; partOfSpeech: string }[]> {
+  if (!meanings.length) return [];
+
+  console.log(
+    "calling translateMeanings with parameters :",
+    JSON.stringify({ meanings, provider, targetLang }),
+  );
+
+  const systemPrompt = `You are a professional translator. Translate these word definitions to ${targetLang}.
+  
+Return ONLY a JSON object in this exact format:
+{
+  "translations": [
+    {
+      "definition": "<translated definition>",
+      "partOfSpeech": "<part of speech in ${targetLang}>"
+    }
+  ]
+}
+
+Rules:
+- Translate each definition accurately and naturally
+- Preserve the part of speech in ${targetLang}
+- Return valid JSON only, no additional text
+- Each translation object must have "definition" and "partOfSpeech" keys
+- Return exactly as many translations as provided in the input`;
+
+  const client = getAIClient(provider);
+
+  if (!client) {
+    console.error("❌ AI client is not available. API key is missing.");
+    return [];
+  }
+
+  const model = getAIModel(provider);
+  if (!model) {
+    console.error("❌ AI model is not available.");
+    return [];
+  }
+  try {
+    const response = await client.chat.completions.create({
+      model: model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: JSON.stringify(meanings) },
+      ],
+      response_format: { type: "json_object" },
+    });
+
+    const raw = response.choices?.[0]?.message?.content;
+    if (!raw) return [];
+
+    const data = JSON.parse(raw);
+    console.log("get translation data:", JSON.stringify(data));
+
+    return data.translations || [];
+  } catch (error) {
+    console.error("❌ Error generating phonetic text:", error);
+    return [];
+  }
+}

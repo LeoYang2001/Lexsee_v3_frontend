@@ -243,7 +243,7 @@ export default function SearchPage() {
         </View>
 
         {/* SEARCH SUGGESTIONS OR HISTORY */}
-        <View className="w-full flex-1 mt-6">
+        <View className="w-full flex-1 mt-6 pb-12">
           <View className=" flex flex-row justify-between items-center">
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Text style={{ fontSize: 12 }} className=" text-white opacity-70">
@@ -269,7 +269,10 @@ export default function SearchPage() {
             )}
           </View>
 
-          <ScrollView className="px-3 pt-6" keyboardShouldPersistTaps="always">
+          <ScrollView
+            className="px-3 pt-6  "
+            keyboardShouldPersistTaps="always"
+          >
             {/* Show suggestions if there's a search query, otherwise show history */}
             {searchQuery.trim().length > 0 ? (
               <>
@@ -331,6 +334,8 @@ export default function SearchPage() {
                 )}
               </>
             )}
+            {/* Footer Padding */}
+            <View style={{ height: 30 }} />
           </ScrollView>
         </View>
 
