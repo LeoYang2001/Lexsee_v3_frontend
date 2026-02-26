@@ -20,7 +20,9 @@
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "plugins": [
       "expo-router",
       [
@@ -47,7 +49,9 @@
         {
           "photosPermission": "The app accesses your photos to let you share images for vocabulary words."
         }
-      ]
+      ],
+      "expo-sqlite",
+      "expo-asset"
     ],
     "extra": {
       "router": {},
