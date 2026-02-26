@@ -59,12 +59,21 @@ export default function SearchPage() {
   }, [searchQuery]);
 
   const handleSearch = async (text: string) => {
+    // 1. Safety check: Don't search for empty strings or single asterisks
+    const sanitizedText = text.trim().replace(/"/g, ""); // Remove existing double quotes
+    if (sanitizedText.length === 0) {
+      setSuggestions([]);
+      return;
+    }
+
     try {
-      // Use the FTS5 MATCH syntax you tested in TablePlus
-      // We append '*' so 'app' finds 'apple', 'apply', etc.
+      // 2. Wrap the text in double quotes to handle punctuation safely
+      // Example: " 'cause* " instead of 'cause*
+      const query = `"${sanitizedText}"*`;
+
       const allRows = await db.getAllAsync<{ word: string; phonetic: string }>(
         "SELECT word, phonetic FROM dictionary WHERE word MATCH ? LIMIT 20",
-        [`${text}*`],
+        [query],
       );
       setSuggestions(allRows);
     } catch (error) {

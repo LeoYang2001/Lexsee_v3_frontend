@@ -96,10 +96,13 @@ export default function ReviewGalleryPage() {
     try {
       setProcessingHash(image.imageHash);
       // TODO: Call rejection API endpoint
-      console.log("Rejecting image:", image.imageHash);
+      await handleReview(image, "rejected");
+
       Alert.alert("Success", "Image rejected!");
       // Remove from list after rejection
-      setImages(images.filter((img) => img.imageHash !== image.imageHash));
+      setImages((prev) =>
+        prev.filter((img) => img.imageHash !== image.imageHash),
+      );
       setSelectedImage(null);
     } catch (error) {
       Alert.alert("Error", "Failed to reject image");

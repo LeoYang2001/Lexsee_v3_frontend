@@ -25,9 +25,9 @@ export default function SignUpScreen() {
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [confirmPasswordFocused, setConfirmPasswordFocused] = useState(false);
+  const router = useRouter();
 
   const handleSignUp = async () => {
-    const router = useRouter();
     if (!email || !password || !confirmPassword) {
       Alert.alert("Error", "Please fill in all fields");
       return;
@@ -63,7 +63,7 @@ export default function SignUpScreen() {
                   params: { email },
                 }),
             },
-          ]
+          ],
         );
       }
     } catch (error) {

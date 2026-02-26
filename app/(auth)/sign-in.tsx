@@ -12,16 +12,21 @@ import {
   Button,
 } from "react-native";
 import { Link, useRouter } from "expo-router";
-import { signIn, signInWithRedirect, signOut } from "aws-amplify/auth";
-import { useAppDispatch } from "../../store/hooks";
+import { signIn, signInWithRedirect } from "aws-amplify/auth";
 import GradientBackground from "../../components/common/GradientBackground";
 import { BlurView } from "expo-blur";
+import { useSelector } from "react-redux";
+import { RootState } from "../../store";
 
 export default function SignInScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const dispatch = useAppDispatch();
+
+  const aiSetting = useSelector((state: RootState) => state.aiSettings);
+  const activeModel = aiSetting.activeModel;
+
+  console.log("current ActiveModel:", activeModel);
 
   // Focus states for input styling
   const [emailFocused, setEmailFocused] = useState(false);
@@ -59,6 +64,11 @@ export default function SignInScreen() {
   };
 
   const handleSignInWithGoogle = async () => {
+    if (activeModel !== "openai") {
+      return alert(
+        "Google Sign-In is not available for users in China mainland, please use Apple Sign-In or Email Sign-In instead.",
+      );
+    }
     try {
       setLoading(true);
 
