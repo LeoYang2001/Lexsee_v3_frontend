@@ -11,6 +11,8 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
+  SharedTransition,
+  withSpring,
 } from "react-native-reanimated";
 import { useRouter } from "expo-router";
 import { useAppSelector } from "../../store/hooks";
@@ -21,8 +23,17 @@ import DashCard from "../../components/home/DashCard";
 import FlexCard from "../../components/common/FlexCard";
 import { useOnboarding } from "../../hooks/useOnboarding";
 
-export default function HomeScreen() {
+const snappyTransition = SharedTransition.custom((values) => {
+  "worklet";
+  return {
+    height: withSpring(values.targetHeight, { damping: 20, stiffness: 200 }),
+    width: withSpring(values.targetWidth, { damping: 20, stiffness: 200 }),
+    originX: withSpring(values.targetOriginX, { damping: 20, stiffness: 200 }),
+    originY: withSpring(values.targetOriginY, { damping: 20, stiffness: 200 }),
+  };
+});
 
+export default function HomeScreen() {
   const router = useRouter();
 
   const anchorSnapPoints = [0.15, 0.25];
@@ -36,45 +47,39 @@ export default function HomeScreen() {
   const translateY = useSharedValue(0);
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
 
-  const { words } = useAppSelector(
-    (state) => state.wordsList
-  );
-
+  const { words } = useAppSelector((state) => state.wordsList);
 
   //NEW USER GUIDE
   const { activeStep, setTargetLayout } = useOnboarding();
   const searchBarRef = useRef<View>(null);
 
-
   const handleLayout = () => {
-  if (activeStep === 'SEARCH') {
-    const tryMeasure = (retries = 3) => {
-      searchBarRef.current?.measureInWindow((x, y, width, height) => {
-        // Check if we actually got data (height/width shouldn't be 0 for a search bar)
-        if (width > 0 && height > 0) {
-          setTargetLayout({ x, y, width, height });
-        } else if (retries > 0) {
-          // If zeros, wait 100ms and try again
-          setTimeout(() => tryMeasure(retries - 1), 100);
-        }
-      });
-    };
+    if (activeStep === "SEARCH") {
+      const tryMeasure = (retries = 3) => {
+        searchBarRef.current?.measureInWindow((x, y, width, height) => {
+          // Check if we actually got data (height/width shouldn't be 0 for a search bar)
+          if (width > 0 && height > 0) {
+            setTargetLayout({ x, y, width, height });
+          } else if (retries > 0) {
+            // If zeros, wait 100ms and try again
+            setTimeout(() => tryMeasure(retries - 1), 100);
+          }
+        });
+      };
 
-    tryMeasure();
-  }
-};
+      tryMeasure();
+    }
+  };
 
   // Filter words for crrent user
 
   // Filter by status
 
-  const collectedWords = words
-    .filter((word) => word.status === "COLLECTED")
-   
+  const collectedWords = words.filter((word) => word.status === "COLLECTED");
+
   // const learnedWords = userWords.filter(word => word.status === "LEARNED");
 
   const theme = useTheme();
-
 
   // Dynamically update anchor positions while scrolling
   const handleScroll = () => {
@@ -133,29 +138,26 @@ export default function HomeScreen() {
           >
             <CustomHeader />
             <View className="flex-col gap-6 items-center mt-6">
-              <View 
-                style={{
-                  width: "100%",
-                }}
-              >
-                <TouchableOpacity
-                  ref={searchBarRef}
-                  onLayout={handleLayout}
-                  style={{
-                    height: 49,
-                    backgroundColor: "#2b2c2d",
-                    borderRadius: 12,
-                    paddingHorizontal: 16,
-                  }}
-                  className=" w-full flex  justify-center"
-                  onPress={() => router.push("/(home)/search")}
-                >
-                  <AntDesign
-                    color={"white"}
-                    style={{ opacity: 0.6 }}
-                    name="search1"
-                    size={22}
-                  />
+              <View style={{ width: "100%" }}>
+                <TouchableOpacity onPress={() => router.push("/(home)/search")}>
+                  <Animated.View
+                    sharedTransitionTag="searchBar" // This ID must match Page B
+                    sharedTransitionStyle={snappyTransition}
+                    style={{
+                      height: 49,
+                      backgroundColor: "#2b2c2d",
+                      borderRadius: 12,
+                      paddingHorizontal: 16,
+                      justifyContent: "center",
+                    }}
+                  >
+                    <AntDesign
+                      color={"white"}
+                      style={{ opacity: 0.6 }}
+                      name="search1"
+                      size={22}
+                    />
+                  </Animated.View>
                 </TouchableOpacity>
               </View>
               {/* Press DashCard to navigate to a new screen ("/home/reviewQueue") */}
@@ -170,7 +172,7 @@ export default function HomeScreen() {
                 anchor1Ref.current?.measure(
                   (x, y, width, height, pageX, pageY) => {
                     // setAnchor1Y(pageY);
-                  }
+                  },
                 );
               }}
             >
@@ -190,7 +192,7 @@ export default function HomeScreen() {
               showsVerticalScrollIndicator={false}
               onScroll={handleScroll}
             >
-              {collectedWords.slice(0,10).map((word, idx) => (
+              {collectedWords.slice(0, 10).map((word, idx) => (
                 <TouchableWithoutFeedback
                   onPress={() => {
                     if (activeCardId === word.id) {
@@ -203,7 +205,7 @@ export default function HomeScreen() {
                 >
                   <View className="relative my-2">
                     <FlexCard
-                    index={idx}
+                      index={idx}
                       word={word}
                       ifDetail={activeCardId === word.id}
                       ifGraphic={true}
