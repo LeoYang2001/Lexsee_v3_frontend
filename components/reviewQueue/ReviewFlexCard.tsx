@@ -4,6 +4,7 @@ import {
   Dimensions,
   TouchableOpacity,
   ImageBackground,
+  ScrollView,
 } from "react-native";
 import React, { useState, useEffect, useRef } from "react";
 import PhoneticAudio from "../common/PhoneticAudio";
@@ -191,6 +192,7 @@ const ReviewFlexCard = ({
 }: ReviewFlexCardProps) => {
   const [isImageZoomed, setIsImageZoomed] = useState(false);
   const [contentHeight, setContentHeight] = useState(200);
+  const [ifDisplayTranslation, setIfDisplayTranslation] = useState(false);
 
   // Refs for measuring content
   const excellentRef = useRef<View>(null);
@@ -594,6 +596,8 @@ const ReviewFlexCard = ({
   };
 
   const PoorContent = ({ isLoading }: { isLoading: boolean }) => {
+    const translatedMeanings = word?.translatedMeanings || [];
+
     if (isLoading) {
       return <LoadingSkeleton height={contentHeight} />;
     } else
@@ -601,7 +605,7 @@ const ReviewFlexCard = ({
         <View
           ref={poorRef}
           onLayout={() => measureContent("poor")}
-          className="flex-col pt-6 pb-8 items-center"
+          className="flex-col flex pt-6 pb-8 items-center  "
         >
           {!ifShowConfirmPage && (
             <Text style={{ fontSize: 14 }} className="color-white opacity-30">
@@ -634,7 +638,12 @@ const ReviewFlexCard = ({
             ))}
           </View>
           {word?.imgUrl && (
-            <View className="w-full mt-4">
+            <View
+              style={{
+                height: 140,
+              }}
+              className="w-full mt-4"
+            >
               <TouchableOpacity onPress={handleImagePress} activeOpacity={0.8}>
                 <ImageBackground
                   source={{ uri: word.imgUrl }}
@@ -671,27 +680,95 @@ const ReviewFlexCard = ({
               </TouchableOpacity>
             </View>
           )}
-          <View className="mt-4 px-2 w-full">
+
+          <ScrollView
+            style={{
+              maxHeight: 150,
+              marginTop: 16,
+              paddingHorizontal: 8,
+              width: "100%",
+            }}
+            className=" relative pt-4"
+            showsVerticalScrollIndicator={true}
+            nestedScrollEnabled={true}
+          >
+            {translatedMeanings && (
+              <TouchableOpacity
+                onPress={() => {
+                  if (ifDisplayTranslation) {
+                    setIfDisplayTranslation(false);
+                  } else {
+                    setIfDisplayTranslation(true);
+                  }
+                }}
+                className=" absolute -top-4 right-0 z-10 p-1"
+              >
+                {ifDisplayTranslation ? (
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: "#fff",
+                      opacity: 0.5,
+                    }}
+                    className=" mb-4"
+                  >
+                    Tap to view original.
+                  </Text>
+                ) : (
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: "#fff",
+                      opacity: 0.5,
+                    }}
+                    className=" mb-4"
+                  >
+                    Tap to view translation.
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
             {word?.meanings.map((meaning: any, index: number) => (
               <View key={index} className="mb-3 flex flex-col">
-                <Text
-                  style={{ fontSize: 14 }}
-                  className="text-white opacity-70 font-semibold mb-1"
-                >
-                  {meaning.partOfSpeech}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 13,
-                    lineHeight: 18,
-                  }}
-                  className="text-white opacity-90"
-                >
-                  {meaning.definition}
-                </Text>
+                {ifDisplayTranslation && translatedMeanings[index] ? (
+                  <Text
+                    style={{ fontSize: 14 }}
+                    className="text-white opacity-70 font-semibold mb-1"
+                  >
+                    {translatedMeanings[index].partOfSpeech}
+                  </Text>
+                ) : (
+                  <Text
+                    style={{ fontSize: 14 }}
+                    className="text-white opacity-70 font-semibold mb-1"
+                  >
+                    {meaning.partOfSpeech}
+                  </Text>
+                )}
+                {ifDisplayTranslation && translatedMeanings[index] ? (
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      lineHeight: 18,
+                    }}
+                    className="text-white opacity-90"
+                  >
+                    {translatedMeanings[index].definition}
+                  </Text>
+                ) : (
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      lineHeight: 18,
+                    }}
+                    className="text-white opacity-90"
+                  >
+                    {meaning.definition}
+                  </Text>
+                )}
               </View>
             ))}
-          </View>
+          </ScrollView>
         </View>
       );
   };

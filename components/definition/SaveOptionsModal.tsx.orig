@@ -1,0 +1,424 @@
+import React, { useEffect, useRef } from "react";
+import { View, TouchableOpacity, Pressable, Dimensions } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  interpolateColor,
+} from "react-native-reanimated";
+import { Bookmark, ImageOff, Languages } from "lucide-react-native";
+
+interface SaveOptionsModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onSaveWithPicture: () => void;
+  onSaveWithoutPicture: () => void;
+  onExtraDiagPress?: () => void;
+  saveStatus: string;
+  collectBtnLayout?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  ifTranslating?: boolean;
+  translatedMeanings?: { definition: string; partOfSpeech: string }[] | null;
+}
+
+export default function SaveOptionsModal({
+  visible,
+  onClose,
+  onSaveWithPicture,
+  onSaveWithoutPicture,
+  onExtraDiagPress,
+  saveStatus,
+  collectBtnLayout,
+  ifTranslating,
+  translatedMeanings,
+}: SaveOptionsModalProps) {
+  const isClosingRef = useRef(false);
+  const backgroundOpacity = useSharedValue(0);
+  const collectBtnScale = useSharedValue(1);
+  const collectBtnTranslateY = useSharedValue(0);
+  const collectBtnTranslateX = useSharedValue(0);
+  const buttonSlideY = useSharedValue(50);
+  const buttonOpacity = useSharedValue(0);
+
+  const extraLeftTranslateX = useSharedValue(0);
+  const extraLeftTranslateY = useSharedValue(0);
+  const extraDiagTranslateX = useSharedValue(0);
+  const extraDiagTranslateY = useSharedValue(0);
+  const extraButtonsOpacity = useSharedValue(0);
+
+  const colorProgress = useSharedValue(0);
+
+  // Collect button styling (mirrored from CollectBtn)
+  const getBtnStyle = () => {
+    switch (saveStatus) {
+      case "unsaved":
+        return {
+          backgroundColor: "#39404e",
+          bookMarkColor: "#66686b",
+          borderColor: "#39404e",
+          colorValue: 0,
+        };
+      case "saving":
+        return {
+          backgroundColor: "#3c444c",
+          bookMarkColor: "#ffffff",
+          borderColor: "#3c444c",
+          colorValue: 0.5,
+        };
+      case "saved":
+        return {
+          backgroundColor: "#31221f",
+          bookMarkColor: "#ce4319",
+          borderColor: "#31221f",
+          colorValue: 1,
+        };
+      default:
+        return {
+          backgroundColor: "#39404e",
+          bookMarkColor: "#66686b",
+          borderColor: "#39404e",
+          colorValue: 0,
+        };
+    }
+  };
+
+  const style = getBtnStyle();
+
+  const runCloseAnimation = () => {
+    if (isClosingRef.current) return;
+    isClosingRef.current = true;
+
+    backgroundOpacity.value = withTiming(0, { duration: 250 });
+    collectBtnTranslateX.value = withTiming(0, { duration: 250 });
+    collectBtnTranslateY.value = withTiming(0, { duration: 250 });
+    collectBtnScale.value = withTiming(1, { duration: 250 });
+    buttonSlideY.value = withTiming(50, { duration: 250 });
+    buttonOpacity.value = withTiming(0, { duration: 250 });
+    extraButtonsOpacity.value = withTiming(0, { duration: 200 });
+    extraLeftTranslateX.value = withTiming(0, { duration: 200 });
+    extraLeftTranslateY.value = withTiming(0, { duration: 200 });
+    extraDiagTranslateX.value = withTiming(0, { duration: 200 });
+    extraDiagTranslateY.value = withTiming(0, { duration: 200 });
+
+    setTimeout(() => {
+      isClosingRef.current = false;
+      onClose();
+    }, 260);
+  };
+
+  const handleExtraLeftPress = () => {
+    onSaveWithoutPicture();
+    runCloseAnimation();
+  };
+
+  const handleExtraDiagPress = async () => {
+    if (onExtraDiagPress) {
+      onExtraDiagPress();
+    }
+    runCloseAnimation();
+  };
+
+  const handleSaveWithPicturePress = () => {
+    onSaveWithPicture();
+    runCloseAnimation();
+  };
+
+  useEffect(() => {
+    if (visible) {
+      backgroundOpacity.value = withTiming(1, { duration: 300 });
+
+      if (collectBtnLayout) {
+        const screenWidth = Dimensions.get("window").width;
+        const screenHeight = Dimensions.get("window").height;
+        const screenCenterX = screenWidth / 2;
+        const screenCenterY = screenHeight / 2;
+
+        const btnCenterX = collectBtnLayout.x + collectBtnLayout.width / 2;
+        const btnCenterY = collectBtnLayout.y + collectBtnLayout.height / 2;
+
+        const offsetX = screenCenterX - btnCenterX;
+        const offsetY = screenCenterY - btnCenterY;
+
+        collectBtnTranslateX.value = withTiming(offsetX, { duration: 350 });
+        collectBtnTranslateY.value = withTiming(offsetY, { duration: 350 });
+        collectBtnScale.value = withTiming(1.5, { duration: 350 });
+
+        const gap = 20;
+        const leftOffsetX = -(collectBtnLayout.width * 0.7 + gap);
+        const leftOffsetY = -(collectBtnLayout.height * 0.7 + gap);
+        const diagOffsetX = -(collectBtnLayout.width * 0.7 + gap);
+        const diagOffsetY = collectBtnLayout.height * 0.7 + gap;
+
+        extraButtonsOpacity.value = withTiming(1, { duration: 250 });
+        extraLeftTranslateX.value = withTiming(leftOffsetX, { duration: 300 });
+        extraLeftTranslateY.value = withTiming(leftOffsetY, { duration: 300 });
+        extraDiagTranslateX.value = withTiming(diagOffsetX, { duration: 300 });
+        extraDiagTranslateY.value = withTiming(diagOffsetY, { duration: 300 });
+      } else {
+        collectBtnTranslateX.value = withTiming(0, { duration: 350 });
+        collectBtnTranslateY.value = withTiming(0, { duration: 350 });
+        collectBtnScale.value = withTiming(1, { duration: 350 });
+
+        extraButtonsOpacity.value = withTiming(0, { duration: 200 });
+        extraLeftTranslateX.value = withTiming(0, { duration: 200 });
+        extraLeftTranslateY.value = withTiming(0, { duration: 200 });
+        extraDiagTranslateX.value = withTiming(0, { duration: 200 });
+        extraDiagTranslateY.value = withTiming(0, { duration: 200 });
+      }
+
+      setTimeout(() => {
+        buttonSlideY.value = withTiming(0, { duration: 300 });
+        buttonOpacity.value = withTiming(1, { duration: 300 });
+      }, 100);
+
+      colorProgress.value = withTiming(style.colorValue, { duration: 300 });
+    } else {
+      backgroundOpacity.value = withTiming(0, { duration: 250 });
+      collectBtnTranslateX.value = withTiming(0, { duration: 250 });
+      collectBtnTranslateY.value = withTiming(0, { duration: 250 });
+      collectBtnScale.value = withTiming(1, { duration: 250 });
+      buttonSlideY.value = withTiming(50, { duration: 250 });
+      buttonOpacity.value = withTiming(0, { duration: 250 });
+
+      extraButtonsOpacity.value = withTiming(0, { duration: 200 });
+      extraLeftTranslateX.value = withTiming(0, { duration: 200 });
+      extraLeftTranslateY.value = withTiming(0, { duration: 200 });
+      extraDiagTranslateX.value = withTiming(0, { duration: 200 });
+      extraDiagTranslateY.value = withTiming(0, { duration: 200 });
+    }
+  }, [visible, style.colorValue, collectBtnLayout]);
+
+  const animatedBackgroundStyle = useAnimatedStyle(() => {
+    return {
+      opacity: backgroundOpacity.value,
+    };
+  });
+
+  const animatedCollectBtnContainerStyle = useAnimatedStyle(() => {
+    const backgroundColor = interpolateColor(
+      colorProgress.value,
+      [0, 0.5, 1],
+      ["#39404e", "#3c444c", "#31221f"],
+    );
+
+    const borderColor = interpolateColor(
+      colorProgress.value,
+      [0, 0.5, 1],
+      ["#39404e", "#3c444c", "#31221f"],
+    );
+
+    return {
+      backgroundColor,
+      borderColor,
+    };
+  });
+
+  const animatedExtraLeftStyle = useAnimatedStyle(() => {
+    return {
+      opacity: extraButtonsOpacity.value,
+      transform: [
+        { translateX: extraLeftTranslateX.value },
+        { translateY: extraLeftTranslateY.value },
+      ],
+    };
+  });
+
+  const animatedExtraDiagStyle = useAnimatedStyle(() => {
+    return {
+      opacity: extraButtonsOpacity.value,
+      transform: [
+        { translateX: extraDiagTranslateX.value },
+        { translateY: extraDiagTranslateY.value },
+      ],
+    };
+  });
+
+  if (!visible) return null;
+
+  return (
+    <Animated.View
+      style={[
+        {
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.7)",
+          zIndex: 1000,
+        },
+        animatedBackgroundStyle,
+      ]}
+    >
+      {/* Backdrop - tap to close */}
+      <Pressable
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+        }}
+        onPress={runCloseAnimation}
+      />
+
+      {/* Collect Button at Original Position */}
+      {collectBtnLayout && (
+        <Animated.View
+          style={[
+            {
+              position: "absolute",
+              left: collectBtnLayout.x,
+              top: collectBtnLayout.y,
+              width: collectBtnLayout.width,
+              height: collectBtnLayout.height,
+            },
+          ]}
+          pointerEvents="box-none"
+        >
+          <Animated.View
+            style={[
+              {
+                position: "absolute",
+                left: 0,
+                top: 0,
+                width: "100%",
+                height: "100%",
+              },
+              animatedExtraLeftStyle,
+            ]}
+            pointerEvents="box-none"
+          >
+            <TouchableOpacity
+              onPress={handleExtraLeftPress}
+              disabled={saveStatus === "saving"}
+              activeOpacity={0.8}
+              style={{ flex: 1 }}
+            >
+              <Animated.View
+                style={[
+                  {
+                    width: "100%",
+                    height: "100%",
+                    borderRadius: 12,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    borderWidth: 1,
+                    shadowColor: "#000",
+                    shadowOffset: {
+                      width: 0,
+                      height: 2,
+                    },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 3,
+                    elevation: 3,
+                  },
+                  animatedCollectBtnContainerStyle,
+                ]}
+              >
+                <ImageOff
+                  size={18}
+                  color={style.bookMarkColor}
+                  strokeWidth={2}
+                />
+              </Animated.View>
+            </TouchableOpacity>
+          </Animated.View>
+
+          <Animated.View
+            style={[
+              {
+                position: "absolute",
+                left: 0,
+                top: 0,
+                width: "100%",
+                height: "100%",
+              },
+              animatedExtraDiagStyle,
+            ]}
+            pointerEvents="box-none"
+          >
+            <TouchableOpacity
+              onPress={handleExtraDiagPress}
+              disabled={saveStatus === "saving"}
+              activeOpacity={0.8}
+              style={{ flex: 1 }}
+            >
+              <Animated.View
+                style={[
+                  {
+                    width: "100%",
+                    height: "100%",
+                    borderRadius: 12,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    borderWidth: 1,
+                    shadowColor: "#000",
+                    shadowOffset: {
+                      width: 0,
+                      height: 2,
+                    },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 3,
+                    elevation: 3,
+                  },
+                  animatedCollectBtnContainerStyle,
+                  {
+                    backgroundColor: "#ce4319",
+                    borderColor: "#ce4319",
+                  },
+                ]}
+              >
+                <Languages
+                  size={18}
+                  color={style.bookMarkColor}
+                  strokeWidth={2}
+                />
+              </Animated.View>
+            </TouchableOpacity>
+          </Animated.View>
+
+          <TouchableOpacity
+            onPress={handleSaveWithPicturePress}
+            disabled={saveStatus === "saving"}
+            activeOpacity={0.8}
+            style={{ flex: 1 }}
+          >
+            <Animated.View
+              style={[
+                {
+                  width: "100%",
+                  height: "100%",
+                  borderRadius: 12,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  borderWidth: 1,
+                  shadowColor: "#000",
+                  shadowOffset: {
+                    width: 0,
+                    height: 2,
+                  },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 3,
+                  elevation: 3,
+                },
+                animatedCollectBtnContainerStyle,
+              ]}
+            >
+              <Bookmark
+                size={20}
+                fill={style.bookMarkColor}
+                color={style.bookMarkColor}
+                strokeWidth={2}
+              />
+            </Animated.View>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+    </Animated.View>
+  );
+}

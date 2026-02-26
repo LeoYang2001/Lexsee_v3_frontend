@@ -20,8 +20,11 @@ export type Word = {
   ifPastDue?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  translatedMeanings?: {
+    definition: string;
+    partOfSpeech: string;
+  }[];
   owner?: string;
-  
 };
 
 export type Phonetics = {

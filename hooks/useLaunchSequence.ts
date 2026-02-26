@@ -96,7 +96,7 @@ export function useLaunchSequence() {
           (async () => {
             const user = await getCurrentUser();
             // set user slice
-            
+
             if (!mounted) return;
             await handleAuthSuccess("cold_start");
           })(),
