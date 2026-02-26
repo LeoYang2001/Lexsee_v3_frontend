@@ -356,20 +356,15 @@ export default function DefinitionPage() {
 
   const handleSaveWord = async (wordInfo: Word, conversation?: any) => {
     // save/resave, we reset the schedule
-
     let wordInfoToSave = {
       ...wordInfo,
       phonetics: phonetics || undefined,
+      translatedMeanings: translatedMeanings || undefined,
       exampleSentences:
         JSON.stringify(conversation) ||
         JSON.stringify(conversationData) ||
         null,
     };
-
-    console.log(
-      "generate convo first and save :",
-      JSON.stringify(conversation),
-    );
 
     setSaveStatus("saving");
     try {
@@ -382,6 +377,7 @@ export default function DefinitionPage() {
           id: existingWord.id,
           data: JSON.stringify(wordInfoToSave),
         };
+
         // If exists, update it, use client function, do not directly update redux as its already listening the updates
         // The generated client may have empty model typings in some environments; cast to any to avoid the TS error.
         const res = await (client.models as any).Word.update(updateData);
@@ -558,7 +554,6 @@ export default function DefinitionPage() {
             text: existing.text || phoneticText || "",
             audioUrl,
           };
-          console.log("Safe phonetics object:", JSON.stringify(safePhonetics));
           // Use the safe phonetics object
           setPhonetics(safePhonetics);
           setIsLoadingPhonetics(false);
@@ -632,6 +627,15 @@ export default function DefinitionPage() {
             const parsedConversation = JSON.parse(
               existingWord.exampleSentences as string,
             );
+
+            const translatedMeanings = existingWord.translatedMeanings;
+
+            // If translation exist, set it
+            if (translatedMeanings) {
+              setTranslatedMeanings(translatedMeanings);
+            } else {
+              console.warn("⚠️ Invalid format in translatedMeanings");
+            }
 
             // If exampleSentences exist, do not play the animation again
             if (parsedConversation && parsedConversation.conversation) {
