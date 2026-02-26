@@ -6,7 +6,6 @@ import {
   TextInput,
   TouchableWithoutFeedback,
   Keyboard,
-  FlatList,
   ActivityIndicator,
   Modal,
   Alert,
@@ -16,18 +15,22 @@ import { ChevronLeft } from "lucide-react-native";
 import { AntDesign } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { ScrollView } from "react-native-gesture-handler";
-import { getWordSuggestions } from "../../apis/getWordSuggestions";
-import { client } from "../client";
-import { useAppSelector } from "../../store/hooks";
 import { useSearchHistory } from "../../hooks/useSearchHistory";
 import { SearchHistoryItem } from "../../types/common/SearchHistoryItem";
+import { useSQLiteContext } from "expo-sqlite";
+
+interface SearchSuggestionItem {
+  word: string;
+  phonetic: string;
+}
 
 export default function SearchPage() {
   const theme = useTheme();
+  const db = useSQLiteContext();
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [showInput, setShowInput] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<SearchSuggestionItem[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [adminPasskey, setAdminPasskey] = useState("");
@@ -44,17 +47,30 @@ export default function SearchPage() {
     const timeoutId = setTimeout(async () => {
       if (searchQuery.trim().length > 0) {
         setIsLoadingSuggestions(true);
-        const wordSuggestions = await getWordSuggestions(searchQuery);
-        setSuggestions(wordSuggestions);
+        handleSearch(searchQuery);
         setIsLoadingSuggestions(false);
       } else {
         setSuggestions([]);
         setIsLoadingSuggestions(false);
       }
-    }, 300); // 300ms debounce
+    }, 100); // 300ms debounce
 
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
+
+  const handleSearch = async (text: string) => {
+    try {
+      // Use the FTS5 MATCH syntax you tested in TablePlus
+      // We append '*' so 'app' finds 'apple', 'apply', etc.
+      const allRows = await db.getAllAsync<{ word: string; phonetic: string }>(
+        "SELECT word, phonetic FROM dictionary WHERE word MATCH ? LIMIT 20",
+        [`${text}*`],
+      );
+      setSuggestions(allRows);
+    } catch (error) {
+      console.error("Search error:", error);
+    }
+  };
 
   const handleWordSelect = (word: string) => {
     // Check for admin entry trigger
@@ -234,13 +250,13 @@ export default function SearchPage() {
                   </View>
                 ) : suggestions.length > 0 ? (
                   // Show suggestions
-                  suggestions.map((word, index) => (
+                  suggestions.map((item, index) => (
                     <TouchableOpacity
                       key={`suggestion-${index}`}
                       className="py-3 border-b border-white/10"
-                      onPress={() => handleWordSelect(word)}
+                      onPress={() => handleWordSelect(item.word)}
                     >
-                      <Text className="text-white text-base">{word}</Text>
+                      <Text className="text-white text-base">{item.word}</Text>
                     </TouchableOpacity>
                   ))
                 ) : (

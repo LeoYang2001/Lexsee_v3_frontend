@@ -2,7 +2,6 @@ const DICTIONARY_API_URL = "https://api.dictionaryapi.dev/api/v2/entries/en/";
 
 import OpenAI from "openai";
 
-
 // Type for AI provider
 export type AIProvider = "deepseek" | "openai";
 
@@ -26,7 +25,6 @@ interface WordDefinition {
   review_interval: number;
   ease_factor: number;
 }
-
 
 const deepseekClient = new OpenAI({
   apiKey: DEEPSEEK_API_KEY,
@@ -74,21 +72,21 @@ const checkFormat = (data: any): data is WordDefinition => {
 
     if (typeof data.word !== "string" || !data.word.trim()) {
       console.warn(
-        "❌ Format check failed: missing or invalid 'word' property"
+        "❌ Format check failed: missing or invalid 'word' property",
       );
       return false;
     }
 
     if (!Array.isArray(data.meanings) || data.meanings.length === 0) {
       console.warn(
-        "❌ Format check failed: 'meanings' must be a non-empty array"
+        "❌ Format check failed: 'meanings' must be a non-empty array",
       );
       return false;
     }
 
     if (!data.phonetics || typeof data.phonetics !== "object") {
       console.warn(
-        "❌ Format check failed: missing or invalid 'phonetics' object"
+        "❌ Format check failed: missing or invalid 'phonetics' object",
       );
       return false;
     }
@@ -106,7 +104,7 @@ const checkFormat = (data: any): data is WordDefinition => {
         !meaning.definition.trim()
       ) {
         console.warn(
-          `❌ Format check failed: meaning[${i}].definition is missing or invalid`
+          `❌ Format check failed: meaning[${i}].definition is missing or invalid`,
         );
         return false;
       }
@@ -116,35 +114,35 @@ const checkFormat = (data: any): data is WordDefinition => {
         !meaning.partOfSpeech.trim()
       ) {
         console.warn(
-          `❌ Format check failed: meaning[${i}].partOfSpeech is missing or invalid`
+          `❌ Format check failed: meaning[${i}].partOfSpeech is missing or invalid`,
         );
         return false;
       }
 
       if (!Array.isArray(meaning.synonyms)) {
         console.warn(
-          `❌ Format check failed: meaning[${i}].synonyms must be an array`
+          `❌ Format check failed: meaning[${i}].synonyms must be an array`,
         );
         return false;
       }
 
       if (!Array.isArray(meaning.antonyms)) {
         console.warn(
-          `❌ Format check failed: meaning[${i}].antonyms must be an array`
+          `❌ Format check failed: meaning[${i}].antonyms must be an array`,
         );
         return false;
       }
 
       if (!meaning.synonyms.every((s: any) => typeof s === "string")) {
         console.warn(
-          `❌ Format check failed: meaning[${i}].synonyms must contain only strings`
+          `❌ Format check failed: meaning[${i}].synonyms must contain only strings`,
         );
         return false;
       }
 
       if (!meaning.antonyms.every((a: any) => typeof a === "string")) {
         console.warn(
-          `❌ Format check failed: meaning[${i}].antonyms must contain only strings`
+          `❌ Format check failed: meaning[${i}].antonyms must contain only strings`,
         );
         return false;
       }
@@ -161,22 +159,22 @@ const checkFormat = (data: any): data is WordDefinition => {
 export async function fetchDefinition(
   word: string,
   callbacks?: FetchDefinitionCallbacks,
-  provider: AIProvider = DEFAULT_AI_PROVIDER
+  provider: AIProvider = DEFAULT_AI_PROVIDER,
 ): Promise<WordDefinition | null> {
   try {
     const response = await fetch(
-      `${DICTIONARY_API_URL}${encodeURIComponent(word)}`
+      `${DICTIONARY_API_URL}${encodeURIComponent(word)}`,
     );
 
     if (!response.ok) {
       // Don't throw error for 404, just log and try AI fallback
       if (response.status === 404) {
         console.log(
-          `📝 Word "${word}" not found in dictionary (404), trying AI fallback...`
+          `📝 Word "${word}" not found in dictionary (404), trying AI fallback...`,
         );
       } else {
         console.warn(
-          `⚠️ Dictionary API failed with status: ${response.status}, trying AI fallback...`
+          `⚠️ Dictionary API failed with status: ${response.status}, trying AI fallback...`,
         );
       }
 
@@ -194,17 +192,18 @@ export async function fetchDefinition(
 
       // Return null instead of throwing error
       console.warn(
-        `❌ No AI fallback available and API failed with status: ${response.status}`
+        `❌ No AI fallback available and API failed with status: ${response.status}`,
       );
       return null;
     }
 
     const data = await response.json();
 
+    console.log("data from dictionary api:", JSON.stringify(data));
 
     if (!data || !Array.isArray(data) || data.length === 0) {
       console.log(
-        `📝 No data received for word "${word}", trying AI fallback...`
+        `📝 No data received for word "${word}", trying AI fallback...`,
       );
 
       // Try AI fallback
@@ -257,7 +256,7 @@ export async function fetchDefinition(
       return transformedData;
     } else {
       console.log(
-        "⚠️ Dictionary API response format is invalid, trying AI generation..."
+        "⚠️ Dictionary API response format is invalid, trying AI generation...",
       );
 
       // Try AI fallback due to format issues
@@ -298,13 +297,13 @@ export async function fetchDefinition(
 
 export const generateDefinition = async (
   word: string,
-  provider: AIProvider = DEFAULT_AI_PROVIDER
+  provider: AIProvider = DEFAULT_AI_PROVIDER,
 ): Promise<WordDefinition | null> => {
   const apiKey = getAPIKey(provider);
 
   if (!apiKey) {
     console.warn(
-      `❌ ${provider.toUpperCase()}_API_KEY not available for AI generation`
+      `❌ ${provider.toUpperCase()}_API_KEY not available for AI generation`,
     );
     return null;
   }
@@ -346,7 +345,7 @@ export const generateDefinition = async (
     const model = getAIModel(provider);
 
     console.log(
-      `🤖 Using ${provider === "deepseek" ? "DeepSeek" : "OpenAI"} for definition generation`
+      `🤖 Using ${provider === "deepseek" ? "DeepSeek" : "OpenAI"} for definition generation`,
     );
     const response = await client.chat.completions.create({
       model: model,
@@ -402,35 +401,35 @@ const checkConversationFormat = (data: any): data is ConversationResponse => {
   try {
     if (!data || typeof data !== "object") {
       console.warn(
-        "❌ Conversation format check failed: data is not an object"
+        "❌ Conversation format check failed: data is not an object",
       );
       return false;
     }
 
     if (typeof data.word !== "string" || !data.word.trim()) {
       console.warn(
-        "❌ Conversation format check failed: missing or invalid 'word' property"
+        "❌ Conversation format check failed: missing or invalid 'word' property",
       );
       return false;
     }
 
     if (!Array.isArray(data.conversation) || data.conversation.length === 0) {
       console.warn(
-        "❌ Conversation format check failed: 'conversation' must be a non-empty array"
+        "❌ Conversation format check failed: 'conversation' must be a non-empty array",
       );
       return false;
     }
 
     if (typeof data.context !== "string" || !data.context.trim()) {
       console.warn(
-        "❌ Conversation format check failed: missing or invalid 'context' property"
+        "❌ Conversation format check failed: missing or invalid 'context' property",
       );
       return false;
     }
 
     if (!["beginner", "intermediate", "advanced"].includes(data.difficulty)) {
       console.warn(
-        "❌ Conversation format check failed: invalid 'difficulty' value"
+        "❌ Conversation format check failed: invalid 'difficulty' value",
       );
       return false;
     }
@@ -441,28 +440,28 @@ const checkConversationFormat = (data: any): data is ConversationResponse => {
 
       if (typeof item.speaker !== "string" || !item.speaker.trim()) {
         console.warn(
-          `❌ Conversation format check failed: conversation[${i}].speaker is missing or invalid`
+          `❌ Conversation format check failed: conversation[${i}].speaker is missing or invalid`,
         );
         return false;
       }
 
       if (typeof item.message !== "string" || !item.message.trim()) {
         console.warn(
-          `❌ Conversation format check failed: conversation[${i}].message is missing or invalid`
+          `❌ Conversation format check failed: conversation[${i}].message is missing or invalid`,
         );
         return false;
       }
 
       if (!Array.isArray(item.tokens)) {
         console.warn(
-          `❌ Conversation format check failed: conversation[${i}].tokens must be an array`
+          `❌ Conversation format check failed: conversation[${i}].tokens must be an array`,
         );
         return false;
       }
 
       if (!item.tokens.every((token: any) => typeof token === "string")) {
         console.warn(
-          `❌ Conversation format check failed: conversation[${i}].tokens must contain only strings`
+          `❌ Conversation format check failed: conversation[${i}].tokens must contain only strings`,
         );
         return false;
       }
@@ -489,13 +488,13 @@ export const fetchConversation = async (
   difficulty: "beginner" | "intermediate" | "advanced" = "intermediate",
   definition?: string,
   partOfSpeech?: string,
-  provider: AIProvider = DEFAULT_AI_PROVIDER
+  provider: AIProvider = DEFAULT_AI_PROVIDER,
 ): Promise<ConversationResponse | null> => {
   const apiKey = getAPIKey(provider);
 
   if (!apiKey) {
     console.warn(
-      `❌ ${provider.toUpperCase()}_API_KEY not available for conversation generation`
+      `❌ ${provider.toUpperCase()}_API_KEY not available for conversation generation`,
     );
     return null;
   }
@@ -509,7 +508,7 @@ export const fetchConversation = async (
     console.log(
       `📱 Generating conversation for word: "${word}" with context: "${context}"${
         definition ? `, definition: "${definition}"` : ""
-      }${partOfSpeech ? `, part of speech: "${partOfSpeech}"` : ""}`
+      }${partOfSpeech ? `, part of speech: "${partOfSpeech}"` : ""}`,
     );
 
     // Build contextual information for the prompt
@@ -586,7 +585,7 @@ export const fetchConversation = async (
     const model = getAIModel(provider);
 
     console.log(
-      `🤖 Using ${provider === "deepseek" ? "DeepSeek" : "OpenAI"}: ${model} for conversation generation`
+      `🤖 Using ${provider === "deepseek" ? "DeepSeek" : "OpenAI"}: ${model} for conversation generation`,
     );
 
     const response = await client.chat.completions.create({
@@ -637,56 +636,56 @@ export const fetchConversation = async (
 export const fetchCasualConversation = async (
   word: string,
   definition?: string,
-  partOfSpeech?: string
+  partOfSpeech?: string,
 ): Promise<ConversationResponse | null> => {
   return fetchConversation(
     word,
     "casual daily conversation",
     "intermediate",
     definition,
-    partOfSpeech
+    partOfSpeech,
   );
 };
 
 export const fetchBusinessConversation = async (
   word: string,
   definition?: string,
-  partOfSpeech?: string
+  partOfSpeech?: string,
 ): Promise<ConversationResponse | null> => {
   return fetchConversation(
     word,
     "business meeting",
     "advanced",
     definition,
-    partOfSpeech
+    partOfSpeech,
   );
 };
 
 export const fetchAcademicConversation = async (
   word: string,
   definition?: string,
-  partOfSpeech?: string
+  partOfSpeech?: string,
 ): Promise<ConversationResponse | null> => {
   return fetchConversation(
     word,
     "academic discussion",
     "advanced",
     definition,
-    partOfSpeech
+    partOfSpeech,
   );
 };
 
 export const fetchSocialConversation = async (
   word: string,
   definition?: string,
-  partOfSpeech?: string
+  partOfSpeech?: string,
 ): Promise<ConversationResponse | null> => {
   return fetchConversation(
     word,
     "social gathering",
     "intermediate",
     definition,
-    partOfSpeech
+    partOfSpeech,
   );
 };
 
@@ -695,13 +694,13 @@ export const fetchQuickConversation = async (
   word: string,
   definition?: string,
   partOfSpeech?: string,
-  provider: AIProvider = DEFAULT_AI_PROVIDER
+  provider: AIProvider = DEFAULT_AI_PROVIDER,
 ): Promise<ConversationResponse | null> => {
   const apiKey = getAPIKey(provider);
 
   if (!apiKey) {
     console.warn(
-      `❌ ${provider.toUpperCase()}_API_KEY not available for quick conversation generation`
+      `❌ ${provider.toUpperCase()}_API_KEY not available for quick conversation generation`,
     );
     return null;
   }
@@ -715,7 +714,7 @@ export const fetchQuickConversation = async (
     console.log(
       `⚡ Quick generating conversation for word: "${word}"${
         definition ? `, definition: "${definition}"` : ""
-      }${partOfSpeech ? `, part of speech: "${partOfSpeech}"` : ""}`
+      }${partOfSpeech ? `, part of speech: "${partOfSpeech}"` : ""}`,
     );
 
     // Build contextual information for the prompt
@@ -789,7 +788,7 @@ export const fetchQuickConversation = async (
     const model = getAIModel(provider);
 
     console.log(
-      `🤖 Using ${provider === "deepseek" ? "DeepSeek" : "OpenAI"} for quick conversation generation`
+      `🤖 Using ${provider === "deepseek" ? "DeepSeek" : "OpenAI"} for quick conversation generation`,
     );
 
     const response = await client.chat.completions.create({
@@ -806,7 +805,7 @@ export const fetchQuickConversation = async (
     const raw = response.choices?.[0]?.message?.content;
     if (!raw) {
       console.error(
-        "❌ AI quick conversation response content is null or empty"
+        "❌ AI quick conversation response content is null or empty",
       );
       return null;
     }
@@ -843,32 +842,66 @@ export const fetchMultipleConversations = async (
   word: string,
   contexts: string[] = ["casual", "business", "academic"],
   definition?: string,
-  partOfSpeech?: string
+  partOfSpeech?: string,
 ): Promise<ConversationResponse[]> => {
   const results = await Promise.allSettled(
     contexts.map((context) =>
-      fetchConversation(word, context, "intermediate", definition, partOfSpeech)
-    )
+      fetchConversation(
+        word,
+        context,
+        "intermediate",
+        definition,
+        partOfSpeech,
+      ),
+    ),
   );
 
   return results
     .filter(
       (result): result is PromiseFulfilledResult<ConversationResponse> =>
-        result.status === "fulfilled" && result.value !== null
+        result.status === "fulfilled" && result.value !== null,
     )
     .map((result) => result.value);
 };
 
+import { SQLiteDatabase } from "expo-sqlite";
+
+/**
+ * Fetches the phonetic spelling for a specific word.
+ * @param db The SQLite database instance from useSQLiteContext()
+ * @param word The exact word to look up
+ * @returns The phonetic string or null if not found
+ */
+// export const fetchPhoneticTextFromDb = async (
+//   db: SQLiteDatabase,
+//   word: string,
+// ): Promise<string | null> => {
+//   try {
+//     // We use a simple equal sign (=) here instead of MATCH
+//     // because we want the exact phonetic for a specific word.
+//     const result = await db.getFirstAsync<{ phonetic: string }>(
+//       "SELECT phonetic FROM dictionary WHERE word = ? LIMIT 1",
+//       [word.toLowerCase().trim()],
+//     );
+
+//     return result ? result.phonetic : null;
+//   } catch (error) {
+//     console.error("Error fetching phonetic:", error);
+//     return null;
+//   }
+// };
 
 export const generatePhoneticText = async (
-  word: string, 
-  provider: AIProvider = DEFAULT_AI_PROVIDER
+  word: string,
+  provider: AIProvider = DEFAULT_AI_PROVIDER,
 ): Promise<string> => {
   const apiKey = getAPIKey(provider);
 
   if (!apiKey || !word) {
-    console.warn(`❌ Missing ${!apiKey ? 'API Key' : 'Word'} for phonetic generation`);
-    return '';
+    console.warn(
+      `❌ Missing ${!apiKey ? "API Key" : "Word"} for phonetic generation`,
+    );
+    return "";
   }
 
   const systemPrompt = `
@@ -880,12 +913,10 @@ export const generatePhoneticText = async (
 
   const client = getAIClient(provider);
   if (!client) {
-
     console.error("❌ AI client is not available. API key is missing.");
 
-    return '';
-
-    }
+    return "";
+  }
 
   const model = getAIModel(provider);
 
@@ -900,15 +931,14 @@ export const generatePhoneticText = async (
     });
 
     const raw = response.choices?.[0]?.message?.content;
-    if (!raw) return '';
+    if (!raw) return "";
 
     const data = JSON.parse(raw);
-    
+
     // Return only the string value of the phonetic key
-    return data.phonetic || '';
-    
+    return data.phonetic || "";
   } catch (error) {
     console.error("❌ Error generating phonetic text:", error);
-    return '';
+    return "";
   }
 };

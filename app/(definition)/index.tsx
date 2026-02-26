@@ -439,7 +439,6 @@ export default function DefinitionPage() {
     //save or update definition to the wordInfo
     // updating word triggered only when the saveStatus is saved (ie. already saved before)
     if (saveStatus === "saved" && wordInfo) {
-      console.log("coversation:", JSON.stringify(conversation));
       handleSaveWord(wordInfo, conversation);
     }
   };
