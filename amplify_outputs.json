@@ -1,9 +1,9 @@
 {
   "auth": {
-    "user_pool_id": "us-east-2_Rtu0Teyky",
+    "user_pool_id": "us-east-2_qylrsu8zS",
     "aws_region": "us-east-2",
-    "user_pool_client_id": "10c72qf98ed3ia747d6k4vcri3",
-    "identity_pool_id": "us-east-2:ff29b483-ef89-4e53-86b2-20d47cda72e2",
+    "user_pool_client_id": "5qqfa2bpk6rujnbs41oe2fk0pd",
+    "identity_pool_id": "us-east-2:695289ac-1118-41f1-8edd-0d95b90a06e3",
     "mfa_methods": [],
     "standard_required_attributes": [],
     "username_attributes": [
@@ -40,12 +40,12 @@
         "profile",
         "aws.cognito.signin.user.admin"
       ],
-      "domain": "2c95cc0093e69f5cbada.auth.us-east-2.amazoncognito.com"
+      "domain": "e7a11ae4a08f5c79b836.auth.us-east-2.amazoncognito.com"
     },
     "unauthenticated_identities_enabled": true
   },
   "data": {
-    "url": "https://su4pvvojkneoflfuk24rergf7i.appsync-api.us-east-2.amazonaws.com/graphql",
+    "url": "https://ujg4geb43fclpgukjc2kaltvq4.appsync-api.us-east-2.amazonaws.com/graphql",
     "aws_region": "us-east-2",
     "default_authorization_type": "AMAZON_COGNITO_USER_POOLS",
     "authorization_types": [
@@ -71,11 +71,53 @@
               "isRequired": true,
               "attributes": []
             },
-            "username": {
-              "name": "username",
+            "displayName": {
+              "name": "displayName",
               "isArray": false,
               "type": "String",
               "isRequired": true,
+              "attributes": []
+            },
+            "nativeLanguage": {
+              "name": "nativeLanguage",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "timezone": {
+              "name": "timezone",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "growthStyle": {
+              "name": "growthStyle",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "dailyReviewCap": {
+              "name": "dailyReviewCap",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "dailyNewWordCap": {
+              "name": "dailyNewWordCap",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "newwordNotificationsEnabled": {
+              "name": "newwordNotificationsEnabled",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
               "attributes": []
             },
             "wordsList": {
@@ -133,38 +175,6 @@
                 ]
               }
             },
-            "badgeLists": {
-              "name": "badgeLists",
-              "isArray": true,
-              "type": {
-                "model": "BadgeList"
-              },
-              "isRequired": false,
-              "attributes": [],
-              "isArrayNullable": true,
-              "association": {
-                "connectionType": "HAS_MANY",
-                "associatedWith": [
-                  "userProfileId"
-                ]
-              }
-            },
-            "userBadges": {
-              "name": "userBadges",
-              "isArray": true,
-              "type": {
-                "model": "UserBadge"
-              },
-              "isRequired": false,
-              "attributes": [],
-              "isArrayNullable": true,
-              "association": {
-                "connectionType": "HAS_MANY",
-                "associatedWith": [
-                  "userProfileId"
-                ]
-              }
-            },
             "createdAt": {
               "name": "createdAt",
               "isArray": false,
@@ -200,6 +210,16 @@
               }
             },
             {
+              "type": "key",
+              "properties": {
+                "name": "userProfilesByDisplayName",
+                "queryField": "listByDisplayName",
+                "fields": [
+                  "displayName"
+                ]
+              }
+            },
+            {
               "type": "auth",
               "properties": {
                 "rules": [
@@ -212,6 +232,12 @@
                       "create",
                       "update",
                       "delete",
+                      "read"
+                    ]
+                  },
+                  {
+                    "allow": "private",
+                    "operations": [
                       "read"
                     ]
                   }
@@ -747,363 +773,6 @@
                       "create",
                       "update",
                       "delete",
-                      "read"
-                    ]
-                  }
-                ]
-              }
-            }
-          ],
-          "primaryKeyInfo": {
-            "isCustomPrimaryKey": false,
-            "primaryKeyFieldName": "id",
-            "sortKeyFieldNames": []
-          }
-        },
-        "BadgeList": {
-          "name": "BadgeList",
-          "fields": {
-            "id": {
-              "name": "id",
-              "isArray": false,
-              "type": "ID",
-              "isRequired": true,
-              "attributes": []
-            },
-            "userProfileId": {
-              "name": "userProfileId",
-              "isArray": false,
-              "type": "ID",
-              "isRequired": true,
-              "attributes": []
-            },
-            "userProfile": {
-              "name": "userProfile",
-              "isArray": false,
-              "type": {
-                "model": "UserProfile"
-              },
-              "isRequired": false,
-              "attributes": [],
-              "association": {
-                "connectionType": "BELONGS_TO",
-                "targetNames": [
-                  "userProfileId"
-                ]
-              }
-            },
-            "userBadges": {
-              "name": "userBadges",
-              "isArray": true,
-              "type": {
-                "model": "UserBadge"
-              },
-              "isRequired": false,
-              "attributes": [],
-              "isArrayNullable": true,
-              "association": {
-                "connectionType": "HAS_MANY",
-                "associatedWith": [
-                  "badgeListId"
-                ]
-              }
-            },
-            "createdAt": {
-              "name": "createdAt",
-              "isArray": false,
-              "type": "AWSDateTime",
-              "isRequired": false,
-              "attributes": [],
-              "isReadOnly": true
-            },
-            "updatedAt": {
-              "name": "updatedAt",
-              "isArray": false,
-              "type": "AWSDateTime",
-              "isRequired": false,
-              "attributes": [],
-              "isReadOnly": true
-            }
-          },
-          "syncable": true,
-          "pluralName": "BadgeLists",
-          "attributes": [
-            {
-              "type": "model",
-              "properties": {}
-            },
-            {
-              "type": "auth",
-              "properties": {
-                "rules": [
-                  {
-                    "provider": "userPools",
-                    "ownerField": "owner",
-                    "allow": "owner",
-                    "identityClaim": "cognito:username",
-                    "operations": [
-                      "create",
-                      "update",
-                      "delete",
-                      "read"
-                    ]
-                  }
-                ]
-              }
-            }
-          ],
-          "primaryKeyInfo": {
-            "isCustomPrimaryKey": false,
-            "primaryKeyFieldName": "id",
-            "sortKeyFieldNames": []
-          }
-        },
-        "UserBadge": {
-          "name": "UserBadge",
-          "fields": {
-            "id": {
-              "name": "id",
-              "isArray": false,
-              "type": "ID",
-              "isRequired": true,
-              "attributes": []
-            },
-            "userProfileId": {
-              "name": "userProfileId",
-              "isArray": false,
-              "type": "ID",
-              "isRequired": true,
-              "attributes": []
-            },
-            "userProfile": {
-              "name": "userProfile",
-              "isArray": false,
-              "type": {
-                "model": "UserProfile"
-              },
-              "isRequired": false,
-              "attributes": [],
-              "association": {
-                "connectionType": "BELONGS_TO",
-                "targetNames": [
-                  "userProfileId"
-                ]
-              }
-            },
-            "globalAwardId": {
-              "name": "globalAwardId",
-              "isArray": false,
-              "type": "ID",
-              "isRequired": true,
-              "attributes": []
-            },
-            "globalAward": {
-              "name": "globalAward",
-              "isArray": false,
-              "type": {
-                "model": "GlobalAward"
-              },
-              "isRequired": false,
-              "attributes": [],
-              "association": {
-                "connectionType": "BELONGS_TO",
-                "targetNames": [
-                  "globalAwardId"
-                ]
-              }
-            },
-            "acquiredAt": {
-              "name": "acquiredAt",
-              "isArray": false,
-              "type": "String",
-              "isRequired": false,
-              "attributes": []
-            },
-            "badgeListId": {
-              "name": "badgeListId",
-              "isArray": false,
-              "type": "ID",
-              "isRequired": false,
-              "attributes": []
-            },
-            "badgeList": {
-              "name": "badgeList",
-              "isArray": false,
-              "type": {
-                "model": "BadgeList"
-              },
-              "isRequired": false,
-              "attributes": [],
-              "association": {
-                "connectionType": "BELONGS_TO",
-                "targetNames": [
-                  "badgeListId"
-                ]
-              }
-            },
-            "isActive": {
-              "name": "isActive",
-              "isArray": false,
-              "type": "Boolean",
-              "isRequired": false,
-              "attributes": []
-            },
-            "meta": {
-              "name": "meta",
-              "isArray": false,
-              "type": "AWSJSON",
-              "isRequired": false,
-              "attributes": []
-            },
-            "createdAt": {
-              "name": "createdAt",
-              "isArray": false,
-              "type": "AWSDateTime",
-              "isRequired": false,
-              "attributes": [],
-              "isReadOnly": true
-            },
-            "updatedAt": {
-              "name": "updatedAt",
-              "isArray": false,
-              "type": "AWSDateTime",
-              "isRequired": false,
-              "attributes": [],
-              "isReadOnly": true
-            }
-          },
-          "syncable": true,
-          "pluralName": "UserBadges",
-          "attributes": [
-            {
-              "type": "model",
-              "properties": {}
-            },
-            {
-              "type": "auth",
-              "properties": {
-                "rules": [
-                  {
-                    "provider": "userPools",
-                    "ownerField": "owner",
-                    "allow": "owner",
-                    "identityClaim": "cognito:username",
-                    "operations": [
-                      "create",
-                      "update",
-                      "delete",
-                      "read"
-                    ]
-                  }
-                ]
-              }
-            }
-          ],
-          "primaryKeyInfo": {
-            "isCustomPrimaryKey": false,
-            "primaryKeyFieldName": "id",
-            "sortKeyFieldNames": []
-          }
-        },
-        "GlobalAward": {
-          "name": "GlobalAward",
-          "fields": {
-            "id": {
-              "name": "id",
-              "isArray": false,
-              "type": "ID",
-              "isRequired": true,
-              "attributes": []
-            },
-            "awardId": {
-              "name": "awardId",
-              "isArray": false,
-              "type": "String",
-              "isRequired": true,
-              "attributes": []
-            },
-            "title": {
-              "name": "title",
-              "isArray": false,
-              "type": "String",
-              "isRequired": true,
-              "attributes": []
-            },
-            "description": {
-              "name": "description",
-              "isArray": false,
-              "type": "String",
-              "isRequired": false,
-              "attributes": []
-            },
-            "activatedImageUrl": {
-              "name": "activatedImageUrl",
-              "isArray": false,
-              "type": "String",
-              "isRequired": true,
-              "attributes": []
-            },
-            "deactivatedImageUrl": {
-              "name": "deactivatedImageUrl",
-              "isArray": false,
-              "type": "String",
-              "isRequired": true,
-              "attributes": []
-            },
-            "gifAnimationUrl": {
-              "name": "gifAnimationUrl",
-              "isArray": false,
-              "type": "String",
-              "isRequired": false,
-              "attributes": []
-            },
-            "userBadges": {
-              "name": "userBadges",
-              "isArray": true,
-              "type": {
-                "model": "UserBadge"
-              },
-              "isRequired": false,
-              "attributes": [],
-              "isArrayNullable": true,
-              "association": {
-                "connectionType": "HAS_MANY",
-                "associatedWith": [
-                  "globalAwardId"
-                ]
-              }
-            },
-            "createdAt": {
-              "name": "createdAt",
-              "isArray": false,
-              "type": "AWSDateTime",
-              "isRequired": false,
-              "attributes": [],
-              "isReadOnly": true
-            },
-            "updatedAt": {
-              "name": "updatedAt",
-              "isArray": false,
-              "type": "AWSDateTime",
-              "isRequired": false,
-              "attributes": [],
-              "isReadOnly": true
-            }
-          },
-          "syncable": true,
-          "pluralName": "GlobalAwards",
-          "attributes": [
-            {
-              "type": "model",
-              "properties": {}
-            },
-            {
-              "type": "auth",
-              "properties": {
-                "rules": [
-                  {
-                    "allow": "private",
-                    "operations": [
                       "read"
                     ]
                   }

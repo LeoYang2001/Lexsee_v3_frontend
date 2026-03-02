@@ -40,10 +40,11 @@ export default function SignUpScreen() {
 
     setLoading(true);
     try {
-      const { isSignUpComplete, userId, nextStep } = await signUp({
+      const { nextStep } = await signUp({
         username: email,
         password,
         options: {
+          autoSignIn: true,
           userAttributes: {
             email,
           },

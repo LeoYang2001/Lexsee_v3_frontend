@@ -2,7 +2,6 @@ import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
 import { client } from "../../app/client";
 import { GuideStep } from "../../types/common/GuideStep";
 
-
 /**
  * Updated UserProfile interface
  */
@@ -15,11 +14,13 @@ export interface UserProfile {
   owner: string;
   wordsListId?: string;
   providerType?: "Google" | "SignInWithApple" | undefined;
+  nativeLanguage?: string;
+  timezone?: string;
+  displayName?: string;
+  growthStyle?: "FLUENCY" | "EXAM_READY" | "BALANCED";
   // Values: 'NEW', 'FIRST_WORD_SEARCHED'', 'FIRST_REVIEW_DONE', 'COMPLETED'
   onboardingStage?: GuideStep;
 }
-
-
 
 interface ProfileState {
   data: UserProfile | null;
@@ -32,8 +33,6 @@ const initialState: ProfileState = {
   loading: false,
   error: null,
 };
-
-
 
 //update onboarding stage
 /**
@@ -48,37 +47,34 @@ export const updateOnboardingStage = createAsyncThunk(
 
       if (!currentProfile) throw new Error("No profile found");
 
-     
       // current profile with the updated stage.
       const updatedProfile = {
         ...currentProfile,
         onboardingStage: newStage,
       };
 
-      
-    // 2. NON-BLOCKING BACKEND UPDATE
+      // 2. NON-BLOCKING BACKEND UPDATE
       // We don't use 'await' here so the function continues immediately.
-    // Inside your Async Thunk
+      // Inside your Async Thunk
       (client as any).models.UserProfile.update({
         id: currentProfile.id,
         onboardingStage: newStage,
         // DO NOT spread (...currentProfile) here
       }).then(({ errors }: any) => {
-        console.log('profile update successful, new stage:', newStage);
+        console.log("profile update successful, new stage:", newStage);
         if (errors) {
-          console.log('newStage we want to update:', JSON.stringify(newStage))
+          console.log("newStage we want to update:", JSON.stringify(newStage));
           console.error("Background onboarding update failed:", errors);
         }
-      }); 
+      });
 
       // 3. RETURN IMMEDIATELY
       // Redux hits 'fulfilled' now, making the UI transition instant.
       return updatedProfile;
-      
     } catch (error: any) {
       return thunkAPI.rejectWithValue(error.message);
     }
-  }
+  },
 );
 
 const profileSlice = createSlice({

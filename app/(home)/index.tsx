@@ -6,6 +6,7 @@ import {
   ScrollView,
   Dimensions,
   TouchableWithoutFeedback,
+  StyleSheet,
 } from "react-native";
 import Animated, {
   useSharedValue,
@@ -16,7 +17,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useRouter } from "expo-router";
 import { useAppSelector } from "../../store/hooks";
-import { AntDesign } from "@expo/vector-icons";
+import { AntDesign, Ionicons } from "@expo/vector-icons";
 import CustomHeader from "../../components/home/Header";
 import { useTheme } from "../../theme/ThemeContext";
 import DashCard from "../../components/home/DashCard";
@@ -192,6 +193,7 @@ export default function HomeScreen() {
               showsVerticalScrollIndicator={false}
               onScroll={handleScroll}
             >
+            
               {collectedWords.slice(0, 10).map((word, idx) => (
                 <TouchableWithoutFeedback
                   onPress={() => {
@@ -223,3 +225,26 @@ export default function HomeScreen() {
     </TouchableWithoutFeedback>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#000",
+    alignItems: "center",
+    paddingTop: 110,
+  },
+  btn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#fff",
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 16,
+  },
+  btnText: {
+    fontSize: 17,
+    fontWeight: "600",
+    color: "#000",
+  },
+});
