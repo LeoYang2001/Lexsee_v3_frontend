@@ -2,6 +2,8 @@ import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
 import { client } from "../../app/client";
 import { GuideStep } from "../../types/common/GuideStep";
 
+export type GrowthStyle = "FLUENCY" | "BALANCED" | "EXAM_READY";
+
 /**
  * Updated UserProfile interface
  */
@@ -17,7 +19,12 @@ export interface UserProfile {
   nativeLanguage?: string;
   timezone?: string;
   displayName?: string;
-  growthStyle?: "FLUENCY" | "EXAM_READY" | "BALANCED";
+  growthStyle?: GrowthStyle;
+  dailyPacing?: number;
+  masteryIntervalDays?: number;
+  newwordNotificationsEnabled?: boolean;
+  overallGoal?: number;
+  daysForGoal?: number;
   // Values: 'NEW', 'FIRST_WORD_SEARCHED'', 'FIRST_REVIEW_DONE', 'COMPLETED'
   onboardingStage?: GuideStep;
 }
@@ -83,7 +90,19 @@ const profileSlice = createSlice({
   reducers: {
     // Standard action to set the profile from the launch sequence
     setProfile: (state, action: PayloadAction<UserProfile>) => {
-      state.data = action.payload;
+      const profile = action.payload;
+      // Ensure all expected fields exist with sensible defaults
+      state.data = {
+        ...profile,
+        nativeLanguage: profile.nativeLanguage || "Chinese",
+        timezone: profile.timezone || "America/New_York",
+        displayName: profile.displayName || profile.username || "User",
+        growthStyle: profile.growthStyle || "FLUENCY",
+        dailyPacing: profile.dailyPacing ?? 5,
+        masteryIntervalDays: profile.masteryIntervalDays ?? 180,
+        newwordNotificationsEnabled:
+          profile.newwordNotificationsEnabled ?? false,
+      };
     },
     // Clear profile on logout
     clearProfile: (state) => {

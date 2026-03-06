@@ -57,7 +57,7 @@ const FormStepTwo = ({
 
   return (
     <>
-      <View className="flex-1 flex-col justify-between px-6 pt-24 pb-10">
+      <View className="flex-1 flex-col justify-between px-6 pt-24 pb-4">
         <View className="gap-6">
           <Text className="text-3xl font-bold text-white leading-tight">
             Language & Location
@@ -192,34 +192,26 @@ const FormStepTwo = ({
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           className="flex-1"
         >
-          <View className="flex-1 bg-black/50">
+          <View className="flex-1 bg-black/80">
             <Pressable
               className="flex-1"
               onPress={() => setShowLanguageModal(false)}
             />
             <View
-              className="bg-[#131416] rounded-t-3xl"
+              className="bg-[#1A1A1A] rounded-t-3xl p-6 pb-8"
               style={{ maxHeight: "75%" }}
             >
-              <View className="p-6 border-b border-gray-800">
-                <View className="flex-row items-center justify-between mb-4">
-                  <Text className="text-xl font-bold text-white">
-                    Select Language
-                  </Text>
-                  <Pressable onPress={() => setShowLanguageModal(false)}>
-                    <Text className="text-gray-400 text-3xl leading-none">
-                      ×
-                    </Text>
-                  </Pressable>
-                </View>
-                <TextInput
-                  value={languageSearch}
-                  onChangeText={setLanguageSearch}
-                  placeholder="Search languages..."
-                  placeholderTextColor="#6B7280"
-                  className="bg-[#1C1F26] rounded-xl px-4 py-3 text-white border border-gray-700"
-                />
-              </View>
+              {/* <View className="w-10 h-1 bg-white/30 rounded-full self-center mb-5" /> */}
+              <Text className="text-white text-lg font-semibold mb-4">
+                Select Language
+              </Text>
+              <TextInput
+                value={languageSearch}
+                onChangeText={setLanguageSearch}
+                placeholder="Search languages..."
+                placeholderTextColor="#6B7280"
+                className="bg-[#1C1F26] rounded-xl px-4 py-3 text-white border border-gray-700 mb-4"
+              />
               <ScrollView
                 style={{ flexGrow: 1 }}
                 contentContainerStyle={{ paddingBottom: 40 }}
@@ -261,34 +253,26 @@ const FormStepTwo = ({
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           className="flex-1"
         >
-          <View className="flex-1 bg-black/50">
+          <View className="flex-1 bg-black/80">
             <Pressable
               className="flex-1"
               onPress={() => setShowTimezoneModal(false)}
             />
             <View
-              className="bg-[#131416] rounded-t-3xl"
+              className="bg-[#1A1A1A] rounded-t-3xl p-6 pb-8"
               style={{ maxHeight: "75%" }}
             >
-              <View className="p-6 border-b border-gray-800">
-                <View className="flex-row items-center justify-between mb-4">
-                  <Text className="text-xl font-bold text-white">
-                    Select Timezone
-                  </Text>
-                  <Pressable onPress={() => setShowTimezoneModal(false)}>
-                    <Text className="text-gray-400 text-3xl leading-none">
-                      ×
-                    </Text>
-                  </Pressable>
-                </View>
-                <TextInput
-                  value={timezoneSearch}
-                  onChangeText={setTimezoneSearch}
-                  placeholder="Search timezones..."
-                  placeholderTextColor="#6B7280"
-                  className="bg-[#1C1F26] rounded-xl px-4 py-3 text-white border border-gray-700"
-                />
-              </View>
+              {/* <View className="w-10 h-1 bg-white/30 rounded-full self-center mb-5" /> */}
+              <Text className="text-white text-lg font-semibold mb-4">
+                Select Timezone
+              </Text>
+              <TextInput
+                value={timezoneSearch}
+                onChangeText={setTimezoneSearch}
+                placeholder="Search timezones..."
+                placeholderTextColor="#6B7280"
+                className="bg-[#1C1F26] rounded-xl px-4 py-3 text-white border border-gray-700 mb-4"
+              />
               <ScrollView
                 style={{ flexGrow: 1 }}
                 contentContainerStyle={{ paddingBottom: 40 }}

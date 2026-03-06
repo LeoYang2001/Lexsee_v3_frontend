@@ -135,7 +135,7 @@ const FormStepOne = ({
       keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
       style={{ flex: 1 }}
     >
-      <View className="flex-1 flex-col justify-between px-6 pt-24 pb-10">
+      <View className="flex-1 flex-col justify-between px-6 pt-24 pb-4">
         <View className="gap-6">
           <Text className="text-3xl font-bold text-white leading-tight">
             Choose your username

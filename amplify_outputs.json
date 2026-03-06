@@ -99,15 +99,15 @@
               "isRequired": false,
               "attributes": []
             },
-            "dailyReviewCap": {
-              "name": "dailyReviewCap",
+            "dailyPacing": {
+              "name": "dailyPacing",
               "isArray": false,
               "type": "Int",
               "isRequired": false,
               "attributes": []
             },
-            "dailyNewWordCap": {
-              "name": "dailyNewWordCap",
+            "masteryIntervalDays": {
+              "name": "masteryIntervalDays",
               "isArray": false,
               "type": "Int",
               "isRequired": false,

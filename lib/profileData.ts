@@ -20,6 +20,21 @@ export const LANGUAGES = [
   { code: "it", name: "Italian", flag: "🇮🇹" },
   { code: "th", name: "Thai", flag: "🇹🇭" },
   { code: "pl", name: "Polish", flag: "🇵🇱" },
+  { code: "tl", name: "Tagalog", flag: "🇵🇭" },
+  { code: "id", name: "Indonesian", flag: "🇮🇩" },
+  { code: "ms", name: "Malay", flag: "🇲🇾" },
+  { code: "el", name: "Greek", flag: "🇬🇷" },
+  { code: "sv", name: "Swedish", flag: "🇸🇪" },
+  { code: "nl", name: "Dutch", flag: "🇳🇱" },
+  { code: "uk", name: "Ukrainian", flag: "🇺🇦" },
+  { code: "no", name: "Norwegian", flag: "🇳🇴" },
+  { code: "he", name: "Hebrew", flag: "🇮🇱" },
+  { code: "fi", name: "Finnish", flag: "🇫🇮" },
+  { code: "cs", name: "Czech", flag: "🇨🇿" },
+  { code: "hu", name: "Hungarian", flag: "🇭🇺" },
+  { code: "da", name: "Danish", flag: "🇩🇰" },
+  { code: "ur", name: "Urdu", flag: "🇵🇰" },
+  { code: "fa", name: "Persian", flag: "🇮🇷" },
 ];
 
 // Common timezones

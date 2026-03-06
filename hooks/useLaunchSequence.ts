@@ -59,6 +59,8 @@ export function useLaunchSequence() {
   const [reviewScheduleWordSubscription, setReviewScheduleWordSubscription] =
     useState<any>(null);
 
+  const [profileSubscription, setProfileSubscription] = useState<any>(null);
+
   // Redux dispatch
   const dispatch = useDispatch();
 
@@ -332,6 +334,7 @@ export function useLaunchSequence() {
       subscribeToReviewSchedules();
       subscribeToCompletedReviewSchedules();
       subscribeToReviewScheduleWords();
+      subscribeToProfile(userId);
 
       // const isPro = store.getState().subscription.isPro;
       // if (checkIfTrialExpired(profile.createdAt) && !isPro) {
@@ -416,12 +419,15 @@ export function useLaunchSequence() {
       const formattedProfile: UserProfile = {
         id: profile.id,
         userId: profile.userId,
-        username: profile.username,
+        username: profile.displayName,
         owner: profile.owner,
         createdAt: profile.createdAt,
         updatedAt: profile.updatedAt,
         // Handle the wordsListId if it exists in the raw data
         wordsListId: profile.wordsListId || undefined,
+        nativeLanguage: profile.nativeLanguage,
+        timezone: profile.timezone,
+
         providerType,
         onboardingStage: profile.onboardingStage || "SEARCH",
       };
@@ -634,6 +640,31 @@ export function useLaunchSequence() {
     }
   };
 
+  const subscribeToProfile = (userId: string) => {
+    console.log("⏳ [Sub] Connecting to Profile subscription...");
+
+    if (profileSubscription) return;
+
+    // Use observeQuery to get real-time updates for this specific user
+    const sub = (client.models as any).UserProfile.observeQuery({
+      filter: { userId: { eq: userId } },
+    }).subscribe({
+      next: async ({ items }: any) => {
+        const profile = items[0];
+        console.log(
+          "🔄 [Sub] Profile update received:",
+          JSON.stringify(profile),
+        );
+
+        // 1. Sync to Redux
+        await loadProfileIntoRedux(profile);
+      },
+      error: (err: any) => console.error("❌ Profile Sub Error:", err),
+    });
+
+    setProfileSubscription(sub);
+  };
+
   const checkAISettings = async () => {
     // If Redux-Persist already loaded 'hasTested: true' from storage, stop here.
     if (hasTested) {
@@ -654,11 +685,14 @@ export function useLaunchSequence() {
     reviewScheduleSubscription?.unsubscribe();
     completedReviewScheduleSubscription?.unsubscribe();
     reviewScheduleWordSubscription?.unsubscribe();
+    profileSubscription?.unsubscribe();
 
     setWordsSubscription(null);
     setReviewScheduleSubscription(null);
     setCompletedReviewScheduleSubscription(null);
     setReviewScheduleWordSubscription(null);
+    setProfileSubscription(null);
+    console.log("✅ [Cleanup] All subscriptions closed.");
   };
 
   const requestNotificationPermissions = async () => {

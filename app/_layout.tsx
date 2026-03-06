@@ -57,27 +57,49 @@ function AppContent() {
         // 1. Ensure the SQLite directory exists
         const dirInfo = await FileSystem.getInfoAsync(dbDir);
         if (!dirInfo.exists) {
+          console.log("📁 Creating SQLite directory...");
           await FileSystem.makeDirectoryAsync(dbDir, { intermediates: true });
         }
 
         // 2. Check if the DB exists
         const fileInfo = await FileSystem.getInfoAsync(dbPath);
 
-        // 3. Always copy in development to ensure FTS5 is active,
-        // or just if !exists for production
-        if (!fileInfo.exists) {
+        // 3. In development, always overwrite to ensure fresh dictionary table
+        // In production, only copy if it doesn't exist
+        const isDev = __DEV__;
+        if (!fileInfo.exists || isDev) {
+          if (fileInfo.exists && isDev) {
+            console.log("🔄 Refreshing database in development mode...");
+            await FileSystem.deleteAsync(dbPath);
+          }
+
+          console.log("📥 Downloading database asset...");
           const asset = await Asset.fromModule(
             require("../assets/words_phonetic_db/lexsee-words.db"),
           ).downloadAsync();
+
+          console.log("📋 Asset downloaded, copying to app documents...");
           await FileSystem.copyAsync({
             from: asset.localUri!,
             to: dbPath,
           });
+
+          // Verify the copy was successful
+          const copiedFileInfo = await FileSystem.getInfoAsync(dbPath);
+          console.log(
+            `✅ Database copied successfully (${(copiedFileInfo.size! / 1024 / 1024).toFixed(2)}MB)`,
+          );
+        } else {
+          const existingFileSize = (fileInfo.size! / 1024 / 1024).toFixed(2);
+          console.log(
+            `✅ Database file already exists (${existingFileSize}MB)`,
+          );
         }
 
         setIsDbReady(true);
       } catch (e) {
-        console.error("Database initialization failed", e);
+        console.error("❌ Database initialization failed:", e);
+        setIsDbReady(true); // Set ready anyway to prevent app from hanging
       }
     }
 

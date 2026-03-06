@@ -7,7 +7,9 @@ import Animated, {
   withTiming,
   withRepeat,
   Easing,
+  BounceIn,
 } from "react-native-reanimated";
+import { useRouter } from "expo-router";
 import LottieView from "lottie-react-native";
 import {
   GestureHandlerRootView,
@@ -20,16 +22,31 @@ import { client } from "../client";
 import { useAppSelector } from "../../store/hooks";
 import { LANGUAGES } from "../../lib/profileData";
 import { FormStepThree } from "../../components/provision/FormStepThree";
+import FormStepFour from "../../components/provision/FormStepFour";
+import { GrowthStyle } from "../../store/slices/profileSlice";
 
 const { width: windowWidth } = Dimensions.get("window");
 
 const AnimatedLottie = Animated.createAnimatedComponent(LottieView);
 
+export interface StudyConfig {
+  dailyPacing: number;
+  masteryIntervalDays: number;
+  newwordNotificationsEnabled: boolean;
+  overallGoal?: number;
+  daysForGoal?: number;
+}
+
 export interface ProfileData {
   displayName: string;
   nativeLanguage: string;
   timezone: string;
-  growthStyle: "STABILITY" | "EXAM_READY" | "BALANCED";
+  growthStyle: GrowthStyle;
+  dailyPacing?: number;
+  masteryIntervalDays?: number;
+  newwordNotificationsEnabled?: boolean;
+  overallGoal?: number;
+  daysForGoal?: number;
 }
 
 const onboarding = () => {
@@ -40,6 +57,8 @@ const onboarding = () => {
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+  const [ifOnboardingComplete, setIfOnboardingComplete] = useState(false);
+  const router = useRouter();
 
   // get user profile from redux
   const profileFromRedux = useAppSelector((state) => state.profile.data);
@@ -48,13 +67,14 @@ const onboarding = () => {
     displayName: profileFromRedux?.username || "",
     nativeLanguage: profileFromRedux?.nativeLanguage || "",
     timezone: profileFromRedux?.timezone || "",
-    growthStyle: profileFromRedux?.growthStyle || "STABILITY",
+    growthStyle: profileFromRedux?.growthStyle || "FLUENCY",
   });
 
   // A generic update function to pass to children
   const updateProfile = (newData: Partial<ProfileData>) => {
     setProfileData((prev) => ({ ...prev, ...newData }));
   };
+
   const handleStepSubmit = async (nextData: Partial<ProfileData>) => {
     setIsLoading(true);
     try {
@@ -75,9 +95,94 @@ const onboarding = () => {
           id: profileFromRedux.id,
           ...nextData,
         });
+      } else if (step === 3) {
+        let masteryIntervalDays: number;
+        let dailyPacing: number;
+        let newwordNotificationsEnabled: boolean;
+        // growthStyle will determine dailyPacing and masteryIntervalDays and newwordNotificationsEnabled
+        if (nextData.growthStyle === "FLUENCY") {
+          masteryIntervalDays = 180;
+          dailyPacing = 3;
+          newwordNotificationsEnabled = false;
+        } else if (nextData.growthStyle === "BALANCED") {
+          masteryIntervalDays = 120;
+          dailyPacing = 10;
+          newwordNotificationsEnabled = false;
+        } else {
+          masteryIntervalDays = 60;
+          dailyPacing = 20;
+          newwordNotificationsEnabled = true;
+        }
+        await (client as any).models.UserProfile.update({
+          id: profileFromRedux.id,
+          growthStyle: nextData.growthStyle!,
+          masteryIntervalDays,
+          dailyPacing,
+          newwordNotificationsEnabled,
+        });
+      } else if (step === 4) {
+        // Final step: could handle any final data saving if needed
+        if (!nextData || Object.keys(nextData).length === 0) {
+          // Prompt confirmation dialog for skipping configuration
+          return new Promise<void>((resolve) => {
+            Alert.alert(
+              "Skip Configuration?",
+              "You can always set up your study plan later in Settings. Continue without configuring now?",
+              [
+                {
+                  text: "Go Back",
+                  style: "cancel",
+                  onPress: () => {
+                    setIsLoading(false);
+                    resolve();
+                  },
+                },
+                {
+                  text: "Skip for Now",
+                  style: "default",
+                  onPress: async () => {
+                    try {
+                      // Mark onboarding as complete
+                      await (client as any).models.UserProfile.update({
+                        id: profileFromRedux.id,
+                        onboardingComplete: true,
+                      });
+                      onNextStep();
+                      resolve();
+                    } catch (error) {
+                      console.error("Error completing onboarding:", error);
+                      Alert.alert(
+                        "Error",
+                        "Failed to complete onboarding. Please try again.",
+                      );
+                      resolve();
+                    }
+                  },
+                },
+              ],
+            );
+          });
+        } else {
+          // Update profile with study configuration
+          const {
+            masteryIntervalDays,
+            dailyPacing,
+            newwordNotificationsEnabled,
+            overallGoal,
+            daysForGoal,
+          } = nextData as StudyConfig;
+          await (client as any).models.UserProfile.update({
+            id: profileFromRedux.id,
+            masteryIntervalDays,
+            dailyPacing,
+            newwordNotificationsEnabled,
+            overallGoal,
+            daysForGoal,
+            onboardingComplete: true,
+          });
+        }
       }
 
-      // 3. Only move to next UI step if DB call succeeds
       onNextStep();
     } catch (err) {
       Alert.alert("Error", "We couldn't save your progress. Please try again.");
@@ -97,10 +202,24 @@ const onboarding = () => {
     });
   }, [step]);
 
+  // 4. Navigate to home after onboarding completes
+  useEffect(() => {
+    if (ifOnboardingComplete) {
+      const timer = setTimeout(() => {
+        router.dismissAll();
+        router.push("/(home)");
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [ifOnboardingComplete, router]);
+
   const onNextStep = () => {
     if (step < 4) {
       console.log("step", step);
       setStep(step + 1);
+    } else {
+      console.log("Onboarding complete!");
+      setIfOnboardingComplete(true);
     }
   };
 
@@ -111,50 +230,108 @@ const onboarding = () => {
       <BackgroundAnim step={step} profileData={profileData} />
       {/* Below is where the onboarding form will go.
       we want to use modal from the bottom to pop up the form, first form will be just asking for name  */}
-      <GestureHandlerRootView className="mt-[30%]">
-        <ScrollView
-          horizontal
-          ref={scrollViewRef}
-          scrollEnabled={false}
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          className=" flex-1 "
+      {!ifOnboardingComplete ? (
+        <GestureHandlerRootView className="mt-[20%]">
+          <ScrollView
+            horizontal
+            ref={scrollViewRef}
+            scrollEnabled={false}
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            className=" flex-1 "
+          >
+            {/* form 1: ask for full name */}
+            <Animated.View
+              entering={FadeIn}
+              style={{ width: windowWidth }}
+              className="  h-full "
+            >
+              <FormStepOne
+                step={step}
+                onNext={handleStepSubmit}
+                isLoading={isLoading}
+              />
+            </Animated.View>
+            <Animated.View
+              entering={FadeIn}
+              style={{ width: windowWidth }}
+              className="  h-full "
+            >
+              <FormStepTwo
+                step={step}
+                onNext={handleStepSubmit}
+                onBack={() => setStep(step - 1)}
+                isLoading={isLoading}
+              />
+            </Animated.View>
+            <Animated.View
+              entering={FadeIn}
+              style={{ width: windowWidth }}
+              className="  h-full overflow-hidden "
+            >
+              <FormStepThree
+                step={step}
+                onNext={handleStepSubmit}
+                onBack={() => setStep(step - 1)}
+                isLoading={isLoading}
+              />
+            </Animated.View>
+            <Animated.View
+              entering={FadeIn}
+              style={{ width: windowWidth }}
+              className=" h-full overflow-hidden "
+            >
+              <FormStepFour
+                onNext={handleStepSubmit}
+                step={step}
+                growthStyle={profileData.growthStyle}
+                onBack={() => setStep(step - 1)}
+              />
+            </Animated.View>
+            <View style={{ width: windowWidth }} />
+          </ScrollView>
+        </GestureHandlerRootView>
+      ) : (
+        <View
+          style={{ flex: 1 }}
+          className=" justify-center items-center px-6 "
         >
-          {/* form 1: ask for full name */}
           <Animated.View
-            entering={FadeIn}
-            style={{ width: windowWidth }}
-            className="  h-full "
+            entering={BounceIn.delay(300).springify()}
+            className="justify-center items-center mb-8"
           >
-            <FormStepOne
-              step={step}
-              onNext={handleStepSubmit}
-              isLoading={isLoading}
-            />
+            {/* <LottieView
+              source={require("../../assets/lottieAnims/checkMark.json")}
+              autoPlay
+              loop={false}
+              resizeMode="cover"
+              style={{ width: 70, height: 70 }}
+            /> */}
           </Animated.View>
-          <Animated.View
-            entering={FadeIn}
-            style={{ width: windowWidth }}
-            className="  h-full "
+
+          <Animated.Text
+            entering={FadeIn.delay(800)}
+            className="text-3xl font-bold text-white text-center mb-3"
           >
-            <FormStepTwo
-              step={step}
-              onNext={handleStepSubmit}
-              onBack={() => setStep(step - 1)}
-              isLoading={isLoading}
-            />
-          </Animated.View>
-          <Animated.View
-            entering={FadeIn}
-            style={{ width: windowWidth }}
-            className="  h-full "
+            You're All Set!
+          </Animated.Text>
+
+          <Animated.Text
+            entering={FadeIn.delay(1100)}
+            className="text-lg text-gray-400 text-center leading-6"
           >
-            <FormStepThree />
-          </Animated.View>
-          <View style={{ width: windowWidth }} />
-        </ScrollView>
-      </GestureHandlerRootView>
-      <View className=" h-[10%] w-full justify-center items-center ">
+            Your personalized learning journey starts now.
+          </Animated.Text>
+
+          <Animated.Text
+            entering={FadeIn.delay(1400)}
+            className="text-sm text-gray-500 text-center mt-8"
+          >
+            Redirecting to home...
+          </Animated.Text>
+        </View>
+      )}
+      <View className=" h-[6%] w-full justify-center items-center ">
         <Logo size={60} />
       </View>
     </View>
@@ -179,7 +356,6 @@ const TopIndicator = ({ step }: { step: number }) => {
 };
 
 const ProgressSegment = ({
-  isActive,
   step,
   segmentIndex,
 }: {
@@ -224,7 +400,8 @@ const BackgroundAnim = ({
       }}
       className=" w-full justify-start h-full absolute "
     >
-      <View className="relative  flex justify-center items-center top-[20%]">
+      {/* The Orbital Badges and Central Mesh */}
+      <View className="  flex justify-center items-center absolute w-full top-[15%]">
         {/* The Central Mesh */}
         <AnimatedLottie
           sharedTransitionTag="backgroundMesh"
@@ -236,16 +413,16 @@ const BackgroundAnim = ({
         />
 
         {/* STEP 2: Name Badge appears */}
-        {/* {step >= 2 && profileData.displayName && (
+        {step >= 2 && profileData.displayName && (
           <OrbitalBadge
             text={profileData.displayName}
             radius={95}
             duration={9000}
           />
-        )} */}
+        )}
 
         {/* STEP 3: Language & Timezone appear */}
-        {/* {step >= 3 && (
+        {step >= 3 && (
           <>
             <OrbitalBadge
               text={
@@ -257,7 +434,24 @@ const BackgroundAnim = ({
             />
             <OrbitalBadge text="🌍" radius={65} duration={6000} />
           </>
-        )} */}
+        )}
+
+        {/* STEP 4: Growth style appears */}
+        {step >= 4 && profileData.growthStyle && (
+          <OrbitalBadge
+            text={
+              profileData.growthStyle === "FLUENCY"
+                ? "🧱 Fluency"
+                : profileData.growthStyle === "BALANCED"
+                  ? "⚖️ Balanced"
+                  : profileData.growthStyle === "EXAM_READY"
+                    ? "🚀 Exam Ready"
+                    : profileData.growthStyle
+            }
+            radius={115}
+            duration={10000}
+          />
+        )}
       </View>
     </View>
   );

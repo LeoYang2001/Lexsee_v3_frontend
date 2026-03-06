@@ -432,12 +432,14 @@ export default function DefinitionPage() {
       partOfSpeech: meaning.partOfSpeech,
     }));
 
+    console.log("userprofile:", JSON.stringify(userProfile));
     setIfTranslating(true);
 
     try {
       const response = await translateMeanings(
         translationParameter,
         activeModel,
+        userProfile?.nativeLanguage || "Chinese",
       );
       setTranslatedMeanings(response);
       setIfDisplayTranslation(true);

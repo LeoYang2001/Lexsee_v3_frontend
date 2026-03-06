@@ -59,7 +59,8 @@
     "tailwindcss": "^3.4.17",
     "expo-sqlite": "~15.2.14",
     "expo-file-system": "~18.1.11",
-    "expo-asset": "~11.1.7"
+    "expo-asset": "~11.1.7",
+    "expo-haptics": "~14.1.4"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
