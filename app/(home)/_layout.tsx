@@ -62,6 +62,32 @@ export default function HomeLayout() {
       router: "/(home)",
     },
     {
+      name: "Profile",
+      pathname: "/drawer/profile",
+      icon: (
+        <Feather
+          name="user"
+          size={20}
+          color="#9CA3AF"
+          style={{ marginRight: 16 }}
+        />
+      ),
+      router: "/(home)/drawer/profile",
+    },
+    {
+      name: "DailyLexsee",
+      pathname: "/drawer/dailyLexsee",
+      icon: (
+        <Feather
+          name="calendar"
+          size={20}
+          color="#9CA3AF"
+          style={{ marginRight: 16 }}
+        />
+      ),
+      router: "/(home)/drawer/dailyLexsee",
+    },
+    {
       name: "Learning Science",
       pathname: "/drawer/info",
       icon: (
@@ -124,39 +150,17 @@ export default function HomeLayout() {
                   }}
                   className=" absolute w-full h-full z-10 bg-white "
                 />
-                {profile?.providerType ? (
-                  <>
-                    {profile?.providerType === "SignInWithApple" ? (
-                      <Image
-                        source={require("../../assets/loginIcons/apple_source.png")} // Update path to your Google icon
-                        style={{
-                          width: 42,
-                          height: 42,
-                        }}
-                        resizeMode="contain"
-                      />
-                    ) : (
-                      <Image
-                        source={require("../../assets/loginIcons/google_source.png")} // Update path to your Google icon
-                        style={{
-                          width: 62,
-                          height: 62,
-                        }}
-                        resizeMode="contain"
-                      />
-                    )}
-                  </>
-                ) : (
-                  <Text
-                    style={{
-                      color: "#FFFFFF",
-                      fontSize: 12,
-                      opacity: 0.7,
-                    }}
-                  >
-                    {user?.signInDetails?.loginId}
-                  </Text>
-                )}
+
+                <Text
+                  style={{
+                    color: "#FFFFFF",
+                    fontSize: 14,
+                    opacity: 0.7,
+                  }}
+                  className=" font-semibold"
+                >
+                  {profile?.displayName}
+                </Text>
               </View>
 
               {/* Home */}
@@ -292,35 +296,32 @@ export default function HomeLayout() {
           }}
         />
         <Drawer.Screen
-          name="settings"
+          name="drawer/profile"
           options={{
             drawerItemStyle: { display: "none" },
-            title: "Settings",
+            title: "Profile Settings",
           }}
         />
         <Drawer.Screen
-          name="contact"
+          name="drawer/dailyLexsee"
+          options={{
+            drawerItemStyle: { display: "none" },
+            title: "Daily Lexsee",
+          }}
+        />
+        <Drawer.Screen
+          name="drawer/contact"
           options={{
             drawerItemStyle: { display: "none" },
             title: "Contact",
           }}
         />
         <Drawer.Screen
-          name="info"
+          name="drawer/info"
           options={{
             popToTopOnBlur: true,
             drawerItemStyle: { display: "none" },
             title: "App Information",
-          }}
-        />
-        <Drawer.Screen
-          name="profile"
-          options={{
-            drawerItemStyle: { display: "none" },
-            title: "Profile",
-            drawerIcon: ({ color, size }) => (
-              <Feather name="user" size={size} color={color} />
-            ),
           }}
         />
       </Drawer>

@@ -243,8 +243,8 @@ export function useLaunchSequence() {
             console.log("[Sequence] New user - showing Provisioning page.");
           } else {
             // Existing user: proceed to Home
-            setRouteOnce("/(auth)/provision"); // for testing
-            // setRouteOnce("/(home)");
+            // setRouteOnce("/(auth)/provision"); // for testing
+            setRouteOnce("/(home)");
             setAppReady(true);
           }
         }

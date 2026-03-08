@@ -250,6 +250,7 @@ const onboarding = () => {
                 step={step}
                 onNext={handleStepSubmit}
                 isLoading={isLoading}
+                profileId={profileFromRedux?.id}
               />
             </Animated.View>
             <Animated.View

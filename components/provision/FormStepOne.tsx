@@ -10,6 +10,7 @@ import {
 import React, { useEffect, useRef, useState } from "react";
 import { TextInput } from "react-native-gesture-handler";
 import { ProfileData } from "../../app/(auth)/onboarding";
+import { client } from "../../app/client";
 
 const USERNAME_REGEX = /^(?=.{3,24}$)(?=.*[a-zA-Z])[a-zA-Z0-9_]+$/;
 
@@ -29,21 +30,61 @@ const validateUsername = (username: string) => {
   return { isValid: true, message: "Format valid ✓" };
 };
 
-const checkUsernameAvailability = async (username: string) => {
-  // TODO: replace with DB/API call
-  const reserved = ["admin", "support", "lexsee"];
-  await new Promise((resolve) => setTimeout(resolve, 350));
-  return !reserved.includes(username.toLowerCase());
+const checkUsernameAvailability = async (
+  displayName: string,
+  currentProfileId?: string,
+) => {
+  if (!displayName || displayName.trim().length < 2) return false;
+
+  console.log("caling check checkDisplayNameAvailability");
+
+  try {
+    // 1. Use the secondary index query field for O(1) lookup performance
+    // Note: If you want case-insensitivity, ensure you save displayNames
+    // in a consistent casing (e.g., lowercase) during creation/update.
+    const result = await (client as any).models.UserProfile.listByDisplayName({
+      displayName: displayName.trim(),
+    });
+
+    const existingUsers = result?.data || [];
+
+    // Case 1: No one has this name.
+    if (existingUsers.length === 0) {
+      console.log("✅ Name is completely unique.");
+      return true;
+    }
+
+    // Case 2: Someone has this name. Is it the current user?
+    // Note: We check against the 'userId' field because that's your Cognito link
+    const isOwnedByMe = existingUsers.some(
+      (profile: any) => profile.id === currentProfileId,
+    );
+    if (isOwnedByMe) {
+      console.log("✅ User is re-entering their own current name.");
+      return true;
+    }
+
+    // Case 3: The name is taken by someone else.
+    console.log("❌ Name is taken by another user.");
+    return false;
+  } catch (error) {
+    // Safety fallback: if the network fails, we usually don't want to
+    // hard-block the user, but logging the error is vital.
+    console.error("Error checking display name availability:", error);
+    return true;
+  }
 };
 
 const FormStepOne = ({
   step,
   onNext,
   isLoading = false,
+  profileId,
 }: {
   step: number;
   onNext: (nextData: Partial<ProfileData>) => Promise<void>;
   isLoading?: boolean;
+  profileId?: string;
 }) => {
   const [username, setUsername] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -106,7 +147,7 @@ const FormStepOne = ({
     setIsChecking(true);
 
     blurCheckTimerRef.current = setTimeout(async () => {
-      const available = await checkUsernameAvailability(trimmed);
+      const available = await checkUsernameAvailability(trimmed, profileId);
       if (currentRequestId !== requestIdRef.current) return;
 
       setIsChecking(false);

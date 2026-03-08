@@ -48,6 +48,22 @@ function AppContent() {
   const [isDbReady, setIsDbReady] = useState(false);
 
   useEffect(() => {
+    const run = async () => {
+      if (!appReady || !targetRoute) return;
+      if (navigatedRef.current === targetRoute) return;
+
+      // (4) hide splash first
+      await SplashScreen.hideAsync();
+
+      // (5) then navigate
+      navigatedRef.current = targetRoute;
+      router.replace(targetRoute);
+    };
+
+    run();
+  }, [appReady, targetRoute, isDbReady]);
+
+  useEffect(() => {
     async function setupDatabase() {
       try {
         const dbName = "lexsee-words.db";
@@ -85,10 +101,8 @@ function AppContent() {
           });
 
           // Verify the copy was successful
-          const copiedFileInfo = await FileSystem.getInfoAsync(dbPath);
-          console.log(
-            `✅ Database copied successfully (${(copiedFileInfo.size! / 1024 / 1024).toFixed(2)}MB)`,
-          );
+          await FileSystem.getInfoAsync(dbPath);
+          console.log(`✅ Database copied successfully`);
         } else {
           const existingFileSize = (fileInfo.size! / 1024 / 1024).toFixed(2);
           console.log(
@@ -105,22 +119,6 @@ function AppContent() {
 
     setupDatabase();
   }, []);
-
-  useEffect(() => {
-    const run = async () => {
-      if (!appReady || !targetRoute) return;
-      if (navigatedRef.current === targetRoute) return;
-
-      // (4) hide splash first
-      await SplashScreen.hideAsync();
-
-      // (5) then navigate
-      navigatedRef.current = targetRoute;
-      router.replace(targetRoute);
-    };
-
-    run();
-  }, [appReady, targetRoute, isDbReady]);
   return (
     <View className="flex-1">
       <SQLiteProvider databaseName="lexsee-words.db" useSuspense>
