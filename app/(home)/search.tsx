@@ -85,13 +85,30 @@ export default function SearchPage() {
       // Example: " 'cause* " instead of 'cause*
       const query = `"${sanitizedText}"*`;
 
-      const allRows = await db.getAllAsync<{ word: string; phonetic: string }>(
-        "SELECT word, phonetic FROM dictionary WHERE word MATCH ? LIMIT 20",
-        [query],
-      );
-      setSuggestions(allRows);
+      try {
+        const allRows = await db.getAllAsync<{
+          word: string;
+          phonetic: string;
+        }>(
+          "SELECT word, phonetic FROM dictionary WHERE word MATCH ? LIMIT 20",
+          [query],
+        );
+        setSuggestions(allRows);
+      } catch (dbError: any) {
+        // Handle database table not found or other DB errors
+        if (dbError?.message?.includes("no such table")) {
+          console.warn(
+            "⚠️ Dictionary table not yet initialized, suggestions disabled for now",
+          );
+          setSuggestions([]);
+        } else {
+          console.error("Database query error:", dbError);
+          setSuggestions([]);
+        }
+      }
     } catch (error) {
       console.error("Search error:", error);
+      setSuggestions([]);
     }
   };
 

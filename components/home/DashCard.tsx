@@ -17,27 +17,16 @@ import { wordsListSelector } from "../../store/selectors/wordsListSelector";
 const duration = 200;
 
 const DashCard = () => {
-
-  const {collectedList, masteredList} = useAppSelector(wordsListSelector);
+  const { collectedList, masteredList } = useAppSelector(wordsListSelector);
 
   const [ifReviewCard, setIfReviewCard] = useState(true);
 
-  
-  const {
-      stats,
-      status
-    } = useAppSelector(getReviewWordsForToday);
+  const { stats, status } = useAppSelector(getReviewWordsForToday);
 
-
-  
   const height = useSharedValue(104);
   const reviewOpacity = useSharedValue(0);
 
   const router = useRouter();
-  
-
-  
-  
 
   React.useEffect(() => {
     height.value = withTiming(ifReviewCard ? 191 : 104, { duration });
@@ -80,8 +69,12 @@ const DashCard = () => {
   const statusDisplay = getStatusDisplay();
 
   return (
-    <Pressable >
-      <Animated.View entering={FadeIn} style={[animatedStyle]} className="w-full relative">
+    <Pressable>
+      <Animated.View
+        entering={FadeIn}
+        style={[animatedStyle]}
+        className="w-full relative"
+      >
         <LinearGradient
           colors={["#FF511B", "#FF602F"]}
           start={{ x: 0, y: 0 }}
@@ -97,10 +90,7 @@ const DashCard = () => {
           <View className="w-full h-full flex flex-row justify-between items-center">
             <View className=" flex-1">
               {/* Review Status Display */}
-              <ReviewStatusDisplay
-              reviewStatus={status}
-              stats= {stats}
-              />
+              <ReviewStatusDisplay reviewStatus={status} stats={stats} />
             </View>
 
             <View

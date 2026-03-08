@@ -9,8 +9,8 @@ import {
   Platform,
   ScrollView,
 } from "react-native";
-import { Link, router, useLocalSearchParams } from "expo-router";
-import { confirmSignUp, resendSignUpCode } from "aws-amplify/auth";
+import { router, useLocalSearchParams } from "expo-router";
+import { autoSignIn, confirmSignUp, resendSignUpCode } from "aws-amplify/auth";
 import GradientBackground from "../../components/common/GradientBackground";
 import { BlurView } from "expo-blur";
 
@@ -77,26 +77,36 @@ export default function VerifyEmailScreen() {
 
     setLoading(true);
     try {
-      const { isSignUpComplete } = await confirmSignUp({
+      const response = await confirmSignUp({
         username: email,
         confirmationCode: verificationCode,
       });
+      console.log("response after confirm:", JSON.stringify(response));
 
-      if (isSignUpComplete) {
-        Alert.alert(
-          "Success!",
-          "Your email has been verified successfully. You can now sign in.",
-          [
-            {
-              text: "OK",
-              onPress: () => router.replace("/(auth)/sign-in"),
-            },
-          ]
-        );
+      if (response.nextStep.signUpStep === "COMPLETE_AUTO_SIGN_IN") {
+        console.log("🚀 Completing Auto Sign In...");
+        const signInResult = await autoSignIn();
+
+        // If this succeeds, Amplify will now emit the 'signedIn' event
+        // which your useLaunchSequence Hub listener will catch.
+        console.log("Auto sign in result:", JSON.stringify(signInResult));
       }
+      // Let hub to take care of sign-in after confirmation
+      // if (isSignUpComplete) {
+      //   Alert.alert(
+      //     "Success!",
+      //     "Your email has been verified successfully. You can now sign in.",
+      //     [
+      //       {
+      //         text: "OK",
+      //         onPress: () => router.replace("/(auth)/sign-in"),
+      //       },
+      //     ],
+      //   );
+      // }
     } catch (error) {
-      console.error("Error confirming sign up:", error);
-      Alert.alert("Verification Failed", (error as Error).message);
+      console.error("Error confirming sign up:", JSON.stringify(error));
+
       setCode(["", "", "", "", "", ""]); // Clear the code on error
     } finally {
       setLoading(false);
@@ -113,7 +123,7 @@ export default function VerifyEmailScreen() {
       });
       Alert.alert(
         "Code Sent",
-        "A new verification code has been sent to your email."
+        "A new verification code has been sent to your email.",
       );
       setResendTimer(60); // 60 second cooldown
     } catch (error) {

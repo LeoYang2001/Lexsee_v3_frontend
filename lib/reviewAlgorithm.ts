@@ -31,7 +31,9 @@ export function getNextReview(input: ReviewInput): ReviewOutput {
       console.log("  ├─ 😐 FAIR recall - keeping interval, decreasing ease");
       newInterval = review_interval;
       newEase = Math.max(1.3, newEase - 0.15);
-      console.log(`  ├─ newInterval: ${newInterval}, newEase: ${newEase.toFixed(2)}`);
+      console.log(
+        `  ├─ newInterval: ${newInterval}, newEase: ${newEase.toFixed(2)}`,
+      );
       break;
 
     case "good":
@@ -39,7 +41,9 @@ export function getNextReview(input: ReviewInput): ReviewOutput {
       console.log("  ├─ 🙂 GOOD recall - multiplying interval by ease factor");
       const calculatedInterval = review_interval * newEase;
       newInterval = Math.max(1, Math.round(calculatedInterval));
-      console.log(`  ├─ ${review_interval} × ${newEase.toFixed(2)} = ${calculatedInterval.toFixed(2)} → ${newInterval} days`);
+      console.log(
+        `  ├─ ${review_interval} × ${newEase.toFixed(2)} = ${calculatedInterval.toFixed(2)} → ${newInterval} days`,
+      );
       // no change to ease
       break;
 
@@ -49,8 +53,12 @@ export function getNextReview(input: ReviewInput): ReviewOutput {
       const boostedInterval = review_interval * newEase * 1.3;
       newInterval = Math.max(1, Math.round(boostedInterval));
       newEase = newEase + 0.15;
-      console.log(`  ├─ ${review_interval} × ${ease_factor.toFixed(2)} × 1.3 = ${boostedInterval.toFixed(2)} → ${newInterval} days`);
-      console.log(`  ├─ newEase: ${ease_factor.toFixed(2)} + 0.15 = ${newEase.toFixed(2)}`);
+      console.log(
+        `  ├─ ${review_interval} × ${ease_factor.toFixed(2)} × 1.3 = ${boostedInterval.toFixed(2)} → ${newInterval} days`,
+      );
+      console.log(
+        `  ├─ newEase: ${ease_factor.toFixed(2)} + 0.15 = ${newEase.toFixed(2)}`,
+      );
       break;
   }
 
@@ -61,7 +69,7 @@ export function getNextReview(input: ReviewInput): ReviewOutput {
 
   console.log(`  ├─ 📅 Current date: ${currentDate}`);
   console.log(`  ├─ ➕ Adding ${newInterval} days`);
-  console.log(`  └─ 📌 Next due: ${newNextDue.toISOString().split('T')[0]}`);
+  console.log(`  └─ 📌 Next due: ${newNextDue.toISOString().split("T")[0]}`);
 
   const output = {
     next_due: newNextDue,
@@ -70,12 +78,97 @@ export function getNextReview(input: ReviewInput): ReviewOutput {
   };
 
   console.log("✅ getNextReview - Output:", {
-    next_due: output.next_due.toISOString().split('T')[0],
+    next_due: output.next_due.toISOString().split("T")[0],
     review_interval: output.review_interval,
     ease_factor: output.ease_factor.toFixed(2),
   });
 
   return output;
+}
+
+interface SimulationResult {
+  totalDaysElapsed: number;
+  peakReviewsPerDay: number;
+}
+
+export function simulateMastery(
+  wordsPerDay: number,
+  totalWords: number,
+  masteryInterval: number = 180,
+): SimulationResult {
+  let daysElapsed = 0;
+  let masteredCount = 0;
+
+  // Track each word: { nextDueDay, interval, ease, reviewsCount }
+  let wordBank: {
+    nextDueDay: number;
+    interval: number;
+    ease: number;
+    reviews: number;
+  }[] = [];
+  let wordsIntroduced = 0;
+  let maxReviewsInADay = 0;
+
+  while (masteredCount < totalWords) {
+    daysElapsed++;
+    let reviewsToday = 0;
+
+    // 1. Introduce new words at the start of the day
+    if (wordsIntroduced < totalWords) {
+      const remaining = totalWords - wordsIntroduced;
+      const batchSize = Math.min(wordsPerDay, remaining);
+      for (let i = 0; i < batchSize; i++) {
+        // Initial interval is 0 so they are due "today"
+        wordBank.push({
+          nextDueDay: daysElapsed,
+          interval: 0,
+          ease: 2.5,
+          reviews: 0,
+        });
+        wordsIntroduced++;
+      }
+    }
+
+    // 2. Process all reviews due today
+    for (let word of wordBank) {
+      // Only review if word is due AND not yet mastered
+      if (word.nextDueDay === daysElapsed && word.interval < masteryInterval) {
+        reviewsToday++;
+        word.reviews++;
+
+        // Logic: Alternating 50/50 Good and Excellent
+        if (word.reviews % 2 === 0) {
+          // EXCELLENT path
+          const boostedInterval = (word.interval || 1) * word.ease * 1.3;
+          word.interval = Math.max(1, Math.round(boostedInterval));
+          word.ease += 0.15;
+        } else {
+          // GOOD path
+          const calculatedInterval = (word.interval || 1) * word.ease;
+          word.interval = Math.max(1, Math.round(calculatedInterval));
+        }
+
+        // Schedule the next review date
+        word.nextDueDay = daysElapsed + word.interval;
+
+        // Check if this review pushed it into mastery
+        if (word.interval >= masteryInterval) {
+          masteredCount++;
+        }
+      }
+    }
+
+    // Track the busiest day
+    maxReviewsInADay = Math.max(maxReviewsInADay, reviewsToday);
+
+    // Safety break to prevent infinite loops in edge cases
+    if (daysElapsed > 20000) break;
+  }
+
+  return {
+    totalDaysElapsed: daysElapsed,
+    peakReviewsPerDay: maxReviewsInADay,
+  };
 }
 
 export function calculateStreak(allSchedules: any) {

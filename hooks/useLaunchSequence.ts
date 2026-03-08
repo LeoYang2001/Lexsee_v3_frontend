@@ -5,12 +5,7 @@ import { Alert, AppState } from "react-native";
 import { client } from "../app/client";
 import { setProfile, UserProfile } from "../store/slices/profileSlice";
 import { useDispatch } from "react-redux";
-import {
-  checkIfTrialExpired,
-  cleanSchedules,
-  cleanScheduleWords,
-  cleanWords,
-} from "../util/utli";
+import { cleanSchedules, cleanScheduleWords, cleanWords } from "../util/utli";
 import { setSynced, setWords } from "../store/slices/wordsListSlice";
 import {
   setReviewSchedules,
@@ -63,6 +58,8 @@ export function useLaunchSequence() {
   ] = useState<any>(null);
   const [reviewScheduleWordSubscription, setReviewScheduleWordSubscription] =
     useState<any>(null);
+
+  const [profileSubscription, setProfileSubscription] = useState<any>(null);
 
   // Redux dispatch
   const dispatch = useDispatch();
@@ -236,11 +233,20 @@ export function useLaunchSequence() {
     const tryInitialize = async () => {
       try {
         const user = await getCurrentUser();
-        const success = await initializeData(user.userId);
+        const { success, isNewUser } = await initializeData(user.userId);
         if (success) {
-          setRouteOnce("/(home)");
-          // setRouteOnce("/(auth)/provision");
-          setAppReady(true);
+          if (isNewUser) {
+            // 1. Route to provision page FIRST
+            setRouteOnce("/(auth)/provision");
+            // 2. THEN hide the splash screen
+            setAppReady(true);
+            console.log("[Sequence] New user - showing Provisioning page.");
+          } else {
+            // Existing user: proceed to Home
+            // setRouteOnce("/(auth)/provision"); // for testing
+            setRouteOnce("/(home)");
+            setAppReady(true);
+          }
         }
       } catch (err) {
         if (retryCount < maxRetries) {
@@ -289,30 +295,30 @@ export function useLaunchSequence() {
         console.log("REVENUECAT_API_KEY is not set");
       }
       const profile = await fetchProfile(userId);
-      console.log(
-        "fetched profile from initializeData:",
-        JSON.stringify(profile),
-      );
-
-      console.log("🔔 [Sequence] Checking notification permissions...");
+      console.log("profile fetched:", JSON.stringify(profile));
+      let isNewUser = false; // Track if we are in provisioning mode
       await requestNotificationPermissions();
 
       // Start the AI Probe (Silent / Non-blocking)
       checkAISettings();
 
+      // check if user completed onboarding, profile.nativeLanguage? profile.timezone?
       if (!profile) {
-        console.log("📝 [Sequence] New User detected. Creating workspace...");
-        // should reroute to provision page
-        router.push({
-          pathname: "/(auth)/provision",
-          params: { userId },
-        });
+        isNewUser = true;
+        console.log(
+          "📝 [Sequence] New user detected, will show provision page",
+        );
 
         const newProfile = await createProfile(userId);
         await loadProfileIntoRedux(newProfile.data);
         const success = await createInitialWordsList(newProfile.data.id);
         if (!success)
           throw new Error("Failed to create initial data for new user");
+      } else if (profile && (!profile.nativeLanguage || !profile.timezone)) {
+        isNewUser = true;
+        // load existing profile into redux
+        await loadProfileIntoRedux(profile);
+        console.log("📝 [Sequence] Profile wasnt completed, go to provision");
       } else {
         console.log(
           "✅ [Sequence] Existing User detected. Loading preferences...",
@@ -328,6 +334,7 @@ export function useLaunchSequence() {
       subscribeToReviewSchedules();
       subscribeToCompletedReviewSchedules();
       subscribeToReviewScheduleWords();
+      subscribeToProfile(userId);
 
       // const isPro = store.getState().subscription.isPro;
       // if (checkIfTrialExpired(profile.createdAt) && !isPro) {
@@ -337,7 +344,7 @@ export function useLaunchSequence() {
       // }
 
       console.log("🏁 [Sequence] All systems GO.");
-      return true;
+      return { success: true, isNewUser };
     } catch (error) {
       console.error("❌ [Sequence] Critical failure during init:", error);
       signOut();
@@ -353,7 +360,7 @@ export function useLaunchSequence() {
         // fall back
         signOut();
       }
-      return false;
+      return { success: false, isNewUser: false };
     }
   };
   const fetchProfile = async (userId: string) => {
@@ -375,7 +382,7 @@ export function useLaunchSequence() {
   const createProfile = async (userId: string) => {
     const newProfile = await (client as any).models.UserProfile.create({
       userId,
-      username: "user",
+      displayName: `DEFAULT-${userId.substring(0, 5)}`,
     });
 
     console.log("✅ [Create] New profile created:", JSON.stringify(newProfile));
@@ -412,12 +419,15 @@ export function useLaunchSequence() {
       const formattedProfile: UserProfile = {
         id: profile.id,
         userId: profile.userId,
-        username: profile.username || "Guest",
+        username: profile.displayName,
         owner: profile.owner,
         createdAt: profile.createdAt,
         updatedAt: profile.updatedAt,
         // Handle the wordsListId if it exists in the raw data
         wordsListId: profile.wordsListId || undefined,
+        nativeLanguage: profile.nativeLanguage,
+        timezone: profile.timezone,
+
         providerType,
         onboardingStage: profile.onboardingStage || "SEARCH",
       };
@@ -630,6 +640,31 @@ export function useLaunchSequence() {
     }
   };
 
+  const subscribeToProfile = (userId: string) => {
+    console.log("⏳ [Sub] Connecting to Profile subscription...");
+
+    if (profileSubscription) return;
+
+    // Use observeQuery to get real-time updates for this specific user
+    const sub = (client.models as any).UserProfile.observeQuery({
+      filter: { userId: { eq: userId } },
+    }).subscribe({
+      next: async ({ items }: any) => {
+        const profile = items[0];
+        console.log(
+          "🔄 [Sub] Profile update received:",
+          JSON.stringify(profile),
+        );
+
+        // 1. Sync to Redux
+        await loadProfileIntoRedux(profile);
+      },
+      error: (err: any) => console.error("❌ Profile Sub Error:", err),
+    });
+
+    setProfileSubscription(sub);
+  };
+
   const checkAISettings = async () => {
     // If Redux-Persist already loaded 'hasTested: true' from storage, stop here.
     if (hasTested) {
@@ -650,11 +685,14 @@ export function useLaunchSequence() {
     reviewScheduleSubscription?.unsubscribe();
     completedReviewScheduleSubscription?.unsubscribe();
     reviewScheduleWordSubscription?.unsubscribe();
+    profileSubscription?.unsubscribe();
 
     setWordsSubscription(null);
     setReviewScheduleSubscription(null);
     setCompletedReviewScheduleSubscription(null);
     setReviewScheduleWordSubscription(null);
+    setProfileSubscription(null);
+    console.log("✅ [Cleanup] All subscriptions closed.");
   };
 
   const requestNotificationPermissions = async () => {
