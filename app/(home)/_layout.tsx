@@ -75,7 +75,7 @@ export default function HomeLayout() {
       router: "/(home)/drawer/profile",
     },
     {
-      name: "DailyLexsee",
+      name: "Daily Lexsee",
       pathname: "/drawer/dailyLexsee",
       icon: (
         <Feather

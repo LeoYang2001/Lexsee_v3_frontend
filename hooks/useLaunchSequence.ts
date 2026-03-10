@@ -37,6 +37,20 @@ const timeout = (ms: number) => {
   );
 };
 
+const isKnownLegacyDisplayNameNullError = (err: any) => {
+  const topLevelMessage = String(err?.message || "");
+  const nestedMessages = Array.isArray(err?.errors)
+    ? err.errors.map((e: any) => String(e?.message || "")).join(" | ")
+    : "";
+  const combined = `${topLevelMessage} ${nestedMessages}`;
+
+  return (
+    combined.includes("Cannot return null for non-nullable type") &&
+    combined.includes("UserProfile") &&
+    combined.includes("displayName")
+  );
+};
+
 export function useLaunchSequence() {
   const router = useRouter();
 
@@ -659,7 +673,18 @@ export function useLaunchSequence() {
         // 1. Sync to Redux
         await loadProfileIntoRedux(profile);
       },
-      error: (err: any) => console.error("❌ Profile Sub Error:", err),
+      error: (err: any) => {
+        // Temporary guard: suppress legacy records that violate current schema
+        // so the app does not crash while data backfill is in progress.
+        if (isKnownLegacyDisplayNameNullError(err)) {
+          console.warn(
+            "⚠️ [Sub] Suppressed legacy UserProfile null displayName error.",
+          );
+          return;
+        }
+
+        console.error("❌ Profile Sub Error:", err);
+      },
     });
 
     setProfileSubscription(sub);
