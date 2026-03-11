@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import React, { useState } from "react";
 import { BlurView } from "expo-blur";
-import { StudyConfig } from "../../app/(auth)/onboarding";
+import { StudyConfig } from "../../app/(onboarding)";
 import BrainLoadSlider from "./BrainLoadSlider";
 
 interface SimulationResult {

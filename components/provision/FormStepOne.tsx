@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import React, { useEffect, useRef, useState } from "react";
 import { TextInput } from "react-native-gesture-handler";
-import { ProfileData } from "../../app/(auth)/onboarding";
+import { ProfileData } from "../../app/(onboarding)";
 import { client } from "../../app/client";
 
 const USERNAME_REGEX = /^(?=.{3,24}$)(?=.*[a-zA-Z])[a-zA-Z0-9_]+$/;
