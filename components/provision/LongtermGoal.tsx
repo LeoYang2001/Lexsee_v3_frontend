@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import React, { useState } from "react";
 import { milestoneOptions } from "./defaultConfig";
-import { StudyConfig } from "../../app/(auth)/onboarding";
+import { StudyConfig } from "../../app/(onboarding)";
 import BrainLoadSlider from "./BrainLoadSlider";
 
 interface SimulationResult {

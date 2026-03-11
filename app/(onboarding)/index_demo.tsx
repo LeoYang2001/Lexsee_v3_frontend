@@ -25,7 +25,7 @@ const Provision = () => {
     setShowText(false); // Fade out first
     // Navigate to next page (adjust 'NextPage' to your actual route name)
     setTimeout(() => {
-      router.push("/(auth)/onboarding");
+      router.push("/(onboarding)");
     }, 500);
   };
 

@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import React, { useEffect, useState } from "react";
-import { ProfileData } from "../../app/(auth)/onboarding";
+import { ProfileData } from "../../app/(onboarding)";
 import { LANGUAGES, TIMEZONES } from "../../lib/profileData";
 
 const FormStepTwo = ({

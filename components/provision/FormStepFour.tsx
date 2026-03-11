@@ -4,9 +4,10 @@ import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { GrowthStyle } from "../../store/slices/profileSlice";
 import LottieView from "lottie-react-native";
 import LongtermGoal from "./LongtermGoal";
-import { StudyConfig } from "../../app/(auth)/onboarding";
+import { StudyConfig } from "../../app/(onboarding)";
 import BalancedGoal from "./BalancedGoal";
 import ExamreadyGoal from "./ExamreadyGoal";
+import { router } from "expo-router";
 
 const FormStepFour = ({
   onBack,
@@ -22,6 +23,7 @@ const FormStepFour = ({
   const [loadingComplete, setLoadingComplete] = useState(false);
   const [studyConfig, setStudyConfig] = useState<StudyConfig | null>(null);
 
+  // Reset loading state when step changes
   useEffect(() => {
     if (step === 4) {
       setLoadingComplete(false);
@@ -32,6 +34,14 @@ const FormStepFour = ({
   }, [step]);
 
   if (step !== 4) return null;
+
+  const handleFinalSubmit = () => {
+    onNext(studyConfig!);
+
+    setTimeout(() => {
+      router.replace("/(home)");
+    }, 4000);
+  };
 
   return (
     <View className="flex-1 w-full mt-20   flex  pb-4  ">
@@ -85,10 +95,12 @@ const FormStepFour = ({
         </TouchableOpacity>
         <TouchableOpacity
           className="ml-auto p-2"
-          onPress={() => onNext(studyConfig!)}
+          onPress={() => {
+            handleFinalSubmit();
+          }}
         >
           {studyConfig ? (
-            <Text className="text-white text-xl font-bold">Next</Text>
+            <Text className="text-white text-xl font-bold">Submit</Text>
           ) : (
             <Text className="text-white opacity-60 text-xl font-bold">
               Skip

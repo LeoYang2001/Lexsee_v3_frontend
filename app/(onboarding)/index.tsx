@@ -1,4 +1,11 @@
-import { View, Text, Dimensions, StyleSheet, Alert } from "react-native";
+import {
+  View,
+  Text,
+  Dimensions,
+  StyleSheet,
+  Alert,
+  Pressable,
+} from "react-native";
 import React, { useEffect, useRef, useState } from "react";
 import Animated, {
   FadeIn,
@@ -8,8 +15,9 @@ import Animated, {
   withRepeat,
   Easing,
   BounceIn,
+  FadeOut,
 } from "react-native-reanimated";
-import { useRouter } from "expo-router";
+import { router, useRouter } from "expo-router";
 import LottieView from "lottie-react-native";
 import {
   GestureHandlerRootView,
@@ -53,13 +61,10 @@ const onboarding = () => {
   //step 1: ask for full name
   //step 2: ask for native language & timezone (auto detect)
   //step 3: learning style: fluency, exam ready, balanced
-  //step 4: optional: placeholder for now, can be added later
+  //step 4: configure study plan based on learning style
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
-  const [ifOnboardingComplete, setIfOnboardingComplete] = useState(false);
-  const isFinishingRef = useRef(false);
-  const router = useRouter();
 
   // get user profile from redux
   const profileFromRedux = useAppSelector((state) => state.profile.data);
@@ -77,6 +82,12 @@ const onboarding = () => {
   };
 
   const handleStepSubmit = async (nextData: Partial<ProfileData>) => {
+    console.log(
+      "handleStepSubmit invoked with current step:",
+      step,
+      "and nextData:",
+      nextData,
+    );
     setIsLoading(true);
     try {
       // 1. Update local state immediately for UI responsiveness
@@ -131,7 +142,7 @@ const onboarding = () => {
               "You can always set up your study plan later in Settings. Continue without configuring now?",
               [
                 {
-                  text: "Go Back",
+                  text: "Cancel",
                   style: "cancel",
                   onPress: () => {
                     setIsLoading(false);
@@ -148,7 +159,7 @@ const onboarding = () => {
                         id: profileFromRedux.id,
                         onboardingComplete: true,
                       });
-                      onNextStep();
+                      setStep(5);
                       resolve();
                     } catch (error) {
                       console.error("Error completing onboarding:", error);
@@ -204,15 +215,8 @@ const onboarding = () => {
   }, [step]);
 
   const onNextStep = () => {
-    if (step < 4) {
-      console.log("step", step);
-      setStep(step + 1);
-    } else {
-      if (isFinishingRef.current) return;
-      isFinishingRef.current = true;
-      console.log("Onboarding complete!");
-      router.replace("/(home)");
-    }
+    console.log("step", step);
+    setStep((prev) => prev + 1);
   };
 
   return (
@@ -222,7 +226,22 @@ const onboarding = () => {
       <BackgroundAnim step={step} profileData={profileData} />
       {/* Below is where the onboarding form will go.
       we want to use modal from the bottom to pop up the form, first form will be just asking for name  */}
-      {!ifOnboardingComplete ? (
+
+      {step === 5 ? (
+        <Animated.View entering={FadeIn} style={{ flex: 1 }}>
+          <View className="flex-1 justify-center items-center">
+            <LottieView
+              source={require("../../assets/lottieAnims/welcome.json")}
+              autoPlay
+              loop
+              style={{
+                width: 220,
+                height: 220,
+              }}
+            />
+          </View>
+        </Animated.View>
+      ) : (
         <GestureHandlerRootView className="mt-[20%]">
           <ScrollView
             horizontal
@@ -253,7 +272,7 @@ const onboarding = () => {
               <FormStepTwo
                 step={step}
                 onNext={handleStepSubmit}
-                onBack={() => setStep(step - 1)}
+                onBack={() => setStep((prev) => prev - 1)}
                 isLoading={isLoading}
               />
             </Animated.View>
@@ -265,7 +284,7 @@ const onboarding = () => {
               <FormStepThree
                 step={step}
                 onNext={handleStepSubmit}
-                onBack={() => setStep(step - 1)}
+                onBack={() => setStep((prev) => prev - 1)}
                 isLoading={isLoading}
               />
             </Animated.View>
@@ -278,51 +297,12 @@ const onboarding = () => {
                 onNext={handleStepSubmit}
                 step={step}
                 growthStyle={profileData.growthStyle}
-                onBack={() => setStep(step - 1)}
+                onBack={() => setStep((prev) => prev - 1)}
               />
             </Animated.View>
             <View style={{ width: windowWidth }} />
           </ScrollView>
         </GestureHandlerRootView>
-      ) : (
-        <View
-          style={{ flex: 1 }}
-          className=" justify-center items-center px-6 "
-        >
-          <Animated.View
-            entering={BounceIn.delay(300).springify()}
-            className="justify-center items-center mb-8"
-          >
-            {/* <LottieView
-              source={require("../../assets/lottieAnims/checkMark.json")}
-              autoPlay
-              loop={false}
-              resizeMode="cover"
-              style={{ width: 70, height: 70 }}
-            /> */}
-          </Animated.View>
-
-          <Animated.Text
-            entering={FadeIn.delay(800)}
-            className="text-3xl font-bold text-white text-center mb-3"
-          >
-            You're All Set!
-          </Animated.Text>
-
-          <Animated.Text
-            entering={FadeIn.delay(1100)}
-            className="text-lg text-gray-400 text-center leading-6"
-          >
-            Your personalized learning journey starts now.
-          </Animated.Text>
-
-          <Animated.Text
-            entering={FadeIn.delay(1400)}
-            className="text-sm text-gray-500 text-center mt-8"
-          >
-            Redirecting to home...
-          </Animated.Text>
-        </View>
       )}
       <View className=" h-[6%] w-full justify-center items-center ">
         <Logo size={60} />
@@ -334,7 +314,7 @@ const onboarding = () => {
 const TopIndicator = ({ step }: { step: number }) => {
   return (
     <View className="h-[15%] w-full justify-center px-6">
-      <View className="flex-row gap-2">
+      <Pressable className="flex-row gap-2">
         {[1, 2, 3, 4].map((segmentIndex) => (
           <ProgressSegment
             key={segmentIndex}
@@ -343,7 +323,7 @@ const TopIndicator = ({ step }: { step: number }) => {
             segmentIndex={segmentIndex}
           />
         ))}
-      </View>
+      </Pressable>
     </View>
   );
 };

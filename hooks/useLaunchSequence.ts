@@ -251,7 +251,7 @@ export function useLaunchSequence() {
         if (success) {
           if (isNewUser) {
             // 1. Route to provision page FIRST
-            setRouteOnce("/(auth)/provision");
+            setRouteOnce("/(onboarding)");
             // 2. THEN hide the splash screen
             setAppReady(true);
             console.log("[Sequence] New user - showing Provisioning page.");
