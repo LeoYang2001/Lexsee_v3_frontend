@@ -58,6 +58,7 @@ const onboarding = () => {
   const [isLoading, setIsLoading] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [ifOnboardingComplete, setIfOnboardingComplete] = useState(false);
+  const isFinishingRef = useRef(false);
   const router = useRouter();
 
   // get user profile from redux
@@ -202,24 +203,15 @@ const onboarding = () => {
     });
   }, [step]);
 
-  // 4. Navigate to home after onboarding completes
-  useEffect(() => {
-    if (ifOnboardingComplete) {
-      const timer = setTimeout(() => {
-        router.dismissAll();
-        router.push("/(home)");
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [ifOnboardingComplete, router]);
-
   const onNextStep = () => {
     if (step < 4) {
       console.log("step", step);
       setStep(step + 1);
     } else {
+      if (isFinishingRef.current) return;
+      isFinishingRef.current = true;
       console.log("Onboarding complete!");
-      setIfOnboardingComplete(true);
+      router.replace("/(home)");
     }
   };
 
