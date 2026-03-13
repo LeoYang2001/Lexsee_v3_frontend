@@ -49,208 +49,6 @@ import { getLocalDate } from "../../util/utli";
 import { useOnboarding } from "../../hooks/useOnboarding";
 import SaveOptionsModal from "../../components/definition/SaveOptionsModal";
 
-function CollectBtn({
-  saveStatus,
-  handleSaveOrUnsave,
-  onLongPress,
-}: {
-  saveStatus: string;
-  handleSaveOrUnsave: () => void;
-  onLongPress: () => void;
-}) {
-  const scale = useSharedValue(1);
-  const opacity = useSharedValue(1);
-  const colorProgress = useSharedValue(0);
-
-  const getBtnStyle = () => {
-    switch (saveStatus) {
-      case "unsaved":
-        return {
-          backgroundColor: "#39404e",
-          bookMarkColor: "#66686b",
-          borderColor: "#39404e",
-          colorValue: 0,
-        };
-      case "saving":
-        return {
-          backgroundColor: "#3c444c",
-          bookMarkColor: "#ffffff",
-          borderColor: "#3c444c",
-          colorValue: 0.5,
-        };
-      case "saved":
-        return {
-          backgroundColor: "#31221f",
-          bookMarkColor: "#ce4319",
-          borderColor: "#31221f",
-          colorValue: 1,
-        };
-      default:
-        return {
-          backgroundColor: "#39404e",
-          bookMarkColor: "#66686b",
-          borderColor: "#39404e",
-          colorValue: 0,
-        };
-    }
-  };
-
-  const style = getBtnStyle();
-
-  useEffect(() => {
-    // Animate background color
-    colorProgress.value = withTiming(style.colorValue, { duration: 300 });
-
-    if (saveStatus === "saving") {
-      // Scale down bookmark before showing loading
-      scale.value = withSpring(0.2, { damping: 15, stiffness: 150 });
-      opacity.value = withTiming(0, { duration: 150 });
-    } else {
-      // Show bookmark with spring animation
-      setTimeout(
-        () => {
-          scale.value = withSpring(1, { damping: 12, stiffness: 200 });
-          opacity.value = withTiming(1, { duration: 150 });
-        },
-        saveStatus === "saving" ? 0 : 150,
-      );
-    }
-  }, [saveStatus]);
-
-  const animatedContainerStyle = useAnimatedStyle(() => {
-    const backgroundColor = interpolateColor(
-      colorProgress.value,
-      [0, 0.5, 1],
-      ["#39404e", "#3c444c", "#31221f"],
-    );
-
-    const borderColor = interpolateColor(
-      colorProgress.value,
-      [0, 0.5, 1],
-      ["#39404e", "#3c444c", "#31221f"],
-    );
-
-    return {
-      backgroundColor,
-      borderColor,
-      transform: [
-        {
-          scale:
-            saveStatus === "saving"
-              ? withSpring(1.05, { damping: 15 })
-              : withSpring(1),
-        },
-      ],
-    };
-  });
-
-  const animatedIconStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: scale.value }],
-      opacity: opacity.value,
-    };
-  });
-
-  const animatedLoadingStyle = useAnimatedStyle(() => {
-    return {
-      opacity:
-        saveStatus === "saving"
-          ? withTiming(1, { duration: 200 })
-          : withTiming(0, { duration: 150 }),
-      transform: [
-        {
-          scale:
-            saveStatus === "saving"
-              ? withSpring(1, { damping: 15 })
-              : withSpring(0.8),
-        },
-      ],
-    };
-  });
-
-  return (
-    <TouchableOpacity
-      onPress={handleSaveOrUnsave}
-      onLongPress={() => {
-        if (saveStatus === "unsaved") {
-          onLongPress();
-        }
-      }}
-      disabled={saveStatus === "saving"}
-    >
-      <Animated.View
-        style={[
-          {
-            width: 48,
-            height: 48,
-            borderRadius: 12,
-            justifyContent: "center",
-            alignItems: "center",
-            borderWidth: 1,
-            shadowColor: "#000",
-            shadowOffset: {
-              width: 0,
-              height: 2,
-            },
-            shadowOpacity: 0.1,
-            shadowRadius: 3,
-            elevation: 3,
-          },
-          animatedContainerStyle,
-        ]}
-      >
-        {/* Loading Indicator */}
-        <Animated.View
-          style={[
-            {
-              position: "absolute",
-            },
-            animatedLoadingStyle,
-          ]}
-        >
-          <ActivityIndicator size="small" color="#ffffff" />
-        </Animated.View>
-
-        {/* Bookmark Icon */}
-        <Animated.View style={animatedIconStyle}>
-          <Bookmark
-            size={20}
-            fill={style.bookMarkColor}
-            color={style.bookMarkColor}
-            strokeWidth={2}
-          />
-        </Animated.View>
-      </Animated.View>
-    </TouchableOpacity>
-  );
-}
-
-// Add this skeleton component at the top of your file
-function SkeletonBox({
-  width,
-  height,
-  style,
-}: {
-  width: number | string;
-  height: number;
-  style?: any;
-}) {
-  return (
-    <View
-      style={[
-        {
-          width,
-          height,
-          backgroundColor: "#323335",
-          borderRadius: 4,
-          opacity: 0.6,
-        },
-        style,
-      ]}
-    />
-  );
-}
-
 export default function DefinitionPage() {
   const theme = useTheme();
   const params = useLocalSearchParams();
@@ -423,7 +221,6 @@ export default function DefinitionPage() {
   };
 
   const fetchTranslation = async (wordInfo: Word) => {
-    console.log("calling translation...");
     if (!wordInfo.meanings || wordInfo.meanings.length === 0) {
       return console.log("No meanings available for translation.");
     }
@@ -1553,5 +1350,207 @@ export default function DefinitionPage() {
         </View>
       </Pressable>
     </View>
+  );
+}
+
+function CollectBtn({
+  saveStatus,
+  handleSaveOrUnsave,
+  onLongPress,
+}: {
+  saveStatus: string;
+  handleSaveOrUnsave: () => void;
+  onLongPress: () => void;
+}) {
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(1);
+  const colorProgress = useSharedValue(0);
+
+  const getBtnStyle = () => {
+    switch (saveStatus) {
+      case "unsaved":
+        return {
+          backgroundColor: "#39404e",
+          bookMarkColor: "#66686b",
+          borderColor: "#39404e",
+          colorValue: 0,
+        };
+      case "saving":
+        return {
+          backgroundColor: "#3c444c",
+          bookMarkColor: "#ffffff",
+          borderColor: "#3c444c",
+          colorValue: 0.5,
+        };
+      case "saved":
+        return {
+          backgroundColor: "#31221f",
+          bookMarkColor: "#ce4319",
+          borderColor: "#31221f",
+          colorValue: 1,
+        };
+      default:
+        return {
+          backgroundColor: "#39404e",
+          bookMarkColor: "#66686b",
+          borderColor: "#39404e",
+          colorValue: 0,
+        };
+    }
+  };
+
+  const style = getBtnStyle();
+
+  useEffect(() => {
+    // Animate background color
+    colorProgress.value = withTiming(style.colorValue, { duration: 300 });
+
+    if (saveStatus === "saving") {
+      // Scale down bookmark before showing loading
+      scale.value = withSpring(0.2, { damping: 15, stiffness: 150 });
+      opacity.value = withTiming(0, { duration: 150 });
+    } else {
+      // Show bookmark with spring animation
+      setTimeout(
+        () => {
+          scale.value = withSpring(1, { damping: 12, stiffness: 200 });
+          opacity.value = withTiming(1, { duration: 150 });
+        },
+        saveStatus === "saving" ? 0 : 150,
+      );
+    }
+  }, [saveStatus]);
+
+  const animatedContainerStyle = useAnimatedStyle(() => {
+    const backgroundColor = interpolateColor(
+      colorProgress.value,
+      [0, 0.5, 1],
+      ["#39404e", "#3c444c", "#31221f"],
+    );
+
+    const borderColor = interpolateColor(
+      colorProgress.value,
+      [0, 0.5, 1],
+      ["#39404e", "#3c444c", "#31221f"],
+    );
+
+    return {
+      backgroundColor,
+      borderColor,
+      transform: [
+        {
+          scale:
+            saveStatus === "saving"
+              ? withSpring(1.05, { damping: 15 })
+              : withSpring(1),
+        },
+      ],
+    };
+  });
+
+  const animatedIconStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }],
+      opacity: opacity.value,
+    };
+  });
+
+  const animatedLoadingStyle = useAnimatedStyle(() => {
+    return {
+      opacity:
+        saveStatus === "saving"
+          ? withTiming(1, { duration: 200 })
+          : withTiming(0, { duration: 150 }),
+      transform: [
+        {
+          scale:
+            saveStatus === "saving"
+              ? withSpring(1, { damping: 15 })
+              : withSpring(0.8),
+        },
+      ],
+    };
+  });
+
+  return (
+    <TouchableOpacity
+      onPress={handleSaveOrUnsave}
+      onLongPress={() => {
+        if (saveStatus === "unsaved") {
+          onLongPress();
+        }
+      }}
+      disabled={saveStatus === "saving"}
+    >
+      <Animated.View
+        style={[
+          {
+            width: 48,
+            height: 48,
+            borderRadius: 12,
+            justifyContent: "center",
+            alignItems: "center",
+            borderWidth: 1,
+            shadowColor: "#000",
+            shadowOffset: {
+              width: 0,
+              height: 2,
+            },
+            shadowOpacity: 0.1,
+            shadowRadius: 3,
+            elevation: 3,
+          },
+          animatedContainerStyle,
+        ]}
+      >
+        {/* Loading Indicator */}
+        <Animated.View
+          style={[
+            {
+              position: "absolute",
+            },
+            animatedLoadingStyle,
+          ]}
+        >
+          <ActivityIndicator size="small" color="#ffffff" />
+        </Animated.View>
+
+        {/* Bookmark Icon */}
+        <Animated.View style={animatedIconStyle}>
+          <Bookmark
+            size={20}
+            fill={style.bookMarkColor}
+            color={style.bookMarkColor}
+            strokeWidth={2}
+          />
+        </Animated.View>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+}
+
+// Add this skeleton component at the top of your file
+function SkeletonBox({
+  width,
+  height,
+  style,
+}: {
+  width: number | string;
+  height: number;
+  style?: any;
+}) {
+  return (
+    <View
+      style={[
+        {
+          width,
+          height,
+          backgroundColor: "#323335",
+          borderRadius: 4,
+          opacity: 0.6,
+        },
+        style,
+      ]}
+    />
   );
 }
