@@ -1,5 +1,11 @@
-const YOUTUBE_VIDEO_API_URL =
-  "https://ap3y4fu8pk.execute-api.us-east-2.amazonaws.com/youtube-video";
+const YOUTUBE_API_BASE_URL =
+  "https://ap3y4fu8pk.execute-api.us-east-2.amazonaws.com";
+const YOUTUBE_ROUTES = {
+  videos: "/youtube-video",
+  transcription: "/youtube-transcription",
+};
+const YOUTUBE_VIDEO_API_URL = `${YOUTUBE_API_BASE_URL}${YOUTUBE_ROUTES.videos}`;
+const YOUTUBE_TRANSCRIPT_API_URL = `${YOUTUBE_API_BASE_URL}${YOUTUBE_ROUTES.transcription}`;
 
 export interface TranscriptSegment {
   startMs: number;
@@ -69,3 +75,36 @@ export const fetchYoutubeVideos = async (
     return []; // Return empty array on error to prevent UI crashes
   }
 };
+
+/**
+ * Fetches a specific transcript JSON from S3 via the Lambda API.
+ * @param s3Key - The key path (e.g., 'daily/2026-03-13/yt_x-XdOaZPhBw/transcript.json')
+ */
+export async function fetchYouTubeTranscript(
+  s3Key: string,
+): Promise<TranscriptSegment[]> {
+  try {
+    const url = new URL(YOUTUBE_TRANSCRIPT_API_URL);
+    url.searchParams.append("key", s3Key);
+
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(
+        errorData.error || `HTTP error! status: ${response.status}`,
+      );
+    }
+
+    const data = await response.json();
+    return data as TranscriptSegment[];
+  } catch (error) {
+    console.error("Failed to fetch transcript:", error);
+    throw error;
+  }
+}

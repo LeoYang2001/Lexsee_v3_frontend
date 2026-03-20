@@ -125,14 +125,16 @@ export default function DailyLexseeScreen() {
   );
   const [youtubeLoading, setYoutubeLoading] = useState(true);
   const [youtubeError, setYoutubeError] = useState(false);
+  const [youtubeDisplayCount, setYoutubeDisplayCount] = useState(3);
 
   const youtubeVideoPages = useMemo(() => {
+    const displayedVideos = youtubeVideos.slice(0, youtubeDisplayCount);
     const pages: YouTubeVideoMetadata[][] = [];
-    for (let i = 0; i < youtubeVideos.length; i += 2) {
-      pages.push(youtubeVideos.slice(i, i + 2));
+    for (let i = 0; i < displayedVideos.length; i += 2) {
+      pages.push(displayedVideos.slice(i, i + 2));
     }
     return pages;
-  }, [youtubeVideos]);
+  }, [youtubeVideos, youtubeDisplayCount]);
 
   const progressPercent = useMemo(() => {
     if (!DAILY_LEXSEE_PROGRESS.goal) return 0;
@@ -147,16 +149,13 @@ export default function DailyLexseeScreen() {
 
     try {
       // 1. Fetch the entire list (sorted by date desc from backend)
-      console.log("[YouTube API] Fetching daily content list...");
       const videoList = await fetchYoutubeVideos();
 
       if (videoList && videoList.length > 0) {
         const activeVideos = videoList.filter((v) => v.isActive).slice(0, 5);
 
         if (activeVideos.length > 0) {
-          console.log(
-            `[YouTube API] Found ${activeVideos.length} active videos for Daily Lexsee.`,
-          );
+          console.log("found active youtube:", JSON.stringify(activeVideos));
 
           setYoutubeVideos(activeVideos);
         } else {
@@ -247,9 +246,13 @@ export default function DailyLexseeScreen() {
   const openYouTubePlayer = (
     url: string,
     title: string,
+    date: string,
+    contentId: string,
     transcript?: string,
   ) => {
     const videoId = getYouTubeVideoId(url);
+
+    const transcriptFetchParam = `daily/${date}/${contentId}/transcript.json`;
 
     if (!videoId) {
       Alert.alert(
@@ -266,6 +269,7 @@ export default function DailyLexseeScreen() {
         videoId,
         title,
         transcript: transcript || "",
+        transcriptFetchParam: transcriptFetchParam || "",
       },
     });
   };
@@ -499,6 +503,25 @@ export default function DailyLexseeScreen() {
                       pagingEnabled
                       showsHorizontalScrollIndicator={false}
                       nestedScrollEnabled
+                      scrollEventThrottle={16}
+                      onScroll={(event) => {
+                        const contentOffsetX =
+                          event.nativeEvent.contentOffset.x;
+                        const contentWidth =
+                          event.nativeEvent.contentSize.width;
+                        const layoutWidth =
+                          event.nativeEvent.layoutMeasurement.width;
+
+                        // Check if user has scrolled near the end
+                        if (contentOffsetX + layoutWidth > contentWidth - 50) {
+                          // Load next batch if more videos available
+                          if (youtubeDisplayCount < youtubeVideos.length) {
+                            setYoutubeDisplayCount((prev) =>
+                              Math.min(prev + 3, youtubeVideos.length),
+                            );
+                          }
+                        }
+                      }}
                       className="-mx-1"
                     >
                       {youtubeVideoPages.map((page, pageIndex) => (
@@ -515,6 +538,8 @@ export default function DailyLexseeScreen() {
                                 openYouTubePlayer(
                                   video.embedUrl,
                                   video.title,
+                                  video.date,
+                                  video.contentId,
                                   video.transcript
                                     ? JSON.stringify(video.transcript)
                                     : undefined,
@@ -546,12 +571,13 @@ export default function DailyLexseeScreen() {
                             </TouchableOpacity>
                           ))}
 
-                          {page.length === 1 ? (
-                            <View
-                              className="rounded-2xl"
-                              style={{ width: (windowWidth - 28) / 2 }}
-                            />
-                          ) : null}
+                          {page.length === 1 &&
+                            youtubeDisplayCount >= youtubeVideos.length && (
+                              <View
+                                className="rounded-2xl"
+                                style={{ width: (windowWidth - 28) / 2 }}
+                              />
+                            )}
                         </View>
                       ))}
                     </ScrollView>

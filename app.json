@@ -4,6 +4,8 @@
     "slug": "lexsee_v3_frontend",
     "version": "3.0.0",
     "orientation": "portrait",
+    "backgroundColor": "#000000",
+    "userInterfaceStyle": "dark",
     "icon": "./assets/LexSeeAppLogo.png",
     "newArchEnabled": false,
     "scheme": "lexsee-v3",
@@ -20,9 +22,7 @@
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "plugins": [
       "expo-router",
       [
@@ -51,7 +51,12 @@
         }
       ],
       "expo-sqlite",
-      "expo-asset"
+      [
+        "expo-asset",
+        {
+          "assets": ["./assets/words_phonetic_db/lexsee-words.db"]
+        }
+      ]
     ],
     "extra": {
       "router": {},
