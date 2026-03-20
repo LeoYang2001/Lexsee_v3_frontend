@@ -19,6 +19,7 @@ import {
 } from "lucide-react-native";
 import Animated, { SlideInDown } from "react-native-reanimated";
 import * as ScreenOrientation from "expo-screen-orientation";
+import { fetchYouTubeTranscript } from "../../../../apis/fetchYoutubeVideo";
 
 type PlayerMode = "horizontal" | "vertical";
 
@@ -45,11 +46,13 @@ const BORDER_RADIUS = Math.min(width, height) * 0.06;
 
 export default function DailyLexseeYoutubePlayerScreen() {
   const router = useRouter();
-  const { videoId, title, transcript } = useLocalSearchParams<{
-    videoId?: string;
-    title?: string;
-    transcript?: string;
-  }>();
+  const { videoId, title, transcript, transcriptFetchParam } =
+    useLocalSearchParams<{
+      videoId?: string;
+      title?: string;
+      transcript?: string;
+      transcriptFetchParam: string;
+    }>();
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
   const [mode] = useState<PlayerMode>("horizontal");
@@ -80,15 +83,56 @@ export default function DailyLexseeYoutubePlayerScreen() {
 
   const [currentTimeMs, setCurrentTimeMs] = useState(0);
   const [curSegment, setCurSegment] = useState<TranscriptSegment | null>(null);
+  const [transcriptData, setTranscriptData] = useState<TranscriptSegment[]>([]);
+  const [isFetchingTranscript, setIsFetchingTranscript] = useState(false);
 
-  const transcriptData: TranscriptSegment[] = useMemo(() => {
-    if (!transcript) return [];
-    try {
-      return JSON.parse(transcript as string);
-    } catch {
-      return [];
-    }
-  }, [transcript]);
+  // Fetch and parse transcript data
+  useEffect(() => {
+    const loadTranscript = async () => {
+      try {
+        // Try to parse transcript if available
+        if (transcript) {
+          console.log("passed transcript:", JSON.stringify(transcript));
+          try {
+            const transcriptParsed = JSON.parse(transcript as string);
+            if (
+              Array.isArray(transcriptParsed) &&
+              transcriptParsed.length > 0
+            ) {
+              setTranscriptData(transcriptParsed);
+              return;
+            }
+          } catch (e) {
+            console.warn("Failed to parse transcript:", e);
+          }
+        }
+
+        // If no transcript or parsing failed, fetch from S3
+        if (transcriptFetchParam) {
+          setIsFetchingTranscript(true);
+          try {
+            const fetchedTranscript = await fetchYouTubeTranscript(
+              transcriptFetchParam as string,
+            );
+
+            setTranscriptData(fetchedTranscript);
+          } catch (error) {
+            console.error("Failed to fetch transcript from S3:", error);
+            setTranscriptData([]);
+          } finally {
+            setIsFetchingTranscript(false);
+          }
+        } else {
+          setTranscriptData([]);
+        }
+      } catch (error) {
+        console.error("Error loading transcript:", error);
+        setTranscriptData([]);
+      }
+    };
+
+    loadTranscript();
+  }, [transcript, transcriptFetchParam]);
 
   // Polling logic
   useEffect(() => {
@@ -181,6 +225,16 @@ export default function DailyLexseeYoutubePlayerScreen() {
 
   const renderTranscriptWords = (enableTapToAdd = false) => {
     if (transcriptData.length === 0) {
+      if (isFetchingTranscript) {
+        return (
+          <Text
+            style={{ color: darkTheme.accent, opacity: 0.72 }}
+            className="text-base mt-1"
+          >
+            Fetching captions...
+          </Text>
+        );
+      }
       return (
         <Text
           style={{ color: darkTheme.accent, opacity: 0.72 }}

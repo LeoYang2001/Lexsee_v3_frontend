@@ -149,16 +149,13 @@ export default function DailyLexseeScreen() {
 
     try {
       // 1. Fetch the entire list (sorted by date desc from backend)
-      console.log("[YouTube API] Fetching daily content list...");
       const videoList = await fetchYoutubeVideos();
 
       if (videoList && videoList.length > 0) {
         const activeVideos = videoList.filter((v) => v.isActive).slice(0, 5);
 
         if (activeVideos.length > 0) {
-          console.log(
-            `[YouTube API] Found ${activeVideos.length} active videos for Daily Lexsee.`,
-          );
+          console.log("found active youtube:", JSON.stringify(activeVideos));
 
           setYoutubeVideos(activeVideos);
         } else {
@@ -249,9 +246,13 @@ export default function DailyLexseeScreen() {
   const openYouTubePlayer = (
     url: string,
     title: string,
+    date: string,
+    contentId: string,
     transcript?: string,
   ) => {
     const videoId = getYouTubeVideoId(url);
+
+    const transcriptFetchParam = `daily/${date}/${contentId}/transcript.json`;
 
     if (!videoId) {
       Alert.alert(
@@ -268,6 +269,7 @@ export default function DailyLexseeScreen() {
         videoId,
         title,
         transcript: transcript || "",
+        transcriptFetchParam: transcriptFetchParam || "",
       },
     });
   };
@@ -536,6 +538,8 @@ export default function DailyLexseeScreen() {
                                 openYouTubePlayer(
                                   video.embedUrl,
                                   video.title,
+                                  video.date,
+                                  video.contentId,
                                   video.transcript
                                     ? JSON.stringify(video.transcript)
                                     : undefined,
