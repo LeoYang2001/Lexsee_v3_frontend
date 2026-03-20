@@ -173,7 +173,7 @@ export default function DailyLexseeYoutubePlayerScreen() {
   }, [searchList.length, isLandscape]);
 
   useEffect(() => {
-    if (searchList.length === 0 || !isLandscape) return;
+    if (searchList.length === 0) return;
 
     requestAnimationFrame(() => {
       searchListScrollRef.current?.scrollToEnd({ animated: true });
@@ -316,13 +316,14 @@ export default function DailyLexseeYoutubePlayerScreen() {
     router.push(`/(definition)?word=${encodeURIComponent(word)}`);
   };
 
-  if (!isLandscape)
-    return (
-      <View
-        style={{ backgroundColor: darkTheme.background }}
-        className="flex-1 pt-16"
-      >
-        <View className="w-full px-3 flex-row items-center justify-between mb-3">
+  return (
+    <View
+      style={[{ backgroundColor: darkTheme.background }]}
+      className="flex-1"
+    >
+      {/* Header - Portrait Only */}
+      {!isLandscape && (
+        <View className="w-full px-3 flex-row items-center justify-between pt-16 pb-3">
           <TouchableOpacity onPress={() => router.back()}>
             <ChevronLeft color={darkTheme.text} />
           </TouchableOpacity>
@@ -334,18 +335,39 @@ export default function DailyLexseeYoutubePlayerScreen() {
             {title || "Daily Lexsee"}
           </Text>
         </View>
+      )}
 
-        {!videoId ? (
-          renderMissingVideo()
-        ) : (
-          <ScrollView
-            ref={portraitScrollRef}
-            className="flex-1"
-            contentContainerStyle={{ paddingBottom: 24 }}
+      {!videoId ? (
+        <View className="px-3">{renderMissingVideo()}</View>
+      ) : (
+        <View
+          style={{
+            flexDirection: isLandscape ? "row" : "column",
+          }}
+          className="flex-1 gap-4 px-3 pb-4"
+        >
+          {/* Left/Top Panel - Player */}
+          <View
+            style={{
+              width: isLandscape ? playerSize.width + 16 : "100%",
+            }}
+            className="flex flex-col justify-start"
           >
-            <View className="items-center">
+            <View
+              style={[
+                isLandscape && {
+                  borderColor: darkTheme.border,
+                  backgroundColor: darkTheme.card,
+                },
+              ]}
+              className={isLandscape ? "rounded-[26px] border p-2" : ""}
+            >
               <View
-                className="overflow-hidden rounded-2xl border"
+                className={
+                  isLandscape
+                    ? "overflow-hidden rounded-[22px] border"
+                    : "overflow-hidden rounded-2xl border items-center"
+                }
                 style={{
                   borderColor: darkTheme.border,
                   backgroundColor: darkTheme.background,
@@ -366,14 +388,64 @@ export default function DailyLexseeYoutubePlayerScreen() {
                   }}
                 />
               </View>
+            </View>
 
-              <View className=" w-full px-3">
+            {/* Controls - Show only in landscape */}
+            {isLandscape && (
+              <View
+                style={{
+                  borderColor: darkTheme.border,
+                  backgroundColor: darkTheme.card,
+                }}
+                className="flex-row items-center rounded-[26px]  flex-1 justify-between px-3  mt-2"
+              >
+                <TouchableOpacity
+                  style={{
+                    borderColor: darkTheme.border,
+                    backgroundColor: darkTheme.background,
+                  }}
+                  className="rounded-xl border px-6 py-3 flex-row items-center flex-1 justify-center mr-2"
+                  onPress={() => seekBySeconds(-10)}
+                  activeOpacity={0.75}
+                >
+                  <SkipBack size={24} color={darkTheme.text} />
+                  <Text
+                    style={{ color: darkTheme.text }}
+                    className="font-semibold ml-3 text-base"
+                  >
+                    10s
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{
+                    borderColor: darkTheme.border,
+                    backgroundColor: darkTheme.background,
+                  }}
+                  className="rounded-xl border px-6 py-3 flex-row items-center flex-1 justify-center ml-2"
+                  onPress={() => seekBySeconds(10)}
+                  activeOpacity={0.75}
+                >
+                  <SkipForward size={24} color={darkTheme.text} />
+                  <Text
+                    style={{ color: darkTheme.text }}
+                    className="font-semibold ml-3 text-base"
+                  >
+                    10s
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Portrait Controls and Open YouTube */}
+            {!isLandscape && (
+              <>
                 <View
                   style={{
                     borderColor: darkTheme.border,
                     backgroundColor: darkTheme.card,
                   }}
-                  className=" mt-3  rounded-2xl border px-3 py-2"
+                  className="mt-3 rounded-2xl border px-3 py-2"
                 >
                   <View className="flex-row items-center justify-between">
                     <TouchableOpacity
@@ -413,245 +485,40 @@ export default function DailyLexseeYoutubePlayerScreen() {
                     </TouchableOpacity>
                   </View>
                 </View>
-              </View>
 
-              <TouchableOpacity
-                className="mt-3 ml-3 self-start"
-                onPress={() =>
-                  Linking.openURL(`https://www.youtube.com/watch?v=${videoId}`)
-                }
-              >
-                <Text style={{ color: darkTheme.primary }} className="text-sm">
-                  Open in YouTube
-                </Text>
-              </TouchableOpacity>
-
-              <View
-                className="  text-center  mt-3 w-full"
-                style={{ minHeight: 40, maxHeight: 220 }}
-              >
-                <ScrollView
-                  ref={scrollRef}
-                  contentContainerStyle={{
-                    paddingHorizontal: 10,
-                    paddingVertical: 8,
-                    flexDirection: "row",
-                    justifyContent: "center",
-                  }}
-                >
-                  {renderTranscriptWords(true)}
-                </ScrollView>
-              </View>
-            </View>
-          </ScrollView>
-        )}
-
-        {searchList.length > 0 && (
-          <Animated.View
-            entering={SlideInDown}
-            className="absolute w-full  bottom-0"
-          >
-            <View
-              style={{
-                borderRadius: BORDER_RADIUS * 2,
-                margin: 6,
-                borderColor: darkTheme.border,
-                backgroundColor: darkTheme.card,
-              }}
-              className="rounded-2xl border px-4 pt-3 pb-4"
-            >
-              <View className="mb-2 px-3 flex-row items-center justify-between">
                 <TouchableOpacity
-                  className=" ml-auto"
-                  onPress={() => setSearchList([])}
+                  className="mt-3 ml-3 self-start"
+                  onPress={() =>
+                    Linking.openURL(
+                      `https://www.youtube.com/watch?v=${videoId}`,
+                    )
+                  }
                 >
                   <Text
                     style={{ color: darkTheme.primary }}
-                    className="text-sm font-semibold"
+                    className="text-sm"
                   >
-                    Clear
+                    Open in YouTube
                   </Text>
                 </TouchableOpacity>
-              </View>
-
-              <Text
-                style={{ color: darkTheme.accent, opacity: 0.72 }}
-                className="text-xs mb-2"
-              >
-                Tap a word to open definition.
-              </Text>
-
-              <FlatList
-                ref={searchListRef}
-                data={searchList}
-                keyExtractor={(word) => word}
-                numColumns={3}
-                style={{ maxHeight: Math.min(height * 0.34, 210) }}
-                contentContainerStyle={{ paddingBottom: 2 }}
-                columnWrapperStyle={{ justifyContent: "flex-start" }}
-                showsVerticalScrollIndicator={false}
-                renderItem={({ item: word }) => {
-                  const isSearched = searchedWords.includes(word);
-
-                  return (
-                    <TouchableOpacity
-                      onPress={() => goToDefinition(word)}
-                      onLongPress={() => removeSearchWord(word)}
-                      style={{
-                        borderColor: isSearched
-                          ? darkTheme.primary
-                          : darkTheme.border,
-                        backgroundColor: isSearched
-                          ? "rgba(250, 84, 28, 0.12)"
-                          : darkTheme.background,
-                        width: "31.33%",
-                        marginRight: "2%",
-                        marginBottom: 8,
-                      }}
-                      className="rounded-xl border px-3 py-2"
-                      activeOpacity={0.82}
-                    >
-                      <View className="flex-row items-center">
-                        <Search
-                          size={14}
-                          color={
-                            isSearched ? darkTheme.primary : darkTheme.secondary
-                          }
-                        />
-                        <Text
-                          style={{ color: darkTheme.text }}
-                          className="text-sm font-semibold ml-2 flex-1"
-                          numberOfLines={1}
-                          ellipsizeMode="tail"
-                        >
-                          {word}
-                        </Text>
-                      </View>
-                      <Text
-                        style={{
-                          color: isSearched
-                            ? darkTheme.primary
-                            : darkTheme.accent,
-                          opacity: isSearched ? 1 : 0.72,
-                        }}
-                        className="text-[11px] mt-1"
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                      >
-                        {isSearched ? "Searched" : "Tap to search"}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                }}
-              />
-            </View>
-          </Animated.View>
-        )}
-      </View>
-    );
-
-  return (
-    <View
-      style={{ backgroundColor: darkTheme.background }}
-      className="flex-1 pt-4"
-    >
-      {!videoId ? (
-        <View className="px-3">{renderMissingVideo()}</View>
-      ) : (
-        <View className="flex-1  flex-row gap-4 px-3 pb-4">
-          {/* Left Panel - Player */}
-          <View
-            style={{
-              width: playerSize.width + 16,
-            }}
-            className="flex flex-col justify-start"
-          >
-            <View
-              style={{
-                borderColor: darkTheme.border,
-                backgroundColor: darkTheme.card,
-              }}
-              className="rounded-[26px] border p-2"
-            >
-              <View
-                className="overflow-hidden rounded-[22px] border"
-                style={{
-                  borderColor: darkTheme.border,
-                  backgroundColor: darkTheme.background,
-                  width: playerSize.width,
-                  height: playerSize.height,
-                }}
-              >
-                <YoutubePlayer
-                  ref={playerRef}
-                  height={playerSize.height}
-                  width={playerSize.width}
-                  play={playing}
-                  videoId={videoId}
-                  onChangeState={(state: string) => {
-                    if (state === "playing") setPlaying(true);
-                    if (state === "paused" || state === "ended")
-                      setPlaying(false);
-                  }}
-                />
-              </View>
-            </View>
-            <View
-              style={{
-                borderColor: darkTheme.border,
-                backgroundColor: darkTheme.card,
-              }}
-              className="flex-row items-center rounded-[26px]  flex-1 justify-between px-3  mt-2 "
-            >
-              <TouchableOpacity
-                style={{
-                  borderColor: darkTheme.border,
-                  backgroundColor: darkTheme.background,
-                }}
-                className="rounded-xl border px-6 py-3 flex-row items-center flex-1 justify-center mr-2"
-                onPress={() => seekBySeconds(-10)}
-                activeOpacity={0.75}
-              >
-                <SkipBack size={24} color={darkTheme.text} />
-                <Text
-                  style={{ color: darkTheme.text }}
-                  className="font-semibold ml-3 text-base"
-                >
-                  10s
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={{
-                  borderColor: darkTheme.border,
-                  backgroundColor: darkTheme.background,
-                }}
-                className="rounded-xl border px-6 py-3 flex-row items-center flex-1 justify-center ml-2"
-                onPress={() => seekBySeconds(10)}
-                activeOpacity={0.75}
-              >
-                <SkipForward size={24} color={darkTheme.text} />
-                <Text
-                  style={{ color: darkTheme.text }}
-                  className="font-semibold ml-3 text-base"
-                >
-                  10s
-                </Text>
-              </TouchableOpacity>
-            </View>
+              </>
+            )}
           </View>
 
-          {/* Right Panel - Captions & Search */}
+          {/* Right/Bottom Panel - Captions & Search */}
           <View
             style={{
               backgroundColor: darkTheme.card,
-              // borderColor: darkTheme.border,
             }}
-            className="flex-1 rounded-3xl  overflow-hidden flex flex-col"
+            className={
+              isLandscape
+                ? "flex-1 rounded-3xl overflow-hidden flex flex-col"
+                : "flex-1 rounded-3xl overflow-hidden flex flex-col mt-3"
+            }
           >
             <View
               style={{ borderBottomColor: darkTheme.border }}
-              className="px-4 pt-4 pb-3 border-b   "
+              className="px-4 pt-4 pb-3 border-b"
             >
               <View className="flex-row items-center justify-between">
                 <View>
@@ -661,17 +528,17 @@ export default function DailyLexseeYoutubePlayerScreen() {
                   >
                     Live Captions
                   </Text>
-                  <Text
+                  {/* <Text
                     style={{ color: darkTheme.text }}
                     className="text-sm font-semibold mt-1"
                   >
                     {title || "Video"}
-                  </Text>
+                  </Text> */}
                 </View>
               </View>
             </View>
 
-            <View className=" w-full  px-6 ">
+            <View className="w-full px-6">
               <ScrollView
                 ref={scrollRef}
                 contentContainerStyle={{
@@ -679,7 +546,6 @@ export default function DailyLexseeYoutubePlayerScreen() {
                   flexWrap: "wrap",
                   justifyContent: "flex-start",
                   alignItems: "center",
-                  display: "flex",
                   maxHeight: "30%",
                   minHeight: 100,
                 }}
@@ -689,7 +555,7 @@ export default function DailyLexseeYoutubePlayerScreen() {
               </ScrollView>
             </View>
 
-            <View className=" flex-1 w-full">
+            <View className="flex-1 w-full">
               {/* Search Words Section */}
               {searchList.length > 0 && (
                 <View
@@ -741,16 +607,20 @@ export default function DailyLexseeYoutubePlayerScreen() {
                               backgroundColor: isSearched
                                 ? "rgba(250, 84, 28, 0.12)"
                                 : darkTheme.background,
-                              width: "48%",
+                              width: isLandscape ? "48%" : "31.33%",
                               marginRight: "2%",
                               marginBottom: 8,
                             }}
-                            className="rounded-lg border px-2 py-2"
+                            className={
+                              isLandscape
+                                ? "rounded-lg border px-2 py-2"
+                                : "rounded-xl border px-3 py-2"
+                            }
                             activeOpacity={0.82}
                           >
                             <View className="flex-row items-center">
                               <Search
-                                size={12}
+                                size={isLandscape ? 12 : 14}
                                 color={
                                   isSearched
                                     ? darkTheme.primary
@@ -759,7 +629,11 @@ export default function DailyLexseeYoutubePlayerScreen() {
                               />
                               <Text
                                 style={{ color: darkTheme.text }}
-                                className="text-xs font-semibold ml-2 flex-1"
+                                className={
+                                  isLandscape
+                                    ? "text-xs font-semibold ml-2 flex-1"
+                                    : "text-sm font-semibold ml-2 flex-1"
+                                }
                                 numberOfLines={1}
                                 ellipsizeMode="tail"
                               >
@@ -773,11 +647,19 @@ export default function DailyLexseeYoutubePlayerScreen() {
                                   : darkTheme.accent,
                                 opacity: isSearched ? 1 : 0.72,
                               }}
-                              className="text-[10px] mt-1"
+                              className={
+                                isLandscape
+                                  ? "text-[10px] mt-1"
+                                  : "text-[11px] mt-1"
+                              }
                               numberOfLines={1}
                               ellipsizeMode="tail"
                             >
-                              {isSearched ? "Searched" : "Tap"}
+                              {isSearched
+                                ? "Searched"
+                                : isLandscape
+                                  ? "Tap"
+                                  : "Tap to search"}
                             </Text>
                           </TouchableOpacity>
                         );
