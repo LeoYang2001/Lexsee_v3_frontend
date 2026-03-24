@@ -15,7 +15,8 @@
       "bundleIdentifier": "com.leotab.lexsee",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSPhotoLibraryUsageDescription": "This app needs access to your photos so you can upload custom images for vocabulary words."
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photos so you can upload custom images for vocabulary words.",
+        "UIPasteboardUsageDescription": "The app accesses your clipboard to detect YouTube links you may want to add to your watch list."
       }
     },
     "web": {
