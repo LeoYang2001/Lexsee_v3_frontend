@@ -33,6 +33,8 @@ function AppContent() {
   const { appReady, targetRoute } = useLaunchSequence();
   const navigatedRef = useRef<string | null>(null);
 
+  // 2. Initialize the Share Intent hook
+
   useEffect(() => {
     const run = async () => {
       if (!appReady || !targetRoute) return;

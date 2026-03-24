@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Alert,
   FlatList,
   Linking,
   Text,
@@ -16,10 +17,15 @@ import {
   Search,
   SkipBack,
   SkipForward,
+  Trash2,
 } from "lucide-react-native";
 import Animated, { SlideInDown } from "react-native-reanimated";
 import * as ScreenOrientation from "expo-screen-orientation";
-import { fetchYouTubeTranscript } from "../../../../apis/fetchYoutubeVideo";
+import {
+  fetchYouTubeTranscript,
+  deleteYoutubeVideo,
+} from "../../../../apis/fetchYoutubeVideo";
+import { useAppSelector } from "../../../../store/hooks";
 
 type PlayerMode = "horizontal" | "vertical";
 
@@ -46,19 +52,28 @@ const BORDER_RADIUS = Math.min(width, height) * 0.06;
 
 export default function DailyLexseeYoutubePlayerScreen() {
   const router = useRouter();
-  const { videoId, title, transcript, transcriptFetchParam } =
-    useLocalSearchParams<{
-      videoId?: string;
-      title?: string;
-      transcript?: string;
-      transcriptFetchParam: string;
-    }>();
+  const profile = useAppSelector((state) => state.profile.data);
+  const {
+    videoId,
+    title,
+    transcript,
+    transcriptFetchParam,
+    mode: videoMode,
+  } = useLocalSearchParams<{
+    videoId?: string;
+    title?: string;
+    transcript?: string;
+    transcriptFetchParam: string;
+    mode?: string;
+    embedUrl?: string;
+  }>();
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
   const [mode] = useState<PlayerMode>("horizontal");
   const [playing, setPlaying] = useState(false);
   const [searchList, setSearchList] = useState<string[]>([]);
   const [searchedWords, setSearchedWords] = useState<string[]>([]);
+  const [isDeletingVideo, setIsDeletingVideo] = useState(false);
 
   // Allow screen rotation on mount, lock on unmount
   useFocusEffect(
@@ -92,9 +107,21 @@ export default function DailyLexseeYoutubePlayerScreen() {
       try {
         // Try to parse transcript if available
         if (transcript) {
-          console.log("passed transcript:", JSON.stringify(transcript));
           try {
-            const transcriptParsed = JSON.parse(transcript as string);
+            let transcriptParsed: any;
+
+            // Check if transcript is already parsed (object/array) or needs parsing (string)
+            if (typeof transcript === "string") {
+              console.log("Transcript is a string, parsing...");
+              transcriptParsed = JSON.parse(transcript);
+            } else if (Array.isArray(transcript)) {
+              console.log("Transcript is already an array");
+              transcriptParsed = transcript;
+            } else if (typeof transcript === "object") {
+              console.log("Transcript is already an object");
+              transcriptParsed = transcript;
+            }
+
             if (
               Array.isArray(transcriptParsed) &&
               transcriptParsed.length > 0
@@ -316,6 +343,49 @@ export default function DailyLexseeYoutubePlayerScreen() {
     router.push(`/(definition)?word=${encodeURIComponent(word)}`);
   };
 
+  const handleDeleteVideo = async () => {
+    const userId = profile?.userId;
+    if (!userId || !videoId) {
+      Alert.alert("Error", "User not authenticated");
+      return;
+    }
+
+    Alert.alert("Delete Video", `Are you sure you want to delete "${title}"?`, [
+      { text: "Cancel", onPress: () => {} },
+      {
+        text: "Delete",
+        onPress: async () => {
+          try {
+            setIsDeletingVideo(true);
+            const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+            console.log("[YouTube Delete] Deleting video:", title);
+
+            const result = await deleteYoutubeVideo(userId, youtubeUrl);
+
+            if (result.success) {
+              Alert.alert("Success", result.message);
+              router.back();
+            } else {
+              Alert.alert("Error", result.message);
+            }
+          } catch (error) {
+            console.error("[YouTube Delete] Error:", error);
+            Alert.alert(
+              "Error",
+              error instanceof Error
+                ? error.message
+                : "Failed to delete video.",
+            );
+          } finally {
+            setIsDeletingVideo(false);
+          }
+        },
+        style: "destructive",
+      },
+    ]);
+  };
+
   return (
     <View
       style={[{ backgroundColor: darkTheme.background }]}
@@ -334,6 +404,11 @@ export default function DailyLexseeYoutubePlayerScreen() {
           >
             {title || "Daily Lexsee"}
           </Text>
+          {videoMode === "user-uploaded" && (
+            <TouchableOpacity onPress={handleDeleteVideo} className="p-2">
+              <Trash2 size={20} color={darkTheme.text} opacity={0.7} />
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
@@ -344,23 +419,31 @@ export default function DailyLexseeYoutubePlayerScreen() {
           style={{
             flexDirection: isLandscape ? "row" : "column",
           }}
-          className="flex-1 gap-4 px-3 pb-4"
+          className="flex-1 gap-4 "
         >
           {/* Left/Top Panel - Player */}
           <View
-            style={{
-              width: isLandscape ? playerSize.width + 16 : "100%",
-            }}
-            className="flex flex-col justify-start"
+            style={[
+              {
+                width: isLandscape ? playerSize.width + 16 : "100%",
+              },
+              !isLandscape && { paddingHorizontal: 6 },
+            ]}
+            className="flex flex-col  justify-start "
           >
             <View
               style={[
                 isLandscape && {
                   borderColor: darkTheme.border,
                   backgroundColor: darkTheme.card,
+                  borderTopLeftRadius: BORDER_RADIUS * 2,
                 },
               ]}
-              className={isLandscape ? "rounded-[26px] border p-2" : ""}
+              className={
+                isLandscape
+                  ? "rounded-[26px] border p-2"
+                  : "  flex   justify-center items-center"
+              }
             >
               <View
                 className={
@@ -368,12 +451,15 @@ export default function DailyLexseeYoutubePlayerScreen() {
                     ? "overflow-hidden rounded-[22px] border"
                     : "overflow-hidden rounded-2xl border items-center"
                 }
-                style={{
-                  borderColor: darkTheme.border,
-                  backgroundColor: darkTheme.background,
-                  width: playerSize.width,
-                  height: playerSize.height,
-                }}
+                style={[
+                  {
+                    borderColor: darkTheme.border,
+                    backgroundColor: darkTheme.background,
+                    width: playerSize.width,
+                    height: playerSize.height,
+                  },
+                  isLandscape && { borderTopLeftRadius: BORDER_RADIUS * 2 },
+                ]}
               >
                 <YoutubePlayer
                   ref={playerRef}
@@ -396,6 +482,7 @@ export default function DailyLexseeYoutubePlayerScreen() {
                 style={{
                   borderColor: darkTheme.border,
                   backgroundColor: darkTheme.card,
+                  borderBottomLeftRadius: BORDER_RADIUS * 2,
                 }}
                 className="flex-row items-center rounded-[26px]  flex-1 justify-between px-3  mt-2"
               >
@@ -507,9 +594,21 @@ export default function DailyLexseeYoutubePlayerScreen() {
 
           {/* Right/Bottom Panel - Captions & Search */}
           <View
-            style={{
-              backgroundColor: darkTheme.card,
-            }}
+            style={[
+              {
+                backgroundColor: darkTheme.card,
+                margin: 6,
+              },
+              isLandscape
+                ? {
+                    borderTopRightRadius: BORDER_RADIUS * 2,
+                    borderBottomRightRadius: BORDER_RADIUS * 2,
+                  }
+                : {
+                    borderBottomLeftRadius: BORDER_RADIUS * 2,
+                    borderBottomRightRadius: BORDER_RADIUS * 2,
+                  },
+            ]}
             className={
               isLandscape
                 ? "flex-1 rounded-3xl overflow-hidden flex flex-col"
@@ -558,10 +657,7 @@ export default function DailyLexseeYoutubePlayerScreen() {
             <View className="flex-1 w-full">
               {/* Search Words Section */}
               {searchList.length > 0 && (
-                <View
-                  style={{ borderTopColor: darkTheme.border }}
-                  className="flex-1 border-t flex flex-col"
-                >
+                <View className="flex-1 border-t border-[#4a4a4a] flex flex-col">
                   <View className="px-4 pt-3 pb-2 flex-row items-center justify-between">
                     <Text
                       style={{ color: darkTheme.accent, opacity: 0.72 }}
@@ -669,6 +765,53 @@ export default function DailyLexseeYoutubePlayerScreen() {
                 </View>
               )}
             </View>
+          </View>
+        </View>
+      )}
+
+      {/* Delete Loading Overlay */}
+      {isDeletingVideo && (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 100,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: darkTheme.card,
+              borderRadius: 16,
+              padding: 24,
+              alignItems: "center",
+              borderColor: darkTheme.border,
+              borderWidth: 1,
+            }}
+          >
+            <View
+              style={{
+                width: 50,
+                height: 50,
+                borderRadius: 25,
+                borderWidth: 3,
+                borderColor: darkTheme.primary,
+                borderTopColor: "transparent",
+                borderRightColor: "transparent",
+              }}
+              className="animate-spin"
+            />
+            <Text
+              style={{ color: darkTheme.text }}
+              className="text-base font-semibold mt-4"
+            >
+              Deleting video...
+            </Text>
           </View>
         </View>
       )}

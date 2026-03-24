@@ -16,7 +16,6 @@ export const getLocalDate = (date: Date = new Date()): string => {
  * Transforms raw Amplify Word items into the clean Word type used by the UI.
  */
 export const cleanWords = (rawItems: any[]): Word[] => {
-  console.log("clean rawItems:", JSON.stringify(rawItems));
   return rawItems.map((item) => {
     // 1. Parse the stringified JSON payload
     let parsedData: any = {};
