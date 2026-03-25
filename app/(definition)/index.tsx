@@ -41,10 +41,7 @@ import { fetchAudioUrl } from "../../apis/fetchPhonetics";
 
 import { client } from "../client";
 import ConversationView from "../../components/definition/ConversationView";
-import {
-  handleScheduleNotification,
-  uncollectWord,
-} from "../../apis/setSchedule";
+import { uncollectWord } from "../../apis/setSchedule";
 import { getLocalDate } from "../../util/utli";
 import { useOnboarding } from "../../hooks/useOnboarding";
 import SaveOptionsModal from "../../components/definition/SaveOptionsModal";
@@ -153,18 +150,16 @@ export default function DefinitionPage() {
   };
 
   const handleSaveWord = async (wordInfo: Word, conversation?: any) => {
+    setSaveStatus("saving");
+
     // save/resave, we reset the schedule
     let wordInfoToSave = {
       ...wordInfo,
       phonetics: phonetics || undefined,
       translatedMeanings: translatedMeanings || undefined,
-      exampleSentences:
-        JSON.stringify(conversation) ||
-        JSON.stringify(conversationData) ||
-        null,
+      exampleSentences: conversation || conversationData || null,
     };
 
-    setSaveStatus("saving");
     try {
       //step1: check if the word exist
       const existingWord = words.find(
@@ -173,7 +168,29 @@ export default function DefinitionPage() {
       if (existingWord) {
         const updateData = {
           id: existingWord.id,
-          data: JSON.stringify(wordInfoToSave),
+          word: wordInfoToSave.word,
+          phoneticText: wordInfoToSave.phonetics?.text || "",
+          audioUrl: wordInfoToSave.phonetics?.audioUrl || "",
+          imgUrl: wordInfoToSave.imgUrl || "",
+
+          // AWSJSON fields: Pass as objects, NOT stringified
+          meanings: wordInfoToSave.meanings
+            ? JSON.stringify(wordInfoToSave.meanings)
+            : "[]",
+          exampleSentences:
+            JSON.stringify(wordInfoToSave.exampleSentences) || "{}",
+          translatedMeanings:
+            JSON.stringify(wordInfoToSave.translatedMeanings) || "[]",
+
+          reviewedTimeline: JSON.stringify([]),
+
+          // SRS Fields: Match camelCase in your JSON
+          reviewInterval: wordInfoToSave.review_interval || 1,
+          easeFactor: wordInfoToSave.ease_factor || 2.5,
+          nextReviewDate: getLocalDate(),
+
+          // Relationship
+          wordsListId: profile?.wordsListId,
         };
 
         // If exists, update it, use client function, do not directly update redux as its already listening the updates
@@ -182,19 +199,39 @@ export default function DefinitionPage() {
         wordInfoToSave.id = res.data.id;
       } else {
         // If not exists, create new word entry
+
         const createData = {
-          data: JSON.stringify({
-            ...wordInfoToSave,
-            timeStamp: getLocalDate(),
-          }),
-          wordsListId: profile?.wordsListId,
+          word: wordInfoToSave.word,
           status: "COLLECTED",
+          phoneticText: wordInfoToSave.phonetics?.text || "",
+          audioUrl: wordInfoToSave.phonetics?.audioUrl || "",
+          imgUrl: wordInfoToSave.imgUrl || "",
+
+          // AWSJSON fields: Pass as objects, NOT stringified
+          meanings: wordInfoToSave.meanings
+            ? JSON.stringify(wordInfoToSave.meanings)
+            : "[]",
+          exampleSentences:
+            JSON.stringify(wordInfoToSave.exampleSentences) || "{}",
+          translatedMeanings:
+            JSON.stringify(wordInfoToSave.translatedMeanings) || "[]",
+
+          reviewedTimeline: JSON.stringify([]),
+
+          // SRS Fields: Match camelCase in your JSON
+          reviewInterval: wordInfoToSave.review_interval || 1,
+          easeFactor: wordInfoToSave.ease_factor || 2.5,
+          nextReviewDate: getLocalDate(),
+
+          // Relationship
+          wordsListId: profile?.wordsListId,
         };
+
         const res = await (client.models as any).Word.create(createData);
         wordInfoToSave.id = res.data.id;
       }
     } catch (error) {
-      console.log(error);
+      console.error("error saving word:", error);
     }
     // initiate sheduling only when theres no shceduleWord that exists for this word and still has TO_REVIEW status
     const existingScheduleWord = reviewScheduleWords.find(
@@ -208,12 +245,12 @@ export default function DefinitionPage() {
       const newNextDue = new Date(currentLocalDate);
       newNextDue.setDate(newNextDue.getDate() + wordInfoToSave.review_interval);
       if (userProfile) {
-        const ifSuccess = await handleScheduleNotification(
-          userProfile,
-          wordInfoToSave.id,
-          newNextDue,
-        );
-        console.log("Handle schedule notification success:", ifSuccess);
+        // const ifSuccess = await handleScheduleNotification(
+        //   userProfile,
+        //   wordInfoToSave.id,
+        //   newNextDue,
+        // );
+        // console.log("Handle schedule notification success:", ifSuccess);
       }
     }
     // 4. Force refresh to get accurate state
@@ -229,7 +266,6 @@ export default function DefinitionPage() {
       partOfSpeech: meaning.partOfSpeech,
     }));
 
-    console.log("userprofile:", JSON.stringify(userProfile));
     setIfTranslating(true);
 
     try {
@@ -431,7 +467,11 @@ export default function DefinitionPage() {
 
             // If translation exist, set it
             if (translatedMeanings) {
-              setTranslatedMeanings(translatedMeanings);
+              const parsed =
+                typeof translatedMeanings === "string"
+                  ? JSON.parse(translatedMeanings)
+                  : translatedMeanings;
+              setTranslatedMeanings(parsed);
             } else {
               console.warn("⚠️ Invalid format in translatedMeanings");
             }
@@ -622,45 +662,17 @@ export default function DefinitionPage() {
 
   const handleUnsaveWord = async (wordInfo: Word) => {
     // - [ ] UNCOLLECT A WORD
-    // 1. Get the review entity to get the review schedule based on date
-    //     1. First,  get the id of entity based on word id
-    //     2. Second, get the entity id to get schedule id
-    // 2. If there’s only one entity
-    //     1. Cancel notification
-    //     2. Delete entity & schedule
-    // 3. If its not the only one
-    //     1. Delete entity
-    //     2. Update notification
-    // 4. Delete the word
-    //     1. Remove from wordlist
-    //     2. Delete the word
+    // 1. Check wordInfo has id
+    if (!wordInfo.id) {
+      alert("Cannot unsave a word that hasn't been saved yet.");
+      return;
+    }
+    // 2. Delete the word
 
     setSaveStatus("saving");
 
-    const unreviewScheduleWords = reviewScheduleWords.filter(
-      (rsw: any) => rsw.status === "TO_REVIEW",
-    );
-    const correspondingScheduleWord = unreviewScheduleWords.find(
-      (rsw: any) => rsw.wordId === wordInfo.id,
-    );
-    const correspondingSchedule = reviewSchedules.find(
-      (rs: any) => rs.id === correspondingScheduleWord?.reviewScheduleId,
-    );
-    if (
-      !wordInfo.id ||
-      !correspondingScheduleWord?.id ||
-      !correspondingSchedule?.id
-    ) {
-      console.error("❌ Missing required IDs for unsaving word");
-      setSaveStatus("unsaved");
-      return;
-    } else {
-      await uncollectWord(
-        wordInfo.id,
-        correspondingScheduleWord,
-        correspondingSchedule,
-      );
-    }
+    await uncollectWord(wordInfo.id);
+
     try {
       if (wordInfo.id) {
         const deleteData = {

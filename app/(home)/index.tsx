@@ -193,7 +193,6 @@ export default function HomeScreen() {
               showsVerticalScrollIndicator={false}
               onScroll={handleScroll}
             >
-            
               {collectedWords.slice(0, 10).map((word, idx) => (
                 <TouchableWithoutFeedback
                   onPress={() => {

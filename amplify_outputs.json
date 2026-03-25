@@ -1,9 +1,9 @@
 {
   "auth": {
-    "user_pool_id": "us-east-2_Rtu0Teyky",
+    "user_pool_id": "us-east-2_qylrsu8zS",
     "aws_region": "us-east-2",
-    "user_pool_client_id": "10c72qf98ed3ia747d6k4vcri3",
-    "identity_pool_id": "us-east-2:ff29b483-ef89-4e53-86b2-20d47cda72e2",
+    "user_pool_client_id": "5qqfa2bpk6rujnbs41oe2fk0pd",
+    "identity_pool_id": "us-east-2:695289ac-1118-41f1-8edd-0d95b90a06e3",
     "mfa_methods": [],
     "standard_required_attributes": [],
     "username_attributes": [
@@ -40,12 +40,12 @@
         "profile",
         "aws.cognito.signin.user.admin"
       ],
-      "domain": "2c95cc0093e69f5cbada.auth.us-east-2.amazoncognito.com"
+      "domain": "e7a11ae4a08f5c79b836.auth.us-east-2.amazoncognito.com"
     },
     "unauthenticated_identities_enabled": true
   },
   "data": {
-    "url": "https://su4pvvojkneoflfuk24rergf7i.appsync-api.us-east-2.amazonaws.com/graphql",
+    "url": "https://ujg4geb43fclpgukjc2kaltvq4.appsync-api.us-east-2.amazonaws.com/graphql",
     "aws_region": "us-east-2",
     "default_authorization_type": "AMAZON_COGNITO_USER_POOLS",
     "authorization_types": [
@@ -96,6 +96,20 @@
               "name": "growthStyle",
               "isArray": false,
               "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "expoPushToken": {
+              "name": "expoPushToken",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "preferredReminderHour": {
+              "name": "preferredReminderHour",
+              "isArray": false,
+              "type": "Int",
               "isRequired": false,
               "attributes": []
             },
@@ -373,10 +387,10 @@
               "isRequired": true,
               "attributes": []
             },
-            "data": {
-              "name": "data",
+            "word": {
+              "name": "word",
               "isArray": false,
-              "type": "AWSJSON",
+              "type": "String",
               "isRequired": true,
               "attributes": []
             },
@@ -386,6 +400,76 @@
               "type": {
                 "enum": "WordStatus"
               },
+              "isRequired": false,
+              "attributes": []
+            },
+            "phoneticText": {
+              "name": "phoneticText",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "audioUrl": {
+              "name": "audioUrl",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "imgUrl": {
+              "name": "imgUrl",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "meanings": {
+              "name": "meanings",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": false,
+              "attributes": []
+            },
+            "exampleSentences": {
+              "name": "exampleSentences",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": false,
+              "attributes": []
+            },
+            "translatedMeanings": {
+              "name": "translatedMeanings",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": false,
+              "attributes": []
+            },
+            "reviewInterval": {
+              "name": "reviewInterval",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "easeFactor": {
+              "name": "easeFactor",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "reviewedTimeline": {
+              "name": "reviewedTimeline",
+              "isArray": false,
+              "type": "AWSJSON",
+              "isRequired": false,
+              "attributes": []
+            },
+            "nextReviewDate": {
+              "name": "nextReviewDate",
+              "isArray": false,
+              "type": "String",
               "isRequired": false,
               "attributes": []
             },
@@ -450,6 +534,26 @@
             {
               "type": "model",
               "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "name": "wordsByStatus",
+                "queryField": "listByStatus",
+                "fields": [
+                  "status"
+                ]
+              }
+            },
+            {
+              "type": "key",
+              "properties": {
+                "name": "wordsByNextReviewDate",
+                "queryField": "listByReviewDate",
+                "fields": [
+                  "nextReviewDate"
+                ]
+              }
             },
             {
               "type": "auth",

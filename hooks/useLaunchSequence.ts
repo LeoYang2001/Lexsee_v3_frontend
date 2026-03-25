@@ -27,6 +27,7 @@ import Purchases from "react-native-purchases";
 import { setProStatus } from "../store/slices/subscriptionSlice";
 import { store } from "../store";
 import RevenueCatUI from "react-native-purchases-ui";
+import Constants from "expo-constants";
 
 type AuthMode = "unknown" | "authed" | "guest";
 const REVENUECAT_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY;
@@ -311,7 +312,6 @@ export function useLaunchSequence() {
       const profile = await fetchProfile(userId);
       console.log("profile fetched:", JSON.stringify(profile));
       let isNewUser = false; // Track if we are in provisioning mode
-      await requestNotificationPermissions();
 
       // Start the AI Probe (Silent / Non-blocking)
       checkAISettings();
@@ -339,6 +339,8 @@ export function useLaunchSequence() {
         );
         await loadProfileIntoRedux(profile);
       }
+
+      await requestNotificationPermissions(userId, profile.id);
 
       // 2. Subscriptions
       console.log("📡 [Sequence] Opening data streams (Subscriptions)...");
@@ -472,8 +474,10 @@ export function useLaunchSequence() {
       next: ({ items, isSynced }: any) => {
         // 1. Transform the raw items into our clean UI format
         // This uses the transformer we just built
-
-        const cleanedItems = cleanWords(items).sort((a, b) => {
+        const validItems = items.filter(
+          (item: any) => item !== null && item.word,
+        );
+        const cleanedItems = cleanWords(validItems).sort((a, b) => {
           // If updatedAt is undefined, we treat it as 0 (the beginning of time)
           const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
           const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
@@ -720,25 +724,60 @@ export function useLaunchSequence() {
     console.log("✅ [Cleanup] All subscriptions closed.");
   };
 
-  const requestNotificationPermissions = async () => {
-    // 1. Check current status
-    const { status: existingStatus } =
-      await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
+  const requestNotificationPermissions = async (
+    userId: string,
+    profileId: string,
+  ) => {
+    try {
+      // 1. Check if we are on a physical device (Push doesn't work on most simulators)
+      if (!Constants.isDevice) {
+        console.log("📱 [Push] Skipping: Not a physical device.");
+        return false;
+      }
 
-    // 2. Only ask if we don't have it yet
-    if (existingStatus !== "granted") {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
+      // 2. Handle Permissions
+      const { status: existingStatus } =
+        await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
 
-    if (finalStatus !== "granted") {
-      console.warn("Permission not granted for notifications!");
+      if (existingStatus !== "granted") {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus !== "granted") {
+        console.warn("⚠️ [Push] Permission not granted.");
+        return false;
+      }
+
+      // 3. Get the Token from Expo
+      // This requires the projectId from your app.json / eas.json
+      const projectId =
+        Constants.expoConfig?.extra?.eas?.projectId ??
+        Constants.easConfig?.projectId;
+
+      const tokenResponse = await Notifications.getExpoPushTokenAsync({
+        projectId,
+      });
+
+      const token = tokenResponse.data;
+      console.log("🎫 [Push] Current Token:", token);
+
+      // 4. Update the UserProfile in the Backend
+      // We do this every launch to ensure the token never goes stale
+      await (client.models as any).UserProfile.update({
+        id: profileId,
+        expoPushToken: token,
+      });
+
+      console.log("✅ [Push] Token synced to backend.");
+      return true;
+    } catch (error) {
+      console.error("❌ [Push] Failed to register token:", error);
       return false;
     }
-
-    return true;
   };
+
   return {
     authMode,
     targetRoute,

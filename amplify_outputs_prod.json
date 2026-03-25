@@ -1,9 +1,9 @@
 {
   "auth": {
-    "user_pool_id": "us-east-2_qylrsu8zS",
+    "user_pool_id": "us-east-2_Rtu0Teyky",
     "aws_region": "us-east-2",
-    "user_pool_client_id": "5qqfa2bpk6rujnbs41oe2fk0pd",
-    "identity_pool_id": "us-east-2:695289ac-1118-41f1-8edd-0d95b90a06e3",
+    "user_pool_client_id": "10c72qf98ed3ia747d6k4vcri3",
+    "identity_pool_id": "us-east-2:ff29b483-ef89-4e53-86b2-20d47cda72e2",
     "mfa_methods": [],
     "standard_required_attributes": [],
     "username_attributes": [
@@ -40,12 +40,12 @@
         "profile",
         "aws.cognito.signin.user.admin"
       ],
-      "domain": "e7a11ae4a08f5c79b836.auth.us-east-2.amazoncognito.com"
+      "domain": "2c95cc0093e69f5cbada.auth.us-east-2.amazoncognito.com"
     },
     "unauthenticated_identities_enabled": true
   },
   "data": {
-    "url": "https://ujg4geb43fclpgukjc2kaltvq4.appsync-api.us-east-2.amazonaws.com/graphql",
+    "url": "https://su4pvvojkneoflfuk24rergf7i.appsync-api.us-east-2.amazonaws.com/graphql",
     "aws_region": "us-east-2",
     "default_authorization_type": "AMAZON_COGNITO_USER_POOLS",
     "authorization_types": [
@@ -117,6 +117,20 @@
               "name": "newwordNotificationsEnabled",
               "isArray": false,
               "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "overallGoal": {
+              "name": "overallGoal",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "daysForGoal": {
+              "name": "daysForGoal",
+              "isArray": false,
+              "type": "Int",
               "isRequired": false,
               "attributes": []
             },

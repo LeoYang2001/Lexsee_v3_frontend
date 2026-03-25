@@ -17,40 +17,23 @@ export const getLocalDate = (date: Date = new Date()): string => {
  */
 export const cleanWords = (rawItems: any[]): Word[] => {
   return rawItems.map((item) => {
-    // 1. Parse the stringified JSON payload
-    let parsedData: any = {};
-    try {
-      parsedData =
-        typeof item.data === "string" ? JSON.parse(item.data) : item.data || {};
-    } catch (e) {
-      console.error(`Error parsing data for word ID: ${item.id}`, e);
-    }
-
     // 2. Build the object following your Word type exactly
     return {
       id: item.id,
-      word: item.word || parsedData.word || "",
-      imgUrl: parsedData.imgUrl || item.imgUrl,
-      status: (item.status || parsedData.status || "COLLECTED") as WordStatus,
+      word: item.word || "",
+      imgUrl: item.imgUrl,
+      status: item.status as WordStatus,
 
-      meanings: parsedData.meanings || item.meanings || [],
+      meanings: JSON.parse(item.meanings),
+      phonetics: {
+        text: item.phoneticText,
+        audioUrl: item.audioUrl,
+      },
+      exampleSentences: item.exampleSentences,
+      translatedMeanings: item.translatedMeanings,
 
-      phonetics:
-        parsedData.phonetics || item.phonetics
-          ? {
-              text: parsedData.phonetics?.text || item.phonetics?.text || "",
-              audioUrl:
-                parsedData.phonetics?.audioUrl || item.phonetics?.audioUrl,
-            }
-          : undefined,
-
-      exampleSentences: parsedData.exampleSentences || item.exampleSentences,
-      timeStamp: parsedData.timeStamp || item.timeStamp,
-      translatedMeanings:
-        parsedData.translatedMeanings || item.translatedMeanings,
-
-      review_interval: parsedData.review_interval ?? item.review_interval ?? 1,
-      ease_factor: parsedData.ease_factor ?? item.ease_factor ?? 2.5,
+      review_interval: item.review_interval ?? 1,
+      ease_factor: item.ease_factor ?? 2.5,
 
       // FIX: Strip the Amplify function.
       // We check if it's an actual array; if it's a function (lazy loader),

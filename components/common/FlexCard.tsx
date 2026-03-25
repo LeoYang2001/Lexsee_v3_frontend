@@ -51,9 +51,9 @@ const FlexCard = ({ word, ifDetail, ifGraphic, index }: FlexCardProps) => {
   if (ifGraphic) {
     return (
       <Animated.View
-        entering={FadeInRight.delay(300 + index*140)}
+        entering={FadeInRight.delay(300 + index * 140)}
         className="overflow-hidden  relative"
-        style={[style, animatedStyle, {alignSelf:'stretch', width: '100%'}]}
+        style={[style, animatedStyle, { alignSelf: "stretch", width: "100%" }]}
       >
         <Image
           source={{ uri: word.imgUrl }}
