@@ -35,6 +35,16 @@ const ReviewStatusDisplay = ({
 const ViewProgressView = () => {
   const streak = useStreak();
 
+  if (streak === -1) {
+    return (
+      <View className="flex-row items-baseline gap-x-1">
+        <Text style={{ fontSize: 12 }} className="text-white opacity-80">
+          No reviews completed yet
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View className="flex-row items-baseline gap-x-1">
       <Text style={{ fontSize: 24 }} className="text-white">

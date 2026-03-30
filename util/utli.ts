@@ -12,6 +12,11 @@ export const getLocalDate = (date: Date = new Date()): string => {
   return `${year}-${month}-${day}`;
 };
 
+export const getNextLocalDate = (date: Date = new Date()): string => {
+  const next = new Date(date);
+  next.setDate(next.getDate() + 1);
+  return getLocalDate(next);
+};
 /**
  * Transforms raw Amplify Word items into the clean Word type used by the UI.
  */

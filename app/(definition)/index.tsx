@@ -42,7 +42,7 @@ import { fetchAudioUrl } from "../../apis/fetchPhonetics";
 import { client } from "../client";
 import ConversationView from "../../components/definition/ConversationView";
 import { uncollectWord } from "../../apis/setSchedule";
-import { getLocalDate } from "../../util/utli";
+import { getNextLocalDate } from "../../util/utli";
 import { useOnboarding } from "../../hooks/useOnboarding";
 import SaveOptionsModal from "../../components/definition/SaveOptionsModal";
 
@@ -51,11 +51,6 @@ export default function DefinitionPage() {
   const params = useLocalSearchParams();
   const { words } = useAppSelector((state) => state.wordsList);
   const profile = useAppSelector((state) => state.profile.data);
-
-  const reviewScheduleWords = useAppSelector(
-    (state) => state.reviewScheduleWords.items,
-  );
-  const reviewSchedules = useAppSelector((state) => state.reviewSchedule.items);
 
   const [wordInfo, setWordInfo] = useState<Word | undefined>(undefined);
 
@@ -166,32 +161,52 @@ export default function DefinitionPage() {
         (word) => word.word === wordInfoToSave.word,
       );
       if (existingWord) {
-        const updateData = {
+        const updateData: any = {
           id: existingWord.id,
-          word: wordInfoToSave.word,
-          phoneticText: wordInfoToSave.phonetics?.text || "",
-          audioUrl: wordInfoToSave.phonetics?.audioUrl || "",
-          imgUrl: wordInfoToSave.imgUrl || "",
-
-          // AWSJSON fields: Pass as objects, NOT stringified
-          meanings: wordInfoToSave.meanings
-            ? JSON.stringify(wordInfoToSave.meanings)
-            : "[]",
-          exampleSentences:
-            JSON.stringify(wordInfoToSave.exampleSentences) || "{}",
-          translatedMeanings:
-            JSON.stringify(wordInfoToSave.translatedMeanings) || "[]",
-
-          reviewedTimeline: JSON.stringify([]),
-
-          // SRS Fields: Match camelCase in your JSON
-          reviewInterval: wordInfoToSave.review_interval || 1,
-          easeFactor: wordInfoToSave.ease_factor || 2.5,
-          nextReviewDate: getLocalDate(),
-
-          // Relationship
-          userProfileId: profile?.id,
         };
+
+        // always update word if you want
+        if (wordInfoToSave.word !== undefined) {
+          updateData.word = wordInfoToSave.word;
+        }
+
+        // phonetics
+        if (wordInfoToSave.phonetics?.text !== undefined) {
+          updateData.phoneticText = wordInfoToSave.phonetics.text;
+        }
+
+        if (wordInfoToSave.phonetics?.audioUrl !== undefined) {
+          updateData.audioUrl = wordInfoToSave.phonetics.audioUrl;
+        }
+
+        // image
+        if (wordInfoToSave.imgUrl !== undefined) {
+          updateData.imgUrl = wordInfoToSave.imgUrl;
+        }
+
+        // meanings
+        if (wordInfoToSave.meanings !== undefined) {
+          updateData.meanings = JSON.stringify(wordInfoToSave.meanings);
+        }
+
+        // example sentences
+        if (wordInfoToSave.exampleSentences !== undefined) {
+          updateData.exampleSentences = JSON.stringify(
+            wordInfoToSave.exampleSentences,
+          );
+        }
+
+        // translated meanings
+        if (wordInfoToSave.translatedMeanings !== undefined) {
+          updateData.translatedMeanings = JSON.stringify(
+            wordInfoToSave.translatedMeanings,
+          );
+        }
+
+        // relationship (only if exists)
+        if (profile?.id) {
+          updateData.userProfileId = profile.id;
+        }
 
         // If exists, update it, use client function, do not directly update redux as its already listening the updates
         // The generated client may have empty model typings in some environments; cast to any to avoid the TS error.
@@ -221,7 +236,7 @@ export default function DefinitionPage() {
           // SRS Fields: Match camelCase in your JSON
           reviewInterval: wordInfoToSave.review_interval || 1,
           easeFactor: wordInfoToSave.ease_factor || 2.5,
-          nextReviewDate: getLocalDate(),
+          nextReviewDate: getNextLocalDate(),
 
           // Relationship
           userProfileId: profile?.id,
@@ -233,26 +248,7 @@ export default function DefinitionPage() {
     } catch (error) {
       console.error("error saving word:", error);
     }
-    // initiate sheduling only when theres no shceduleWord that exists for this word and still has TO_REVIEW status
-    const existingScheduleWord = reviewScheduleWords.find(
-      (sw) => sw.wordId === wordInfoToSave.id && sw.status === "TO_REVIEW",
-    );
 
-    if (!existingScheduleWord) {
-      //initiate scheduling notification update
-      const currentLocalDate = getLocalDate();
-      // newNextDue should be the day after currentLocalDate
-      const newNextDue = new Date(currentLocalDate);
-      newNextDue.setDate(newNextDue.getDate() + wordInfoToSave.review_interval);
-      if (userProfile) {
-        // const ifSuccess = await handleScheduleNotification(
-        //   userProfile,
-        //   wordInfoToSave.id,
-        //   newNextDue,
-        // );
-        // console.log("Handle schedule notification success:", ifSuccess);
-      }
-    }
     // 4. Force refresh to get accurate state
     setSaveStatus("saved");
   };

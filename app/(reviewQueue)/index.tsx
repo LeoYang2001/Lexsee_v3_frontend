@@ -29,7 +29,6 @@ import { useDailyStats } from "../../hooks/useDailyStats";
 
 const { width, height } = Dimensions.get("window");
 const BORDER_RADIUS = Math.min(width, height) * 0.06;
-const reviewIntervalMax = 180;
 
 export default function ReviewQueueScreen() {
   // instead of fetching words directly,
