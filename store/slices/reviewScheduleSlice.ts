@@ -2,7 +2,6 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 export interface ReviewSchedule {
   id: string;
-  notificationId: string;
   owner: string;
   scheduleDate: string; // "2026-01-24"
   toBeReviewedCount: number;
@@ -48,5 +47,6 @@ const reviewSchedulesSlice = createSlice({
   },
 });
 
-export const { setReviewSchedules, setSchedulesSynced, clearSchedules } = reviewSchedulesSlice.actions;
+export const { setReviewSchedules, setSchedulesSynced, clearSchedules } =
+  reviewSchedulesSlice.actions;
 export default reviewSchedulesSlice.reducer;

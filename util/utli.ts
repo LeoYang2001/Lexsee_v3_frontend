@@ -34,6 +34,7 @@ export const cleanWords = (rawItems: any[]): Word[] => {
 
       review_interval: item.review_interval ?? 1,
       ease_factor: item.ease_factor ?? 2.5,
+      nextReviewDate: item.nextReviewDate,
 
       // FIX: Strip the Amplify function.
       // We check if it's an actual array; if it's a function (lazy loader),
@@ -53,7 +54,6 @@ export const cleanWords = (rawItems: any[]): Word[] => {
 export const cleanSchedules = (rawItems: any[]): ReviewSchedule[] => {
   return rawItems.map((item) => ({
     id: item.id,
-    notificationId: item.notificationId,
     owner: item.owner,
     scheduleDate: item.scheduleDate,
     toBeReviewedCount: item.toBeReviewedCount || 0,

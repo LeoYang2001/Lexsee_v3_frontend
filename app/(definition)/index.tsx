@@ -190,7 +190,7 @@ export default function DefinitionPage() {
           nextReviewDate: getLocalDate(),
 
           // Relationship
-          wordsListId: profile?.wordsListId,
+          userProfileId: profile?.id,
         };
 
         // If exists, update it, use client function, do not directly update redux as its already listening the updates
@@ -224,7 +224,7 @@ export default function DefinitionPage() {
           nextReviewDate: getLocalDate(),
 
           // Relationship
-          wordsListId: profile?.wordsListId,
+          userProfileId: profile?.id,
         };
 
         const res = await (client.models as any).Word.create(createData);

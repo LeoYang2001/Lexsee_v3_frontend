@@ -2,88 +2,121 @@ import { RecallAccuracy } from "../types/common/RecallAccuracy";
 import { getLocalDate } from "../util/utli";
 
 interface ReviewInput {
-  review_interval: number; // days
-  ease_factor: number; // starts around 2.5
+  review_interval: number;
+  ease_factor: number;
   recall_accuracy: RecallAccuracy;
+  scheduledReviewDate: string;
 }
 
 interface ReviewOutput {
-  next_due: Date;
+  next_due: string;
   review_interval: number;
   ease_factor: number;
 }
 
+function toLocalDateOnly(date: Date | string): Date {
+  const d = typeof date === "string" ? new Date(date) : new Date(date);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function getDayDifference(current: Date, scheduled: Date): number {
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const utcCurrent = Date.UTC(
+    current.getFullYear(),
+    current.getMonth(),
+    current.getDate(),
+  );
+  const utcScheduled = Date.UTC(
+    scheduled.getFullYear(),
+    scheduled.getMonth(),
+    scheduled.getDate(),
+  );
+
+  return Math.round((utcCurrent - utcScheduled) / msPerDay);
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
 export function getNextReview(input: ReviewInput): ReviewOutput {
-  const { review_interval, ease_factor, recall_accuracy } = input;
+  const { review_interval, ease_factor, recall_accuracy, scheduledReviewDate } =
+    input;
 
   let newEase = ease_factor;
   let newInterval = review_interval;
 
+  // -----------------------------
+  // 1. Base review logic
+  // -----------------------------
   switch (recall_accuracy) {
     case "poor":
-      // Forgot → reset interval, decrease ease
       newInterval = 1;
       newEase = Math.max(1.3, newEase - 0.2);
       break;
 
     case "fair":
-      // Hard recall → same, ease down
-      console.log("  ├─ 😐 FAIR recall - keeping interval, decreasing ease");
       newInterval = review_interval;
       newEase = Math.max(1.3, newEase - 0.15);
-      console.log(
-        `  ├─ newInterval: ${newInterval}, newEase: ${newEase.toFixed(2)}`,
-      );
       break;
 
-    case "good":
-      // Normal recall → use ease factor as multiplier
-      console.log("  ├─ 🙂 GOOD recall - multiplying interval by ease factor");
+    case "good": {
       const calculatedInterval = review_interval * newEase;
       newInterval = Math.max(1, Math.round(calculatedInterval));
-      console.log(
-        `  ├─ ${review_interval} × ${newEase.toFixed(2)} = ${calculatedInterval.toFixed(2)} → ${newInterval} days`,
-      );
-      // no change to ease
       break;
+    }
 
-    case "excellent":
-      // Very easy → boost interval and ease
-      console.log("  ├─ 😄 EXCELLENT recall - boosting interval and ease");
+    case "excellent": {
       const boostedInterval = review_interval * newEase * 1.3;
       newInterval = Math.max(1, Math.round(boostedInterval));
       newEase = newEase + 0.15;
-      console.log(
-        `  ├─ ${review_interval} × ${ease_factor.toFixed(2)} × 1.3 = ${boostedInterval.toFixed(2)} → ${newInterval} days`,
-      );
-      console.log(
-        `  ├─ newEase: ${ease_factor.toFixed(2)} + 0.15 = ${newEase.toFixed(2)}`,
-      );
       break;
+    }
   }
 
-  // Calculate next review date
-  const currentDate = getLocalDate();
+  // -----------------------------
+  // 2. Late review adjustment
+  // -----------------------------
+  const currentDate = toLocalDateOnly(getLocalDate());
+  const scheduledDate = toLocalDateOnly(scheduledReviewDate);
+
+  const overdueDays = getDayDifference(currentDate, scheduledDate);
+
+  if (overdueDays > 0) {
+    console.log("late review occurs, discount reward");
+    // How overdue relative to expected interval
+    const overdueRatio = overdueDays / Math.max(1, review_interval);
+
+    // Cap the penalty so it doesn't become absurd
+    // Example:
+    // 10% overdue => small penalty
+    // 100% overdue => bigger penalty
+    // capped at 35%
+    const intervalPenalty = clamp(overdueRatio * 0.25, 0, 0.35);
+
+    newInterval = Math.max(1, Math.round(newInterval * (1 - intervalPenalty)));
+
+    // Optional: only slightly penalize ease if very overdue
+    if (
+      overdueRatio >= 0.5 &&
+      (recall_accuracy === "good" || recall_accuracy === "excellent")
+    ) {
+      const easePenalty = clamp(overdueRatio * 0.05, 0, 0.15);
+      newEase = Math.max(1.3, newEase - easePenalty);
+    }
+  }
+
+  // -----------------------------
+  // 3. Next due date
+  // -----------------------------
   const newNextDue = new Date(currentDate);
   newNextDue.setDate(newNextDue.getDate() + newInterval);
 
-  console.log(`  ├─ 📅 Current date: ${currentDate}`);
-  console.log(`  ├─ ➕ Adding ${newInterval} days`);
-  console.log(`  └─ 📌 Next due: ${newNextDue.toISOString().split("T")[0]}`);
-
-  const output = {
-    next_due: newNextDue,
+  return {
+    next_due: newNextDue.toISOString().split("T")[0],
     review_interval: newInterval,
-    ease_factor: newEase,
+    ease_factor: Number(newEase.toFixed(2)),
   };
-
-  console.log("✅ getNextReview - Output:", {
-    next_due: output.next_due.toISOString().split("T")[0],
-    review_interval: output.review_interval,
-    ease_factor: output.ease_factor.toFixed(2),
-  });
-
-  return output;
 }
 
 interface SimulationResult {

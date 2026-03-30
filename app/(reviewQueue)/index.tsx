@@ -24,6 +24,7 @@ import {
 import { handleScheduleNotification } from "../../apis/setSchedule";
 import { getLocalDate } from "../../util/utli";
 import { getReviewWordsForToday } from "../../store/selectors/todayReviewSelectors";
+import { selectDailyQueue } from "../../store/slices/wordsListSlice";
 
 const { width, height } = Dimensions.get("window");
 const BORDER_RADIUS = Math.min(width, height) * 0.06;
@@ -32,11 +33,6 @@ const reviewIntervalMax = 180;
 export default function ReviewQueueScreen() {
   // instead of fetching words directly,
   //  we fetch the review entities first and fork a list
-  //  so that we can update locally to optimize performance
-  const schedules = useAppSelector((state) => state.reviewSchedule.items);
-  const completedReviewSchedules = useAppSelector(
-    (state) => state.completedReviewSchedules.items,
-  );
 
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
 
@@ -47,9 +43,10 @@ export default function ReviewQueueScreen() {
 
   const userProfile = useAppSelector((state) => state.profile.data);
 
-  const todayAndPastDueWords = useAppSelector(getReviewWordsForToday);
+  // const todayAndPastDueWords = useAppSelector(getReviewWordsForToday);
+  const todayAndPastDueWords = useAppSelector(selectDailyQueue);
 
-  const [reviewQueue, setReviewQueue] = useState(todayAndPastDueWords.words);
+  const [reviewQueue, setReviewQueue] = useState(todayAndPastDueWords);
   const [currentWord, setCurrentWord] = useState(reviewQueue[currentWordIndex]);
 
   const [ifShowConfirmPage, setIfShowConfirmPage] = useState(false);
@@ -120,18 +117,32 @@ export default function ReviewQueueScreen() {
           "❌ Missing review interval or ease factor for the current word",
         );
 
+      if (!currentWord.nextReviewDate) {
+        return console.log("❌ Missing next review date for the current word");
+      }
       const { next_due, review_interval, ease_factor } = getNextReview({
         review_interval: currentWord.review_interval,
         ease_factor: currentWord.ease_factor,
         recall_accuracy: familiarityLevel,
+        scheduledReviewDate: currentWord.nextReviewDate,
       });
+
+      console.log(
+        `✅ Calculated next review data: nextReviewDate=${next_due}, review_interval=${review_interval}, ease_factor=${ease_factor}`,
+      );
 
       const isLast = currentWordIndex === reviewQueue.length - 1;
 
       //Step 2: asyncly (do not wait unless its the last word) update the backend with the new review data
-      // 2.1 find the reviewWord entity corresponding to the current word and call the backend updater
-      // Fire-and-forget backend update so UI stays snappy
-      updateReviewBackend(currentWord, next_due, review_interval, ease_factor);
+
+      // updateReviewBackend(currentWord, next_due, review_interval, ease_factor);
+      updateWordMeta(
+        currentWord,
+        next_due,
+        review_interval,
+        ease_factor,
+        familiarityLevel,
+      );
 
       // Step 3: If this was the last word, navigate back; otherwise advance index
       if (isLast) {
@@ -148,169 +159,100 @@ export default function ReviewQueueScreen() {
     }
   };
 
-  // Helper: performs all backend updates for a reviewed word
-  const updateReviewBackend = async (
+  const updateWordMeta = async (
     currentWord: any,
-    next_due: any,
-    review_interval: any,
-    ease_factor: any,
+    nextReviewDate: string,
+    reviewInterval: number,
+    easeFactor: number,
+    familiarityLevel: RecallAccuracy,
   ) => {
-    if (!userProfile || !userProfile.id) {
-      return false;
+    try {
+      console.log(
+        `📡 Updating Word: ${currentWord.word} (ID: ${currentWord.id})`,
+      );
+
+      // 1. Prepare the timeline entry (the "biography" of this word)
+      const currentTimeline = JSON.parse(currentWord.reviewedTimeline || "[]");
+      const newEntry = {
+        date: getLocalDate(),
+        interval: reviewInterval,
+        ease: easeFactor,
+        familiarityLevel,
+      };
+
+      // 2. Perform the mutation
+      const { errors } = await (client as any).models.Word.update({
+        id: currentWord.id,
+        nextReviewDate,
+        reviewInterval,
+        easeFactor,
+        reviewedTimeline: JSON.stringify([...currentTimeline, newEntry]),
+      });
+
+      if (errors) {
+        console.error("❌ AppSync Update Errors:", errors);
+        return;
+      }
+
+      console.log(`✅ Backend Update Success for ${currentWord.word}`);
+
+      // 3. Optional: Trigger the Daily Journal update here
+      await syncToDailyJournal(currentWord, reviewQueue.length);
+      // await incrementDailyReviewCount();
+    } catch (error) {
+      console.error("❌ Critical failure in updateWordMeta:", error);
+    }
+  };
+
+  const syncToDailyJournal = async (currentWord: any, queueLength: number) => {
+    if (!userProfile?.id) {
+      console.error("❌ Missing profile data");
+      return;
     }
 
     try {
-      // Step 1: Validate environment & dependencies
-      if (!userProfile || !userProfile.id) {
-        return false;
-      }
-      if (!client) {
-        return false;
-      }
-      const Models = (client as any).models;
-      if (!Models) {
-        return false;
-      }
+      const todayStr = new Date().toISOString().split("T")[0];
+      const score = getScoreByHint(hintCount);
 
-      // Step 2: Verify schedule-word model exists and defer update until we have the completed schedule
-      if (
-        !Models.ReviewScheduleWord ||
-        typeof Models.ReviewScheduleWord.update !== "function"
-      ) {
-        return false;
-      }
-
-      // Step 3: Locate today's schedule (we should check as it could be from a previous day) and update its counts
-      // instead of finding todays schedule, we should find the schedule corresponding to the reviewWordEntity
-      const schedule = schedules.find(
-        (s: any) => s.id === currentWord.reviewScheduleId,
-      );
-
-      if (!schedule)
-        return console.log("❌ Missing schedule for the current word");
-
-      // decrement toBeReviewedCount and increment reviewedCount
-      const newToBe = Math.max(0, schedule.toBeReviewedCount - 1);
-      const newReviewed = (schedule.reviewedCount || 0) + 1;
-
-      if (newToBe === 0) {
-        // If no remaining words to review, prefer to delete the schedule to keep data clean
-        if (typeof Models.ReviewSchedule.delete === "function") {
-          await Models.ReviewSchedule.delete({
-            id: currentWord.reviewScheduleId,
-          });
-        } else {
-          // Fallback: update to zeros if delete isn't supported
-          await Models.ReviewSchedule.update({
-            id: currentWord.reviewScheduleId,
-            toBeReviewedCount: 0,
-            reviewedCount: newReviewed,
-          });
-        }
-      } else {
-        await Models.ReviewSchedule.update({
-          id: currentWord.reviewScheduleId,
-          toBeReviewedCount: newToBe,
-          reviewedCount: newReviewed,
-        });
-      }
-
-      // instead of getting currentDate, get the date corresponding to the schedule
-      const currentDate = schedule.scheduleDate || getLocalDate();
-
-      // Step 4: Create or update a CompletedReviewSchedule for today's completed reviews
-      if (
-        !Models.CompletedReviewSchedule ||
-        typeof Models.CompletedReviewSchedule.list !== "function"
-      ) {
-        return false;
-      }
-      // get it from redux completedReviewSchedules
-      const existing = completedReviewSchedules.find(
-        (s: any) => s.scheduleDate === currentDate,
-      );
-
-      let completedSchedule;
-      if (existing) {
-        // exist
-        completedSchedule = existing;
-        // Ensure update method exists on the returned object
-        if (typeof Models.CompletedReviewSchedule.update === "function") {
-          // overdue word should not increment the reviewedCount
-          if (!currentWord.ifPastDue) {
-            await Models.CompletedReviewSchedule.update({
-              id: completedSchedule.id,
-              totalWords: (completedSchedule.totalWords || 0) + 1,
-              reviewedCount: (completedSchedule.reviewedCount || 0) + 1,
-              successRate:
-                (completedSchedule.successRate || 0) +
-                getScoreByHint(hintCount),
-            });
-          } else {
-            console.log(
-              `❌ Current word is past due, not incrementing reviewedCount for CompletedReviewSchedule`,
-            );
-            await Models.CompletedReviewSchedule.update({
-              id: completedSchedule.id,
-              totalWords: (completedSchedule.totalWords || 0) + 1,
-              reviewedCount: completedSchedule.reviewedCount || 0,
-              successRate:
-                (completedSchedule.successRate || 0) +
-                getScoreByHint(hintCount),
-            });
-          }
-        }
-      } else {
-        completedSchedule = await Models.CompletedReviewSchedule.create({
-          userProfileId: userProfile.id,
-          scheduleDate: currentDate,
-          totalWords: 1,
-          reviewedCount: 1,
-          successRate: getScoreByHint(hintCount),
-        });
-      }
-
-      // Step 5: Link the review schedule-word to the completed schedule
-      await Models.ReviewScheduleWord.update({
-        id: currentWord.scheduleWordId,
-        completedReviewScheduleId: completedSchedule.id,
-        status: "REVIEWED",
-        score: getScoreByHint(hintCount),
-      });
-
-      // Step 6: check review_interval
-      const { id, status, ifPastDue, ...wordData } = currentWord;
-      const updatedWordData = {
-        ...wordData,
-        next_due,
-        review_interval,
-        ease_factor,
+      // 1. Prepare the log entry for this specific interaction
+      const newLogEntry = {
+        wordId: currentWord.id,
+        word: currentWord.word,
+        score: score,
       };
 
-      //6.1  if its larger than 180 days, mark the word as mastered long-term
-      // Update the word data with new review properties (exclude id as it's not part of data)
+      // 2. Check for existing daily record
+      const { data: schedules } = await (
+        client as any
+      ).models.CompletedReviewSchedule.list({
+        filter: {
+          scheduleDate: { eq: todayStr },
+          userProfileId: { eq: userProfile.id },
+        },
+      });
 
-      if (review_interval > reviewIntervalMax) {
-        await Models.Word.update({
-          id: currentWord.id,
-          status: "LEARNED",
-          data: JSON.stringify(updatedWordData),
-        });
-        console.log(`MASTERED CURRENT WORD :${JSON.stringify(currentWord)}`);
-      }
-      //6.2  if it's not larger than 180 days, schedule a notification for the next review
-      else {
-        await handleScheduleNotification(userProfile, currentWord.id, next_due);
-        // Update the word data with new review properties (exclude id as it's not part of data)
-        await Models.Word.update({
-          id: currentWord.id,
-          data: JSON.stringify(updatedWordData),
-        });
-      }
+      if (schedules.length > 0) {
+        const record = schedules[0];
+        const currentLogs = JSON.parse(record.reviewLogs || "[]");
 
-      return true;
-    } catch (error) {
-      return false;
+        // Update existing record
+        await (client as any).models.CompletedReviewSchedule.update({
+          id: record.id,
+          reviewLogs: JSON.stringify([...currentLogs, newLogEntry]),
+        });
+      } else {
+        // 3. FIRST REVIEW OF THE DAY
+        // This is the only time we set 'totalWords' to create the snapshot
+        await (client as any).models.CompletedReviewSchedule.create({
+          userProfileId: userProfile.id,
+          scheduleDate: todayStr,
+          totalWords: queueLength,
+          reviewLogs: JSON.stringify([newLogEntry]),
+        });
+      }
+      console.log("📊 Daily Journal Updated with Review Log");
+    } catch (err) {
+      console.error("⚠️ Failed to sync daily journal:", err);
     }
   };
 
@@ -341,8 +283,6 @@ export default function ReviewQueueScreen() {
       `💡 Hint pressed! Count: ${hintCount + 1}, familiarLevl: ${getFamiliarityLevel(hintCount + 1)}`,
     );
   };
-
-  const dispatch = useDispatch<any>();
 
   // Animated value for progress bar
   const progressWidth = useSharedValue(0);

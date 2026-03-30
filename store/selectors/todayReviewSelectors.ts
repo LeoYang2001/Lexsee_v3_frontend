@@ -109,7 +109,7 @@ export const getReviewWordsForToday = createSelector(
       "viewProgress";
 
     if (totalCount === 0) {
-      finalStatus = "viewProgress";
+      finalStatus = "review_begin";
     } else {
       if (completedCount === 0) {
         finalStatus = "review_begin";

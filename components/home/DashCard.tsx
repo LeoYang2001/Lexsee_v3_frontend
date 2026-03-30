@@ -14,6 +14,7 @@ import ReviewStatusDisplay from "./ReviewStatusDisplay";
 import ReviewActionButton from "./ReviewActionButton";
 import { getReviewWordsForToday } from "../../store/selectors/todayReviewSelectors";
 import { wordsListSelector } from "../../store/selectors/wordsListSelector";
+import { selectDailyQueue } from "../../store/slices/wordsListSlice";
 const duration = 200;
 
 const DashCard = () => {
@@ -22,6 +23,9 @@ const DashCard = () => {
   const [ifReviewCard, setIfReviewCard] = useState(true);
 
   const { stats, status } = useAppSelector(getReviewWordsForToday);
+
+  const dueWords = useAppSelector(selectDailyQueue);
+  // For demo purposes, we can hardcode the status. In a real app, this would come from your review logic.
 
   const height = useSharedValue(104);
   const reviewOpacity = useSharedValue(0);

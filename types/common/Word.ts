@@ -24,6 +24,7 @@ export type Word = {
     definition: string;
     partOfSpeech: string;
   }[];
+  nextReviewDate?: string;
   owner?: string;
 };
 

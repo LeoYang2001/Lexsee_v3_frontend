@@ -4,7 +4,6 @@ import { ArrowRight, ChevronRight } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { ReviewStatus } from "../../store/selectors/todayReviewSelectors";
 
-
 interface ReviewActionButtonProps {
   reviewStatus: ReviewStatus;
   statusColor: string;
@@ -20,9 +19,11 @@ const ReviewActionButton: React.FC<ReviewActionButtonProps> = ({
   const handlePress = () => {
     if (reviewStatus === "viewProgress") {
       // Slide right animation
-      router.push({
-        pathname: "/(progress)",
-      });
+      // router.push({
+      //   pathname: "/(progress)",
+      // });
+      // For testing purposes, we'll just navigate to the review queue for now
+      router.push("/(reviewQueue)");
     } else {
       router.push("/(reviewQueue)");
     }
