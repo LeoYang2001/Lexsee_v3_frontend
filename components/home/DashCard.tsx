@@ -12,9 +12,9 @@ import { useRouter } from "expo-router";
 import { useAppSelector } from "../../store/hooks";
 import ReviewStatusDisplay from "./ReviewStatusDisplay";
 import ReviewActionButton from "./ReviewActionButton";
-import { getReviewWordsForToday } from "../../store/selectors/todayReviewSelectors";
 import { wordsListSelector } from "../../store/selectors/wordsListSelector";
 import { selectDailyQueue } from "../../store/slices/wordsListSlice";
+import { useDailyStats } from "../../hooks/useDailyStats";
 const duration = 200;
 
 const DashCard = () => {
@@ -22,10 +22,7 @@ const DashCard = () => {
 
   const [ifReviewCard, setIfReviewCard] = useState(true);
 
-  const { stats, status } = useAppSelector(getReviewWordsForToday);
-
-  const dueWords = useAppSelector(selectDailyQueue);
-  // For demo purposes, we can hardcode the status. In a real app, this would come from your review logic.
+  const { completed, total, progress, status } = useDailyStats();
 
   const height = useSharedValue(104);
   const reviewOpacity = useSharedValue(0);
@@ -94,7 +91,10 @@ const DashCard = () => {
           <View className="w-full h-full flex flex-row justify-between items-center">
             <View className=" flex-1">
               {/* Review Status Display */}
-              <ReviewStatusDisplay reviewStatus={status} stats={stats} />
+              <ReviewStatusDisplay
+                reviewStatus={status}
+                stats={{ completed, total, progress }}
+              />
             </View>
 
             <View

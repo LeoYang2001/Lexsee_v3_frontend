@@ -1,21 +1,8 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-
-export interface ReviewSchedule {
-  id: string;
-  owner: string;
-  scheduleDate: string; // "2026-01-24"
-  toBeReviewedCount: number;
-  totalWords: number;
-  reviewedCount: number;
-  successRate: number | null;
-  userProfileId: string;
-  createdAt: string;
-  updatedAt: string;
-  // Note: We exclude the [Function anonymous] fields here
-}
+import { CompletedReviewSchedule } from "./completedReviewScheduleSlice";
 
 interface ReviewSchedulesState {
-  items: ReviewSchedule[];
+  items: CompletedReviewSchedule[];
   isSynced: boolean;
   isLoading: boolean;
   error: string | null;
@@ -33,7 +20,10 @@ const reviewSchedulesSlice = createSlice({
   initialState,
   reducers: {
     // Main dispatcher for the subscription
-    setReviewSchedules: (state, action: PayloadAction<ReviewSchedule[]>) => {
+    setReviewSchedules: (
+      state,
+      action: PayloadAction<CompletedReviewSchedule[]>,
+    ) => {
       state.items = action.payload;
       state.isLoading = false;
       state.error = null;

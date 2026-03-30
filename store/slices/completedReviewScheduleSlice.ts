@@ -3,12 +3,10 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 export interface CompletedReviewSchedule {
   id: string;
   owner: string;
-  scheduleDate: string; // "2026-01-24"
-  toBeReviewedCount: number;
+  scheduleDate: string;
   totalWords: number;
-  reviewedCount: number;
-  successRate: number | null;
-  userProfileId: string;
+  userProfileId?: string;
+  reviewLogs: string;
   createdAt: string;
   updatedAt: string;
   // Note: We exclude the [Function anonymous] fields here

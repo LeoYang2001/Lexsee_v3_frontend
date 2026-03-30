@@ -25,6 +25,7 @@ import { handleScheduleNotification } from "../../apis/setSchedule";
 import { getLocalDate } from "../../util/utli";
 import { getReviewWordsForToday } from "../../store/selectors/todayReviewSelectors";
 import { selectDailyQueue } from "../../store/slices/wordsListSlice";
+import { useDailyStats } from "../../hooks/useDailyStats";
 
 const { width, height } = Dimensions.get("window");
 const BORDER_RADIUS = Math.min(width, height) * 0.06;
@@ -50,6 +51,8 @@ export default function ReviewQueueScreen() {
   const [currentWord, setCurrentWord] = useState(reviewQueue[currentWordIndex]);
 
   const [ifShowConfirmPage, setIfShowConfirmPage] = useState(false);
+
+  const { completed, total, progress, status } = useDailyStats();
 
   const [conversationData, setConversationData] =
     useState<ConversationResponse | null>(null);
@@ -363,7 +366,7 @@ export default function ReviewQueueScreen() {
                   color: "white",
                 }}
               >
-                {currentWordIndex + 1}
+                {completed + 1}
               </Text>
               <Text
                 style={{
@@ -373,7 +376,7 @@ export default function ReviewQueueScreen() {
                   opacity: 0.6,
                 }}
               >
-                /{reviewQueue.length}
+                /{total}
               </Text>
             </View>
             <View className="flex flex-col justify-start">

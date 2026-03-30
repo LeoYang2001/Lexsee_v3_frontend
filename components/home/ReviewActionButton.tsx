@@ -19,11 +19,9 @@ const ReviewActionButton: React.FC<ReviewActionButtonProps> = ({
   const handlePress = () => {
     if (reviewStatus === "viewProgress") {
       // Slide right animation
-      // router.push({
-      //   pathname: "/(progress)",
-      // });
-      // For testing purposes, we'll just navigate to the review queue for now
-      router.push("/(reviewQueue)");
+      router.push({
+        pathname: "/(progress)",
+      });
     } else {
       router.push("/(reviewQueue)");
     }

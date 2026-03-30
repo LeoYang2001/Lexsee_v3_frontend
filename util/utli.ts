@@ -1,4 +1,4 @@
-import { ReviewSchedule } from "../store/slices/reviewScheduleSlice";
+import { CompletedReviewSchedule } from "../store/slices/completedReviewScheduleSlice";
 import { ScheduleWord } from "../store/slices/reviewScheduleWordsSlice";
 import { Word, WordStatus } from "../types/common/Word";
 
@@ -51,20 +51,16 @@ export const cleanWords = (rawItems: any[]): Word[] => {
   });
 };
 
-export const cleanSchedules = (rawItems: any[]): ReviewSchedule[] => {
+export const cleanSchedules = (rawItems: any[]): CompletedReviewSchedule[] => {
   return rawItems.map((item) => ({
     id: item.id,
     owner: item.owner,
     scheduleDate: item.scheduleDate,
-    toBeReviewedCount: item.toBeReviewedCount || 0,
     totalWords: item.totalWords || 0,
-    reviewedCount: item.reviewedCount || 0,
-    successRate: item.successRate,
     userProfileId: item.userProfileId,
+    reviewLogs: item.reviewLogs || "",
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
-    // We explicitly DO NOT include scheduleWords or userProfile
-    // to avoid non-serializable function errors.
   }));
 };
 
