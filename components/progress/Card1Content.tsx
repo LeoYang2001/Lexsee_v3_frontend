@@ -1,37 +1,45 @@
-import { View, Text, ScrollView } from "react-native";
-import React, { useEffect, useMemo, useState } from "react";
-import { Calendar, TrendingDown, TrendingUp } from "lucide-react-native";
-import { calculateStreak } from "../../lib/reviewAlgorithm";
+import {
+  View,
+  Text,
+  ScrollView,
+  Dimensions,
+  LayoutChangeEvent,
+} from "react-native";
+import React, { useState } from "react";
+import {
+  ArrowDownFromLine,
+  ArrowUpFromLine,
+  Calendar,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react-native";
 import ProgressCalendar from "./ProgressCalendar";
-import ProgressReview from "./ProgressReview";
-import { getLocalDate } from "../../util/utli";
 import useStreak from "../../hooks/useStreak";
 import { useAppSelector } from "../../store/hooks";
+import { selectUnifiedCalendarData } from "../../store/selectors/calendarSelectors";
 
 interface Card1ContentProps {
   viewMode: "default" | "card1Expanded" | "card2Expanded";
- 
+  selectedIso?: string | null;
+  setSelectedIso?: (iso: string | null) => void;
+  onHeightCalculated?: (
+    collapsedHeight: number,
+    expandedHeight: number,
+  ) => void;
 }
 
 const Card1Content: React.FC<Card1ContentProps> = ({
   viewMode,
+  selectedIso,
+  setSelectedIso,
 }) => {
   // selected date lifted here
   // default selected date to today (YYYY-MM-DD)
-  const [selectedIso, setSelectedIso] = useState<string | null>(
-    getLocalDate()
-  );
-
-  const incomingSchedules = useAppSelector(state => state.reviewSchedule.items)
-  const pastSchedules = useAppSelector(state => state.completedReviewSchedules.items)
-    
-  // Combine incoming and past schedules and sort them by scheduleDate from latest to earliest
-  const allSchedules = [...incomingSchedules, ...pastSchedules].sort((a, b) => new Date(b.scheduleDate).getTime() - new Date(a.scheduleDate).getTime())
 
   // guard schedules to avoid undefined being passed into calculateStreak
-  const streak =useStreak();
+  const streak = useStreak();
 
-
+  const calendarData = useAppSelector(selectUnifiedCalendarData);
 
   // Only render content when card1 is expanded (or compact row for card2Expanded)
   if (viewMode === "card2Expanded") {
@@ -49,42 +57,32 @@ const Card1Content: React.FC<Card1ContentProps> = ({
           Calendar
         </Text>
 
-        {streak > 0 ? (
-          <View className=" ml-auto flex flex-row items-center gap-2">
+        <View className="ml-auto flex  flex-row items-center gap-2">
+          {/* Handle -1 (First time), 0 (Reset), or >0 (Active) */}
+          {streak > 0 ? (
             <TrendingUp color={"#CF4A1E"} />
-            <Text
-              style={{
-                color: "#fff",
-                fontSize: 16,
-              }}
-            >
-              {streak}-Day Streak
-            </Text>
-          </View>
-        ) : (
-          <View className=" ml-auto flex flex-row items-center gap-2">
+          ) : (
             <TrendingDown color={"#0c8ce9"} />
-            <Text
-              style={{
-                color: "#fff",
-                fontSize: 16,
-              }}
-            >
-              No Streak Yet
-            </Text>
-          </View>
-        )}
+          )}
+          <Text style={{ color: "#fff", fontSize: 16 }}>
+            {streak === -1
+              ? "New Learner"
+              : streak === 0
+                ? "No Streak"
+                : `${streak}-Day Streak`}
+          </Text>
+        </View>
       </View>
     );
   }
 
   return (
-    <View className=" flex-1 flex flex-col justify-start ">
+    <View className=" flex-1  flex flex-col justify-start ">
       <View
         style={{
           height: 48,
         }}
-        className=" w-full   px-3 flex flex-row  justify-start gap-2 items-center"
+        className=" w-full  px-3 flex flex-row  justify-start gap-2 items-center"
       >
         <Calendar color="#fff" opacity={0.6} size={16} />
         <Text
@@ -98,46 +96,39 @@ const Card1Content: React.FC<Card1ContentProps> = ({
           Calendar
         </Text>
 
-        {streak > 0 ? (
-          <View className=" ml-auto flex flex-row items-center gap-2">
+        <View className="ml-auto flex flex-row items-center gap-2">
+          {/* Handle -1 (First time), 0 (Reset), or >0 (Active) */}
+          {streak > 0 ? (
             <TrendingUp color={"#CF4A1E"} />
-            <Text
-              style={{
-                color: "#fff",
-                fontSize: 16,
-              }}
-            >
-              {streak}-Day Streak
-            </Text>
-          </View>
-        ) : (
-          <View className=" ml-auto flex flex-row items-center gap-2">
+          ) : (
             <TrendingDown color={"#0c8ce9"} />
-            <Text
-              style={{
-                color: "#fff",
-                fontSize: 16,
-              }}
-            >
-              No Streak Yet
-            </Text>
-          </View>
-        )}
+          )}
+          <Text style={{ color: "#fff", fontSize: 16 }}>
+            {streak === -1
+              ? "New Learner"
+              : streak === 0
+                ? "No Streak"
+                : `${streak}-Day Streak`}
+          </Text>
+        </View>
       </View>
 
-      <View className="  flex-1  relative  flex flex-col w-full ">
-        <ProgressCalendar
-          viewMode={viewMode}
-          selectedIso={selectedIso}
-          onSelectDate={setSelectedIso}
-          allSchedules={allSchedules}
-        />
-        <View className=" flex-1 mt-3 w-full p-3">
-          <ProgressReview
-            allSchedules={allSchedules}
+      <View className="   flex-1  relative  flex flex-col w-full ">
+        <View className="  ">
+          <ProgressCalendar
+            viewMode={viewMode}
             selectedIso={selectedIso}
+            onSelectDate={setSelectedIso}
+            markedDates={calendarData}
           />
         </View>
+      </View>
+      <View className=" flex justify-center items-center">
+        {viewMode === "default" ? (
+          <ArrowDownFromLine color="#fff" opacity={0.7} size={20} />
+        ) : (
+          <ArrowUpFromLine color="#fff" opacity={0.7} size={20} />
+        )}
       </View>
     </View>
   );

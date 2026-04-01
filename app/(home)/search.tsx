@@ -189,8 +189,6 @@ export default function SearchPage() {
         </View>
         <View className=" w-full mt-3">
           <Animated.View
-            sharedTransitionTag="searchBar" // Identical tag
-            sharedTransitionStyle={snappyTransition}
             style={{
               height: 49,
               backgroundColor: "#2b2c2d",

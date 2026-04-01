@@ -3,7 +3,6 @@ import { View, Text, TouchableOpacity, Dimensions, Alert } from "react-native";
 import { router } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useDispatch } from "react-redux";
 // Add Reanimated imports
 import Animated, {
   useSharedValue,
@@ -122,16 +121,13 @@ export default function ReviewQueueScreen() {
       if (!currentWord.nextReviewDate) {
         return console.log("❌ Missing next review date for the current word");
       }
+
       const { next_due, review_interval, ease_factor } = getNextReview({
         review_interval: currentWord.review_interval,
         ease_factor: currentWord.ease_factor,
         recall_accuracy: familiarityLevel,
         scheduledReviewDate: currentWord.nextReviewDate,
       });
-
-      console.log(
-        `✅ Calculated next review data: nextReviewDate=${next_due}, review_interval=${review_interval}, ease_factor=${ease_factor}`,
-      );
 
       const isLast = currentWordIndex === reviewQueue.length - 1;
 
@@ -189,6 +185,7 @@ export default function ReviewQueueScreen() {
         reviewInterval,
         easeFactor,
         reviewedTimeline: JSON.stringify([...currentTimeline, newEntry]),
+        exampleSentences: JSON.stringify(currentWord.exampleSentences) || "{}", // Ensure example sentences are not lost
       });
 
       if (errors) {
@@ -416,12 +413,6 @@ export default function ReviewQueueScreen() {
       >
         {reviewQueue.length > 0 && currentWord ? (
           <View className="flex-1 ">
-            {/* If past due badge  */}
-            {currentWord.ifPastDue && (
-              <View className="absolute top-4 bg-red-500 right-6 z-30 px-1 py-1 rounded">
-                <Text className="text-white text-xs">overdue</Text>
-              </View>
-            )}
             {/* Word Display */}
             <View className="flex-1 justify-start items-center">
               <ReviewFlexCard

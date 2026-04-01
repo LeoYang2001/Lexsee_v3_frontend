@@ -23,6 +23,9 @@ export const getNextLocalDate = (date: Date = new Date()): string => {
 export const cleanWords = (rawItems: any[]): Word[] => {
   return rawItems.map((item) => {
     // 2. Build the object following your Word type exactly
+
+    console.log("Raw items:", JSON.stringify(rawItems));
+
     return {
       id: item.id,
       word: item.word || "",
@@ -37,9 +40,10 @@ export const cleanWords = (rawItems: any[]): Word[] => {
       exampleSentences: item.exampleSentences,
       translatedMeanings: item.translatedMeanings,
 
-      review_interval: item.review_interval ?? 1,
-      ease_factor: item.ease_factor ?? 2.5,
+      review_interval: item.reviewInterval ?? 1,
+      ease_factor: item.easeFactor ?? 2.5,
       nextReviewDate: item.nextReviewDate,
+      reviewedTimeline: item.reviewedTimeline,
 
       // FIX: Strip the Amplify function.
       // We check if it's an actual array; if it's a function (lazy loader),
@@ -49,7 +53,6 @@ export const cleanWords = (rawItems: any[]): Word[] => {
         : [],
 
       // Default as requested
-      ifPastDue: false,
       createdAt: item.createdAt,
       updatedAt: item.updatedAt,
     };

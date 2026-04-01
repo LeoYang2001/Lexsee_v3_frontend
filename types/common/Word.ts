@@ -17,9 +17,9 @@ export type Word = {
   review_interval: number;
   ease_factor: number;
   scheduleWords?: string[];
-  ifPastDue?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  reviewedTimeline?: string; // a JSON string from the DB
   translatedMeanings?: {
     definition: string;
     partOfSpeech: string;

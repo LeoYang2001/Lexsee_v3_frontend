@@ -38,11 +38,11 @@ const wordsListSlice = createSlice({
 const selectAllWords = (state: RootState) => state.wordsList.words;
 
 export const selectDailyQueue = createSelector([selectAllWords], (words) => {
-  const today = new Date().toISOString().split("T")[0];
+  // Use en-CA locale to get YYYY-MM-DD format based on local time
+  const localToday = new Date().toLocaleDateString("en-CA");
+
   return words.filter((word) => {
-    const isDue = word.nextReviewDate && word.nextReviewDate <= today;
-    // We check for both statuses to ensure we don't miss words
-    // the user has already started learning.
+    const isDue = word.nextReviewDate && word.nextReviewDate <= localToday;
     const isActive = word.status === "COLLECTED" || word.status === "LEARNED";
     return isDue && isActive;
   });
