@@ -3,77 +3,94 @@ import { addDays, format, parseISO, differenceInDays } from "date-fns";
 
 export const useWordProjection = (wordData: any, masteryInterval = 180) => {
   return useMemo(() => {
+    if (!wordData || !wordData.createdAt) {
+      return { timeline: [], daysToMastery: null, estimatedMasteryDate: null };
+    }
+
     const today = new Date();
+    const creationDateStr = wordData.createdAt.split("T")[0];
 
-    if (!wordData || !wordData.timeline || !Array.isArray(wordData.timeline)) {
-      return { timeline: [], daysToMastery: null, estimatedMasteryDate: null };
-    }
+    // Treat DB entries without a type as actual reviews
+    const rawHistory = wordData.timeline
+      ? [...wordData.timeline].filter(
+          (entry: any) => !entry.type || entry.type === "actual",
+        )
+      : [];
 
-    // 1. Process Actual History with Delta Calculation
-    const history = [...wordData.timeline]
-      .sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime())
-      .map((entry: any, index: number, array: any[]) => {
-        const current = parseISO(entry.date);
-        let delta = 0;
+    const sortedHistory = rawHistory.sort(
+      (a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime(),
+    );
 
-        if (index > 0) {
-          const prev = parseISO(array[index - 1].date);
-          delta = differenceInDays(current, prev);
-        }
+    const history: any[] = [];
 
-        return {
-          date: entry.date,
-          interval: parseFloat(entry.interval) || 0,
-          ease: parseFloat(entry.ease) || 2.5,
-          type: "actual" as const,
-          retention: 1.0,
-          reviewDelta: delta, // Difference between this review and the last
-        };
+    // Initial collected state if missing
+    if (
+      sortedHistory.length === 0 ||
+      sortedHistory[0].date !== creationDateStr
+    ) {
+      history.push({
+        date: creationDateStr,
+        interval: 1,
+        ease: 2.5,
+        type: "actual",
+        retention: 1.0,
+        reviewDelta: 0,
       });
-
-    if (history.length === 0) {
-      return { timeline: [], daysToMastery: null, estimatedMasteryDate: null };
     }
+
+    // Actual review history
+    sortedHistory.forEach((entry: any, index: number) => {
+      const current = parseISO(entry.date);
+      const prevDate =
+        index === 0
+          ? parseISO(creationDateStr)
+          : parseISO(sortedHistory[index - 1].date);
+
+      history.push({
+        date: entry.date,
+        interval: Number(entry.interval),
+        ease: Number(entry.ease),
+        type: "actual",
+        retention: entry.retention ?? 1.0,
+        reviewDelta: differenceInDays(current, prevDate),
+        familiarityLevel: entry.familiarityLevel ?? null,
+      });
+    });
 
     const projectedTimeline = [];
-    let lastEntry = history[history.length - 1];
+    const lastActual = history[history.length - 1];
 
-    let currentInterval = lastEntry.interval;
-    let currentEase = lastEntry.ease;
-    let currentDate = parseISO(lastEntry.date);
+    let currentInterval = Number(lastActual.interval);
+    let currentEase = Number(lastActual.ease);
+    let currentDate = parseISO(lastActual.date);
     let masteryDate: Date | null = null;
 
-    // 2. Full Simulation Loop
-    // Simulates until nextInterval hits mastery threshold (cap at 50 to be safe)
     for (let i = 0; i < 50; i++) {
-      // Calculate next step using 'Excellent' logic
-      const boostedInterval = currentInterval * currentEase * 1.3;
-      const nextInterval = Math.max(1, Math.round(boostedInterval));
-      const nextEase = currentEase + 0.15;
-      const nextDate = addDays(currentDate, nextInterval);
+      const nextReviewDate = addDays(currentDate, currentInterval);
 
-      const node = {
-        date: format(nextDate, "yyyy-MM-dd"),
+      const nextInterval = Math.max(
+        1,
+        Math.round(currentInterval * currentEase * 1.3),
+      );
+      const nextEase = Number((currentEase + 0.15).toFixed(2));
+
+      projectedTimeline.push({
+        date: format(nextReviewDate, "yyyy-MM-dd"),
         interval: nextInterval,
-        ease: Number(nextEase.toFixed(2)),
-        type: "estimated" as const,
+        ease: nextEase,
+        type: "estimated",
         retention: 1.0,
-        reviewDelta: nextInterval, // For projections, delta is the interval
-      };
+        reviewDelta: currentInterval,
+      });
 
-      projectedTimeline.push(node);
-
-      // Check if this review pushes the word into Mastery
       if (!masteryDate && nextInterval >= masteryInterval) {
-        masteryDate = currentDate;
+        masteryDate = nextReviewDate;
       }
 
-      // Update pointers
+      currentDate = nextReviewDate;
       currentInterval = nextInterval;
       currentEase = nextEase;
-      currentDate = nextDate;
 
-      // Stop once we've reached mastery
       if (currentInterval >= masteryInterval) break;
     }
 

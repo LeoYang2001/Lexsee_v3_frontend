@@ -17,14 +17,13 @@ import {
 } from "../../hooks/useCompletedInsights";
 import { CompletedReviewSchedule } from "../../store/slices/completedReviewScheduleSlice";
 import WordBarChart from "./WordBarChart";
-import { useWordProjection } from "../../hooks/useWordProjection";
-import SpacedRepetitionChart from "./SpacedRepetitionChart";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, { FadeIn } from "react-native-reanimated";
 import SingleWordProgressBar from "./SingleWordProgressBar";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
 import { UserProfile } from "../../store/slices/profileSlice";
+import WordDetailBottomSheet from "../common/WordDetailBottomSheet";
 
 interface CompletedInsightsProps {
   selectedIso: string | null;
@@ -43,6 +42,7 @@ const CompletedInsights: React.FC<CompletedInsightsProps> = ({
 }) => {
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedWord, setSelectedWord] = useState<any | null>(null);
+  const [showBottomSheet, setShowBottomSheet] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   const profile = useSelector((state: RootState) => state.profile.data);
@@ -55,13 +55,6 @@ const CompletedInsights: React.FC<CompletedInsightsProps> = ({
   }, [schedules, selectedIso]);
 
   const reviewedWordsData = useReviewedWords(targetRecord);
-
-  // Set default selected word to first word in timeline
-  useEffect(() => {
-    if (reviewedWordsData && reviewedWordsData.length > 0 && !selectedWord) {
-      setSelectedWord(reviewedWordsData[0]);
-    }
-  }, [reviewedWordsData, selectedWord]);
 
   // Snap back to first page when viewMode changes from default
   useEffect(() => {
@@ -80,12 +73,7 @@ const CompletedInsights: React.FC<CompletedInsightsProps> = ({
   const handleSelectWord = (wordId: string, index: number) => {
     if (reviewedWordsData && reviewedWordsData[index]) {
       setSelectedWord(reviewedWordsData[index]);
-      // Snap to page 3
-      scrollViewRef.current?.scrollTo({
-        x: PAGE_WIDTH * 2,
-        animated: true,
-      });
-      setCurrentPage(2);
+      setShowBottomSheet(true);
     }
   };
 
@@ -99,11 +87,6 @@ const CompletedInsights: React.FC<CompletedInsightsProps> = ({
       id: 1,
       title: "Accuracy",
       subtitle: "Performance metrics",
-    },
-    {
-      id: 2,
-      title: "Trends",
-      subtitle: "Learning patterns",
     },
   ];
 
@@ -133,12 +116,6 @@ const CompletedInsights: React.FC<CompletedInsightsProps> = ({
           profile={profile}
           onSelectWord={handleSelectWord}
         />
-        <DataSciencePage3
-          selectedWord={selectedWord}
-          targetRecord={targetRecord}
-          currentPage={currentPage}
-          profile={profile}
-        />
       </ScrollView>
 
       {/* Pagination Dots */}
@@ -161,6 +138,13 @@ const CompletedInsights: React.FC<CompletedInsightsProps> = ({
           })}
         </View>
       )}
+
+      {/* Bottom Sheet for Word Details */}
+      <WordDetailBottomSheet
+        isVisible={showBottomSheet}
+        selectedWord={selectedWord}
+        onClose={() => setShowBottomSheet(false)}
+      />
     </View>
   );
 };
@@ -306,164 +290,6 @@ const DataSciencePage2 = ({
           )}
         </View>
       </View>
-    </View>
-  );
-};
-
-const DataSciencePage3 = ({
-  selectedWord,
-  currentPage,
-  targetRecord,
-  profile,
-}: {
-  selectedWord?: any | null;
-  currentPage: number;
-  targetRecord?: CompletedReviewSchedule | null;
-  profile?: UserProfile | null;
-}) => {
-  const [chartDimensions, setChartDimensions] = useState({
-    width: 0,
-    height: 0,
-  });
-
-  if (!targetRecord) {
-    return (
-      <View
-        style={{ width: PAGE_WIDTH }}
-        className="justify-center items-center relative px-3 "
-      >
-        <Text className="text-gray-500">No data available for this date.</Text>
-      </View>
-    );
-  }
-
-  const reviewedWordsData = useReviewedWords(targetRecord);
-  const targetReviewedWord = reviewedWordsData.find(
-    (w) => w.id === selectedWord?.id,
-  );
-
-  const {
-    timeline: projectedTimeline,
-    estimatedMasteryDate,
-    daysToMastery,
-  } = useWordProjection(targetReviewedWord);
-
-  const handleChartLayout = (event: any) => {
-    const { width, height } = event.nativeEvent.layout;
-    setChartDimensions({ width, height });
-  };
-
-  if (!selectedWord) {
-    return (
-      <View style={{ width: PAGE_WIDTH }} className="  relative  px-3  ">
-        <View className=" w-full h-full px-4  py-4 justify-center flex flex-col items-start bg-[#202123] rounded-2xl">
-          <Text className="text-gray-400">Select a word to view details</Text>
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <View style={{ width: PAGE_WIDTH }} className="  relative  px-3  ">
-      <GestureHandlerRootView>
-        <View className=" w-full h-full px-4  py-4 justify-between flex flex-col items-start bg-[#202123] rounded-2xl">
-          {/* Header Section */}
-          <View className="w-full">
-            {/* Word and Mastery Days */}
-            <View className="flex-row items-end justify-between mb-6">
-              <View className="flex-1">
-                <Text
-                  style={{
-                    color: "#fff",
-                    fontSize: 32,
-                    fontWeight: "bold",
-                  }}
-                  numberOfLines={2}
-                >
-                  {selectedWord.content}
-                </Text>
-              </View>
-              <View className="items-end ml-4">
-                <Text
-                  style={{
-                    color: "#9CA3AF",
-                    fontSize: 12,
-                    fontWeight: "600",
-                  }}
-                >
-                  Estimated
-                </Text>
-                <View className="flex-row items-baseline gap-1">
-                  <Text
-                    style={{
-                      color: "#34D399",
-                      fontSize: 24,
-                      fontWeight: "bold",
-                    }}
-                  >
-                    {daysToMastery}
-                  </Text>
-                  <Text
-                    style={{
-                      color: "#9CA3AF",
-                      fontSize: 12,
-                    }}
-                  >
-                    days
-                  </Text>
-                </View>
-                {estimatedMasteryDate && (
-                  <View>
-                    <Text
-                      className=" font-semibold"
-                      style={{
-                        color: "#9CA3AF",
-                        fontSize: 10,
-                        opacity: 0.7,
-                      }}
-                    >
-                      {new Date(estimatedMasteryDate).toLocaleDateString()}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </View>
-
-            {/* Progress being made to the date */}
-            {estimatedMasteryDate && currentPage === 2 && (
-              <View className="px-3 py-2 bg-[#1a1a1c] rounded-lg mb-6">
-                <SingleWordProgressBar
-                  wordData={targetReviewedWord}
-                  maxInterval={profile?.masteryIntervalDays || 180}
-                />
-              </View>
-            )}
-          </View>
-
-          {/* Timeline Chart Section */}
-          {selectedWord.timeline &&
-            selectedWord.timeline.length > 0 &&
-            currentPage === 2 && (
-              <Animated.View
-                entering={FadeIn}
-                className="w-full flex-1 justify-end"
-              >
-                <View className="bg-[#1a1a1c] rounded-2xl h-full p-3">
-                  <View
-                    onLayout={handleChartLayout}
-                    className="  w-full h-full"
-                  >
-                    <SpacedRepetitionChart
-                      data={projectedTimeline}
-                      width={chartDimensions.width}
-                      height={chartDimensions.height}
-                    />
-                  </View>
-                </View>
-              </Animated.View>
-            )}
-        </View>
-      </GestureHandlerRootView>
     </View>
   );
 };

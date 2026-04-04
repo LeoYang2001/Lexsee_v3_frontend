@@ -24,8 +24,6 @@ export const cleanWords = (rawItems: any[]): Word[] => {
   return rawItems.map((item) => {
     // 2. Build the object following your Word type exactly
 
-    console.log("Raw items:", JSON.stringify(rawItems));
-
     return {
       id: item.id,
       word: item.word || "",

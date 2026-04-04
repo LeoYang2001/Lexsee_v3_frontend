@@ -78,7 +78,6 @@ export const useReviewedWords = (
   targetRecord: CompletedReviewSchedule | undefined,
 ): any[] => {
   const { words: allWords } = useAppSelector((state) => state.wordsList);
-
   const profile = useSelector((state: RootState) => state.profile.data);
 
   const masteryIntervalDays = profile?.masteryIntervalDays || 180;
@@ -135,7 +134,8 @@ export const useReviewedWords = (
           id: log.wordId,
           content: log.word || fullWord?.word || "Unknown",
           timeline: sortedHistoricalTimeline,
-          masteryPercentage: masteryPercentage, // Now based on masteryIntervalDays-day goal
+          masteryPercentage: masteryPercentage,
+          createdAt: fullWord?.createdAt || null,
         };
       });
     } catch (error) {
