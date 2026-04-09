@@ -136,6 +136,13 @@
               "isRequired": false,
               "attributes": []
             },
+            "currentStreak": {
+              "name": "currentStreak",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
             "words": {
               "name": "words",
               "isArray": true,

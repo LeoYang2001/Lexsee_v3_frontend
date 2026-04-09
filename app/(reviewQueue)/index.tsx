@@ -15,14 +15,13 @@ import ReviewFlexCard from "../../components/reviewQueue/ReviewFlexCard";
 import { RecallAccuracy } from "../../types/common/RecallAccuracy";
 import { getNextReview } from "../../lib/reviewAlgorithm";
 import { client } from "../client";
-import { useAppSelector } from "../../store/hooks";
+import { useAppSelector, useAppDispatch } from "../../store/hooks";
+import { setProfile } from "../../store/slices/profileSlice";
 import {
   ConversationResponse,
   fetchQuickConversation,
 } from "../../apis/AIFeatures";
-import { handleScheduleNotification } from "../../apis/setSchedule";
 import { getLocalDate } from "../../util/utli";
-import { getReviewWordsForToday } from "../../store/selectors/todayReviewSelectors";
 import { selectDailyQueue } from "../../store/slices/wordsListSlice";
 import { useDailyStats } from "../../hooks/useDailyStats";
 
@@ -41,16 +40,18 @@ export default function ReviewQueueScreen() {
   const activeModel = aiSettings.activeModel;
 
   const userProfile = useAppSelector((state) => state.profile.data);
+  const dispatch = useAppDispatch();
 
   // const todayAndPastDueWords = useAppSelector(getReviewWordsForToday);
-  const todayAndPastDueWords = useAppSelector(selectDailyQueue);
+  const { allDueWords: todayAndPastDueWords } =
+    useAppSelector(selectDailyQueue);
 
   const [reviewQueue, setReviewQueue] = useState(todayAndPastDueWords);
   const [currentWord, setCurrentWord] = useState(reviewQueue[currentWordIndex]);
 
   const [ifShowConfirmPage, setIfShowConfirmPage] = useState(false);
 
-  const { completed, total, progress, status } = useDailyStats();
+  const { completed, total } = useDailyStats();
 
   const [conversationData, setConversationData] =
     useState<ConversationResponse | null>(null);
@@ -144,6 +145,32 @@ export default function ReviewQueueScreen() {
 
       // Step 3: If this was the last word, navigate back; otherwise advance index
       if (isLast) {
+        // increment streak if all words are completed
+        if (userProfile && userProfile.id) {
+          try {
+            const newStreak = (userProfile.currentStreak || 0) + 1;
+
+            // 1. Update backend and wait for completion
+            await (client as any).models.UserProfile.update({
+              id: userProfile.id,
+              currentStreak: newStreak,
+            });
+
+            console.log("🔥 Streak updated in backend!");
+
+            // 2. Update Redux immediately so UI reflects the change
+            dispatch(
+              setProfile({
+                ...userProfile,
+                currentStreak: newStreak,
+              }),
+            );
+
+            console.log("🔥 Streak incremented to", newStreak);
+          } catch (err) {
+            console.error("⚠️ Failed to update streak:", err);
+          }
+        }
         router.back();
       } else {
         //   // Advance index

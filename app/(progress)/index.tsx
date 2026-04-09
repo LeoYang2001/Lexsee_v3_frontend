@@ -1,11 +1,4 @@
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Pressable,
-  Dimensions,
-  ScrollView,
-} from "react-native";
+import { View, Text, TouchableOpacity, Dimensions } from "react-native";
 import React, { useEffect, useState } from "react";
 import { router } from "expo-router";
 import { ChevronLeft, EllipsisVertical } from "lucide-react-native";
@@ -20,6 +13,7 @@ import { useAppSelector } from "../../store/hooks";
 import { wordsListSelector } from "../../store/selectors/wordsListSelector";
 import ProgressReview from "../../components/progress/ProgressReview";
 import { getLocalDate } from "../../util/utli";
+import LearningPulse from "../../components/progress/LearningPulse";
 type ViewMode = "default" | "card1Expanded" | "card2Expanded";
 
 // Constants
@@ -41,12 +35,6 @@ const ProgressPage = () => {
   // Animated values for card heights
   const card1Height = useSharedValue(0);
   const card2Height = useSharedValue(0);
-
-  // Animated values for border radii (separate top / bottom)
-  const card1TopRadius = useSharedValue(EXPANDED_BORDER_RADIUS);
-  const card1BottomRadius = useSharedValue(EXPANDED_BORDER_RADIUS);
-  const card2TopRadius = useSharedValue(EXPANDED_BORDER_RADIUS);
-  const card2BottomRadius = useSharedValue(EXPANDED_BORDER_RADIUS);
 
   // Calculate collapsed card height as percentage
   const collapsedCardHeightPercentage =
@@ -118,98 +106,13 @@ const ProgressPage = () => {
       </View>
 
       {/* Progress Overview */}
-      <View className="flex w-full p-3 mt-6 flex-col justify-center">
-        <View className="flex-row justify-around items-center mb-6">
-          <View className="flex flex-col items-center gap-2">
-            <Text
-              style={{
-                fontSize: 32,
-                fontWeight: "400",
-                color: "#FFFFFF",
-              }}
-            >
-              {masteredList.length}
-            </Text>
-            <View className="flex flex-row items-center justify-center gap-1">
-              <Text
-                style={{
-                  fontSize: 12,
-                  opacity: 0.7,
-                  color: "#FFFFFF",
-                }}
-              >
-                Mastered
-              </Text>
-              <View
-                style={{
-                  height: 8,
-                  width: 8,
-                  borderRadius: 2,
-                  backgroundColor: "#fff",
-                  opacity: 0.7,
-                }}
-              />
-            </View>
-          </View>
-          <View
-            style={{
-              height: 12,
-              width: 1,
-              backgroundColor: "#FFFFFF",
-              opacity: 0.2,
-            }}
-          />
-          <View className="flex flex-col items-center gap-2">
-            <Text
-              style={{
-                fontSize: 32,
-                fontWeight: "400",
-                color: "#FFFFFF",
-              }}
-            >
-              {collectedList.length}
-            </Text>
-            <View className="flex flex-row items-center justify-center gap-1">
-              <Text
-                style={{
-                  fontSize: 12,
-                  opacity: 0.7,
-                  color: "#FFFFFF",
-                }}
-              >
-                Collected
-              </Text>
-              <View
-                style={{
-                  height: 8,
-                  width: 8,
-                  borderRadius: 2,
-                  backgroundColor: "#424345",
-                  opacity: 0.7,
-                }}
-              />
-            </View>
-          </View>
-        </View>
-
-        {/* ProgressBar with animation */}
-        <ProgressBar
-          solidProgress={
-            masteredList.length / (masteredList.length + collectedList.length)
-          }
-          dashedProgress={
-            collectedList.length / (masteredList.length + collectedList.length)
-          }
-          height={11}
-          solidColor="#c4c4c5"
-          dashedColor="#424345"
-          duration={2500}
-        />
+      <View className="flex w-full   px-6  mt-2 flex-col justify-center h-[15%]">
+        <LearningPulse />
       </View>
 
       {/* Main Content - Expandable Cards Container */}
       <View
-        className="mt-10  "
+        className="mt-4  "
         style={{
           flex: 1,
           width: "100%",

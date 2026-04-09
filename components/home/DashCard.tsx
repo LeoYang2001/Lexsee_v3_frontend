@@ -1,5 +1,11 @@
-import { View, Text, TouchableOpacity, Pressable } from "react-native";
-import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Pressable,
+  AppState,
+} from "react-native";
+import React, { useEffect, useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   useSharedValue,
@@ -9,12 +15,13 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { useRouter } from "expo-router";
-import { useAppSelector } from "../../store/hooks";
+import { useAppSelector, useAppDispatch } from "../../store/hooks";
+import { setProfile } from "../../store/slices/profileSlice";
 import ReviewStatusDisplay from "./ReviewStatusDisplay";
 import ReviewActionButton from "./ReviewActionButton";
 import { wordsListSelector } from "../../store/selectors/wordsListSelector";
-import { selectDailyQueue } from "../../store/slices/wordsListSlice";
 import { useDailyStats } from "../../hooks/useDailyStats";
+import { client } from "../../app/client";
 const duration = 200;
 
 const DashCard = () => {
@@ -22,17 +29,78 @@ const DashCard = () => {
 
   const [ifReviewCard, setIfReviewCard] = useState(true);
 
-  const { completed, total, progress, status } = useDailyStats();
+  const profile = useAppSelector((state) => state.profile.data);
+  const dispatch = useAppDispatch();
+
+  // Force recalculation of daily stats when app comes to foreground
+  const [appState, setAppState] = useState(AppState.currentState);
+
+  const { completed, total, progress, status, shouldResetStreak } =
+    useDailyStats();
 
   const height = useSharedValue(104);
   const reviewOpacity = useSharedValue(0);
 
   const router = useRouter();
 
-  React.useEffect(() => {
+  // Listen for app state changes to recalculate daily stats
+  useEffect(() => {
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange,
+    );
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  const handleAppStateChange = (nextAppState: string) => {
+    if (appState.match(/inactive|background/) && nextAppState === "active") {
+      // App has come to foreground, trigger re-evaluation of daily stats
+      console.log(
+        "📱 App returned to foreground, recalculating daily stats...",
+      );
+      setAppState(nextAppState as any);
+    } else {
+      setAppState(nextAppState as any);
+    }
+  };
+
+  useEffect(() => {
     height.value = withTiming(ifReviewCard ? 191 : 104, { duration });
     reviewOpacity.value = withTiming(ifReviewCard ? 1 : 0, { duration });
-  }, [ifReviewCard]);
+
+    if (shouldResetStreak) {
+      if (!profile || !profile.id)
+        return alert("Profile data is missing. Cannot reset streak.");
+
+      const resetStreak = async () => {
+        try {
+          console.log("Streak should be reset today!");
+
+          // 1. Update backend and wait for completion
+          await (client as any).models.UserProfile.update({
+            id: profile.id,
+            currentStreak: 0,
+          });
+
+          // 2. Update Redux immediately so UI reflects the change
+          dispatch(
+            setProfile({
+              ...profile,
+              currentStreak: 0,
+            }),
+          );
+
+          console.log("🔥 Streak reset successfully");
+        } catch (err) {
+          console.error("⚠️ Failed to reset streak:", err);
+        }
+      };
+
+      resetStreak();
+    }
+  }, [ifReviewCard, shouldResetStreak]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     height: height.value,
@@ -92,6 +160,7 @@ const DashCard = () => {
             <View className=" flex-1">
               {/* Review Status Display */}
               <ReviewStatusDisplay
+                currentStreak={profile?.currentStreak || 0}
                 reviewStatus={status}
                 stats={{ completed, total, progress }}
               />

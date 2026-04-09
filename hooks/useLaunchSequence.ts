@@ -395,9 +395,7 @@ export function useLaunchSequence() {
     return true;
   };
 
-  const loadProfileIntoRedux = async (profile: any) => {
-    console.log("⏳ [Redux] Syncing profile to global state...");
-    console.log("loading profile info:", JSON.stringify(profile));
+  const loadProfileIntoRedux = async (profile: any, suppressError = false) => {
     try {
       const attributes = await fetchUserAttributes();
 
@@ -418,7 +416,7 @@ export function useLaunchSequence() {
         wordsListId: profile.wordsListId || undefined,
         nativeLanguage: profile.nativeLanguage,
         timezone: profile.timezone,
-
+        currentStreak: profile.currentStreak,
         providerType,
         onboardingStage: profile.onboardingStage || "SEARCH",
       };
@@ -432,7 +430,9 @@ export function useLaunchSequence() {
       await new Promise((res) => setTimeout(res, 500));
       return true;
     } catch (error) {
-      console.error("❌ [Redux] Failed to load profile:", error);
+      if (!suppressError) {
+        console.error("❌ [Redux] Failed to load profile:", error);
+      }
       return false;
     }
   };
@@ -577,8 +577,8 @@ export function useLaunchSequence() {
           JSON.stringify(profile),
         );
 
-        // 1. Sync to Redux
-        await loadProfileIntoRedux(profile);
+        // 1. Sync to Redux, suppress errors during logout
+        await loadProfileIntoRedux(profile, true);
       },
       error: (err: any) => {
         // Temporary guard: suppress legacy records that violate current schema

@@ -17,9 +17,6 @@ import {
 } from "../../hooks/useCompletedInsights";
 import { CompletedReviewSchedule } from "../../store/slices/completedReviewScheduleSlice";
 import WordBarChart from "./WordBarChart";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import Animated, { FadeIn } from "react-native-reanimated";
-import SingleWordProgressBar from "./SingleWordProgressBar";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store";
 import { UserProfile } from "../../store/slices/profileSlice";
@@ -93,7 +90,7 @@ const CompletedInsights: React.FC<CompletedInsightsProps> = ({
   return (
     <View
       key={`completed-${selectedIso}`}
-      className="w-full h-full flex flex-col "
+      className="w-full h-full flex flex-col  "
     >
       {/* Horizontal ScrollView */}
       <ScrollView
@@ -143,6 +140,7 @@ const CompletedInsights: React.FC<CompletedInsightsProps> = ({
       <WordDetailBottomSheet
         isVisible={showBottomSheet}
         selectedWord={selectedWord}
+        masteryGoalDays={profile?.masteryIntervalDays}
         onClose={() => setShowBottomSheet(false)}
       />
     </View>

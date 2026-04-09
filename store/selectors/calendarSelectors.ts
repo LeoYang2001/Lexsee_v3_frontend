@@ -25,7 +25,7 @@ export const selectUnifiedCalendarData = createSelector(
     });
 
     // 2. Process Future (Incoming)
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date().toLocaleDateString("en-CA");
     words.forEach((word: Word) => {
       // Ensure the word has a review date and it's in the future
       if (word.nextReviewDate && word.nextReviewDate > today) {
@@ -35,6 +35,10 @@ export const selectUnifiedCalendarData = createSelector(
             dots: [{ color: "#007AFF" }], // Blue for future
             words: [],
           };
+        }
+
+        if (!calendarData[word.nextReviewDate].words) {
+          calendarData[word.nextReviewDate].words = [];
         }
 
         // Push the full word object instead of word.word (string)

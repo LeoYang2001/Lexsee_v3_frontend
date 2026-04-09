@@ -25,6 +25,7 @@ export interface UserProfile {
   newwordNotificationsEnabled?: boolean;
   overallGoal?: number;
   daysForGoal?: number;
+  currentStreak?: number;
   // Values: 'NEW', 'FIRST_WORD_SEARCHED'', 'FIRST_REVIEW_DONE', 'COMPLETED'
   onboardingStage?: GuideStep;
 }
@@ -102,6 +103,7 @@ const profileSlice = createSlice({
         masteryIntervalDays: profile.masteryIntervalDays ?? 180,
         newwordNotificationsEnabled:
           profile.newwordNotificationsEnabled ?? false,
+        currentStreak: profile.currentStreak ?? 0,
       };
     },
     // Clear profile on logout

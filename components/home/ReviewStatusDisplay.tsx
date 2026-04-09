@@ -9,11 +9,13 @@ interface ReviewStatusDisplayProps {
     total: number;
     progress: number;
   };
+  currentStreak?: number; // Optional prop for current streak
 }
 
 const ReviewStatusDisplay = ({
   reviewStatus,
   stats,
+  currentStreak,
 }: ReviewStatusDisplayProps) => {
   return (
     <View className=" w-full h-full flex items-start   justify-center px-6 ">
@@ -26,14 +28,14 @@ const ReviewStatusDisplay = ({
           <ReviewInProgress stats={stats} />
         </Text>
       ) : (
-        <ViewProgressView />
+        <ViewProgressView currentStreak={currentStreak} />
       )}
     </View>
   );
 };
 
-const ViewProgressView = () => {
-  const streak = useStreak();
+const ViewProgressView = ({ currentStreak }: { currentStreak?: number }) => {
+  const streak = currentStreak ?? -1;
 
   if (streak === -1) {
     return (

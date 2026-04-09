@@ -53,6 +53,7 @@ const AnimatedBar: React.FC<AnimatedBarProps> = ({
   MAX_INTERVAL,
 }) => {
   const animatedWidth = useSharedValue(0);
+  console.log("progressGain", progressGain, "totalProgress", totalProgress);
 
   useEffect(() => {
     animatedWidth.value = withTiming(width, {
@@ -95,7 +96,7 @@ const AnimatedBar: React.FC<AnimatedBarProps> = ({
             }}
             numberOfLines={1}
           >
-            +{Math.round((progressGain / MAX_INTERVAL) * 100)}%
+            +{Math.round((progressGain / MAX_INTERVAL) * 100).toFixed(0)}%
           </Animated.Text>
         </View>
       ) : (

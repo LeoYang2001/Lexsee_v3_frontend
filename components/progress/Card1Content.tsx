@@ -37,7 +37,8 @@ const Card1Content: React.FC<Card1ContentProps> = ({
   // default selected date to today (YYYY-MM-DD)
 
   // guard schedules to avoid undefined being passed into calculateStreak
-  const streak = useStreak();
+  const profile = useAppSelector((state) => state.profile.data);
+  const streak = profile?.currentStreak || 0;
 
   const calendarData = useAppSelector(selectUnifiedCalendarData);
 

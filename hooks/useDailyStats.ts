@@ -11,7 +11,9 @@ export const useDailyStats = () => {
   const todayStr = new Date().toISOString().split("T")[0];
 
   // 1. Get words remaining in the SRS queue
-  const todayQueue = useAppSelector(selectDailyQueue);
+  const { allDueWords: todayQueue, shouldResetStreak } =
+    useAppSelector(selectDailyQueue);
+
   const remaining = todayQueue.length;
 
   // 2. Get today's completion record
@@ -55,6 +57,7 @@ export const useDailyStats = () => {
       total,
       progress: total > 0 ? completed / total : 0,
       status, // "review_begin" | "review_in_progress" | "viewProgress"
+      shouldResetStreak,
     };
   }, [todayRecord, remaining]);
 };
