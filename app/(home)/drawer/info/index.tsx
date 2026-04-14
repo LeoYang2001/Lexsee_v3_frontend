@@ -13,6 +13,7 @@ import Animated, {
   FadeIn,
 } from "react-native-reanimated";
 import { LEXSEE_SCIENCE_TABS } from "./data";
+import * as Haptics from "expo-haptics";
 
 const AnimatedView = Animated.createAnimatedComponent(View);
 const { width: windowWidth } = Dimensions.get("window");
@@ -182,7 +183,11 @@ const Info = () => {
       {/* Drawer Toggle */}
       <TouchableOpacity
         className="ml-auto mt-20 py-4 mb-2 px-3  mr-2 z-50"
-        onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+          navigation.dispatch(DrawerActions.openDrawer());
+        }}
       >
         <View style={{ width: 18 }} className="w-8 flex gap-1">
           <View style={{ height: 2 }} className="bg-white w-full" />

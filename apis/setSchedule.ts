@@ -165,100 +165,12 @@ export const handleScheduleNotification = async (
 /**
  * Uncollect a word and update schedules/notifications accordingly
  */
-export const uncollectWord = async (
-  wordId: string,
-  scheduleWord: any,
-  schedule: any,
-): Promise<boolean> => {
+export const uncollectWord = async (wordId: string): Promise<boolean> => {
   try {
-    // 1. Get the review entity to get the review schedule based on date
+    // 1. Delete the word
+    await (client as any).models.Word.delete({ id: wordId });
+    console.log(`✅ Deleted word ${wordId}`);
 
-    // 1.2  Second, get the review schedule id from the entity
-    if (scheduleWord.id) {
-      console.log(
-        `🔍 DEBUG - Fetching schedule with id: ${scheduleWord.reviewScheduleId}`,
-      );
-
-      const scheduleWordsCount = schedule.totalWords;
-      console.log(`🔍 DEBUG - Total words in schedule: ${scheduleWordsCount}`);
-      // 2.1 If there’s only one entity
-      //     1. Cancel notification
-      //     2. Delete entity & schedule
-      if (scheduleWordsCount === 1) {
-        console.log(
-          `🔍 DEBUG - Only one word in schedule, deleting entire schedule`,
-        );
-
-        if (schedule?.notificationId) {
-          console.log(
-            `🔍 DEBUG - Canceling notification: ${schedule.notificationId}`,
-          );
-          await Notifications.cancelScheduledNotificationAsync(
-            schedule.notificationId,
-          );
-          console.log(
-            `🔕 Canceled notification ${schedule.notificationId} for schedule`,
-          );
-        }
-
-        // delete entity
-        console.log(
-          `🔍 DEBUG - Deleting ReviewScheduleWord entity: ${scheduleWord.id}`,
-        );
-        await (client as any).models.ReviewScheduleWord.delete({
-          id: scheduleWord.id,
-        });
-        console.log(`🗑️ Deleted ReviewScheduleWord entity ${scheduleWord.id}`);
-
-        // delete schedule
-        console.log(`🔍 DEBUG - Deleting ReviewSchedule: ${schedule.id}`);
-        await (client as any).models.ReviewSchedule.delete({
-          id: schedule.id,
-        });
-        console.log(`🗑️ Deleted ReviewSchedule ${schedule.id}`);
-      }
-      //2.2 If there’s more than one entity
-      else {
-        console.log(
-          `🔍 DEBUG - More than one entity in schedule${JSON.stringify(schedule)}`,
-        );
-        // more than one entity, just delete the entity
-        await (client as any).models.ReviewScheduleWord.delete({
-          id: scheduleWord.id,
-        });
-        // update notification & schedule counts
-        const cur_totalWords = schedule.totalWords;
-        const cur_tobeReviewedCount = schedule.toBeReviewedCount;
-        console.log(`🔍 DEBUG - Current totalWords: ${cur_totalWords}`);
-        console.log(
-          `🔍 DEBUG - Current toBeReviewedCount: ${cur_tobeReviewedCount}`,
-        );
-        console.log(`🔍 DEBUG - New totalWords will be: ${cur_totalWords - 1}`);
-        console.log(
-          `🔍 DEBUG - New toBeReviewedCount will be: ${cur_tobeReviewedCount - 1}`,
-        );
-
-        await (client as any).models.ReviewSchedule.update({
-          id: schedule.id,
-          toBeReviewedCount: cur_tobeReviewedCount - 1,
-          totalWords: cur_totalWords - 1,
-        });
-        console.log(`✅ Updated schedule counts after uncollecting word`);
-
-        // overwrite notification with the same notificationID
-        if (schedule.notificationId) {
-          const newNotificationDate = new Date(schedule.scheduleDate);
-          console.log(
-            `🔍 DEBUG - Setting new notification for ${cur_tobeReviewedCount - 1} words at ${newNotificationDate}`,
-          );
-          const newNotificationId = await setSchedule(
-            cur_tobeReviewedCount - 1,
-            newNotificationDate,
-          );
-          console.log(`🔍 DEBUG - New notification ID: ${newNotificationId}`);
-        }
-      }
-    }
     return true;
   } catch (error) {
     console.error("❌ Error in uncollectWord:", error);

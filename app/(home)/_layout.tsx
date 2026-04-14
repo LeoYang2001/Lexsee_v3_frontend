@@ -17,6 +17,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "../../store";
 import appConfig from "../../app.json";
 import { useEffect, useState } from "react";
+import { client } from "../client";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -38,9 +39,21 @@ export default function HomeLayout() {
 
   const handleSignOut = async () => {
     try {
+      // 1. Clear the token in the DB while we still have credentials
+      if (profile?.id) {
+        console.log("🧹 Clearing push token before sign out...");
+        await (client as any).models.UserProfile.update({
+          id: profile.id,
+          expoPushToken: null,
+        });
+      }
+
+      // 2. Trigger the global sign out (this will trigger the Hub/handleAuthFail)
       await amplifySignOut();
     } catch (error) {
       Alert.alert("Sign Out Error", (error as Error).message);
+      // If DB update fails, we should probably still sign out to not trap the user
+      await amplifySignOut();
     }
   };
 

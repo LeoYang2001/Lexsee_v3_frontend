@@ -1,9 +1,9 @@
 {
   "auth": {
-    "user_pool_id": "us-east-2_Rtu0Teyky",
+    "user_pool_id": "us-east-2_rdXAXyk0o",
     "aws_region": "us-east-2",
-    "user_pool_client_id": "10c72qf98ed3ia747d6k4vcri3",
-    "identity_pool_id": "us-east-2:ff29b483-ef89-4e53-86b2-20d47cda72e2",
+    "user_pool_client_id": "1ihi91e41lvbnk2pr7rt0a0jf9",
+    "identity_pool_id": "us-east-2:67e68091-c0c1-4dcb-b56c-3f87d18a4f19",
     "mfa_methods": [],
     "standard_required_attributes": [],
     "username_attributes": [
@@ -21,33 +21,12 @@
       "require_symbols": true,
       "require_uppercase": true
     },
-    "oauth": {
-      "identity_providers": [
-        "GOOGLE",
-        "SIGN_IN_WITH_APPLE"
-      ],
-      "redirect_sign_in_uri": [
-        "myapp://"
-      ],
-      "redirect_sign_out_uri": [
-        "myapp://"
-      ],
-      "response_type": "code",
-      "scopes": [
-        "phone",
-        "email",
-        "openid",
-        "profile",
-        "aws.cognito.signin.user.admin"
-      ],
-      "domain": "2c95cc0093e69f5cbada.auth.us-east-2.amazoncognito.com"
-    },
     "unauthenticated_identities_enabled": true
   },
   "data": {
-    "url": "https://su4pvvojkneoflfuk24rergf7i.appsync-api.us-east-2.amazonaws.com/graphql",
+    "url": "https://c3gtl6dvnfeqjdeisr2dgelixm.appsync-api.us-east-2.amazonaws.com/graphql",
     "aws_region": "us-east-2",
-    "api_key": "da2-zcqyu6sw6jfkrhwlry7y6ois5y",
+    "api_key": "da2-5hpbxhgqfjhqrg2vkaemxolcxy",
     "default_authorization_type": "AMAZON_COGNITO_USER_POOLS",
     "authorization_types": [
       "API_KEY",
@@ -584,5 +563,5 @@
       "nonModels": {}
     }
   },
-  "version": "1.3"
+  "version": "1.4"
 }

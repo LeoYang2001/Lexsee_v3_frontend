@@ -1,175 +1,138 @@
-import { View, Text } from "react-native";
-import React, { useEffect, useState } from "react";
-import { ArcGauge } from "./ArcGauge";
-import { getLocalDate } from "../../util/utli";
+import { View, Text, ScrollView } from "react-native";
+import React from "react";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import UpcomingWordChip from "./UpcomingWordChip";
+import CompletedInsights from "./CompletedInsights";
+import { useAppSelector } from "../../store/hooks";
+import { selectUnifiedCalendarData } from "../../store/selectors/calendarSelectors";
 
 interface ProgressReviewProps {
   selectedIso?: string | null;
-  allSchedules: any[];
-}
-
-export interface ProgressReviewData {
-  reviewedWords: number;
-  totalWords: number;
-  completionRate: number;
-  accuracy: number;
+  viewMode?: "default" | "card1Expanded" | "card2Expanded";
 }
 
 const ProgressReview: React.FC<ProgressReviewProps> = ({
-  allSchedules,
   selectedIso,
+  viewMode,
 }) => {
- 
-  const [progressData, setProgressData] = useState<ProgressReviewData | null>(
-    null
-  );
+  const markedDates = useAppSelector(selectUnifiedCalendarData);
 
-  const [isIncoming, setIsIncoming] = useState(false)
-  
-  useEffect(() => {
+  const dayData = selectedIso ? markedDates[selectedIso] : null;
 
-    setProgressData(null);
-
-    setIsIncoming(false);
-
-    const currentDate = getLocalDate();
-
-   
-    
-    
-    const scheduleForSelectedDate = allSchedules.find(
-      (schedule) => schedule.scheduleDate === selectedIso
-    );
-    if (scheduleForSelectedDate) {
-      setProgressData({
-        reviewedWords: scheduleForSelectedDate.reviewedCount,
-        totalWords: scheduleForSelectedDate.totalWords,
-        // should only accurate to 1 decimal place
-        completionRate: Math.round(100* (scheduleForSelectedDate.reviewedCount / scheduleForSelectedDate.totalWords) * 10) / 10,
-        accuracy: Math.round(100 * (scheduleForSelectedDate.successRate / (5 * scheduleForSelectedDate.reviewedCount)) * 10) / 10,
-      });
-
-    } else {
-      setProgressData(null);
-    }
-
-     if(selectedIso && currentDate && selectedIso > currentDate)
-    {
-      // if the selected date is in the future, mark it as incoming
-      setIsIncoming(true)
-      return 
-    }
-  }, [selectedIso, allSchedules])
-  
-  
-
-  const IncomingView = () => (
-    <View className="py-6 items-center  h-full justify-center">
-      <Text style={{ color: "#9CA3AF", fontSize: 15 }}>
-        {progressData?.totalWords} words are scheduled for this day
-      </Text>
-      {selectedIso && (
-        <Text style={{ color: "#6B7280", fontSize: 12, marginTop: 6 }}>
-          {selectedIso}
+  // 1. EMPTY STATE
+  if (!dayData) {
+    return (
+      <Animated.View
+        key={`empty-${selectedIso}`}
+        entering={FadeIn.duration(300)}
+        exiting={FadeOut.duration(200)}
+        className="py-6  items-center h-full justify-center"
+      >
+        <Text style={{ color: "#9CA3AF", fontSize: 15 }}>
+          No words scheduled for this day
         </Text>
-      )}
-    </View>
-  );
-
-  const OverdueView = () => (
-    <View className="py-6 items-center  flex  text-center h-full justify-center">
-      <Text style={{ color: "#9CA3AF", fontSize: 15 }}>
-        {progressData?.totalWords} words were scheduled for this day, 
-      </Text>
-      <Text className=" mt-2" style={{ color: "#9CA3AF", fontSize: 15 }}>
-        unfortunately you didn't finish reviewing them.
-      </Text>
-    </View>
-  );
-
-  if(isIncoming && progressData) {
-    return <IncomingView />;
+        {selectedIso && (
+          <Text style={{ color: "#6B7280", fontSize: 12, marginTop: 6 }}>
+            {selectedIso}
+          </Text>
+        )}
+      </Animated.View>
+    );
   }
 
-  if(progressData && progressData?.reviewedWords < progressData?.totalWords) {
-    return <OverdueView />;
+  // 2. INCOMING STATE
+  if (dayData.type === "FUTURE") {
+    // dayData.words might be string[] or WordObject[]
+    const words = dayData.words || [];
+
+    return (
+      <Animated.View
+        key={`future-${selectedIso}`}
+        entering={FadeIn.duration(300)}
+        className="flex-1 w-full   px-3 "
+      >
+        <View className="flex-row justify-between items-center mb-4">
+          <Text
+            style={{
+              color: "#fff",
+              fontSize: 16,
+              fontWeight: "400",
+              opacity: 0.4,
+            }}
+          >
+            Upcoming Queue
+          </Text>
+          <Text className="text-[#6B7280] text-[12px]">
+            {words.length} {words.length === 1 ? "word" : "words"}
+          </Text>
+        </View>
+
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          className="flex-1"
+          contentContainerStyle={{ paddingBottom: 40 }}
+        >
+          {words.map((item: any, index: number) => {
+            // HANDLE STRING VS OBJECT
+            const isObject = typeof item === "object" && item !== null;
+            const wordText = isObject ? item.content || item.word : item;
+
+            // Logic for timeline parsing
+            let timeline = [];
+            if (isObject && item.reviewedTimeline) {
+              timeline =
+                typeof item.reviewedTimeline === "string"
+                  ? JSON.parse(item.reviewedTimeline)
+                  : item.reviewedTimeline;
+            }
+
+            return (
+              <UpcomingWordChip
+                key={item.id || `${wordText}-${index}`} // item.id is much more stable
+                word={wordText || "Unknown"}
+                timeline={timeline}
+              />
+            );
+          })}
+        </ScrollView>
+      </Animated.View>
+    );
   }
 
+  // 3. PAST/OVERDUE LOGIC
+  const logs = dayData.logs || [];
+  const reviewedWords = logs.length;
+  const totalWords = dayData.totalWords || 0;
+
+  if (reviewedWords < totalWords) {
+    return (
+      <Animated.View
+        key={`overdue-${selectedIso}`}
+        entering={FadeIn.duration(300)}
+        className="py-6 items-center flex text-center h-full justify-center px-6"
+      >
+        <Text style={{ color: "#9CA3AF", fontSize: 15, textAlign: "center" }}>
+          {totalWords} words were scheduled for this day,
+        </Text>
+        <Text
+          className="mt-2"
+          style={{ color: "#ef4444", fontSize: 15, textAlign: "center" }}
+        >
+          unfortunately you didn't finish reviewing them.
+        </Text>
+      </Animated.View>
+    );
+  }
+
+  // 4. COMPLETED STATE (Insights)
   return (
-    <View className="w-full h-full">
-      {/* loading state */}
-      {!progressData ? (
-        // no scheduled words for this day
-        <View className="py-6 items-center  h-full justify-center">
-              <Text style={{ color: "#9CA3AF", fontSize: 15 }}>
-                No words scheduled for this day
-              </Text>
-          {selectedIso && (
-            <Text style={{ color: "#6B7280", fontSize: 12, marginTop: 6 }}>
-              {selectedIso}
-            </Text>
-          )}
-        </View>
-      ) : (
-        // show gauge + stats
-        <View className="flex    h-full  items-center   flex-row ">
-          <View className="flex-1 h-full  flex justify-center items-center p-3">
-            <ArcGauge
-              value1={progressData.completionRate}
-              value2={progressData.accuracy}
-            />
-          </View>
-          <View className=" w-[50%] h-full pl-12  flex flex-col justify-center gap-6 items-start  p-3">
-            <View>
-              <View className=" flex flex-row justify-start items-baseline gap-1">
-                <Text
-                  className="font-semibold"
-                  style={{ fontSize: 24, color: "white", lineHeight: 36 }}
-                >
-                  {progressData.reviewedWords}
-                </Text>
-                <Text
-                  className="text-white opacity-40"
-                  style={{
-                    fontSize: 12,
-                    color: "white",
-                    marginBottom: 2,
-                  }}
-                >
-                  /{progressData.totalWords}
-                </Text>
-              </View>
-              <Text style={{ fontSize: 14, color: "white", opacity: 0.4 }}>
-                Completion
-              </Text>
-            </View>
-            <View>
-              <View className=" flex flex-row justify-start items-baseline gap-1">
-                <Text
-                  className="font-semibold"
-                  style={{ fontSize: 24, color: "white", lineHeight: 36 }}
-                >
-                  {progressData.accuracy}
-                </Text>
-                <Text
-                  className="text-white opacity-40"
-                  style={{
-                    fontSize: 12,
-                    color: "white",
-                    marginBottom: 2,
-                  }}
-                >
-                  %
-                </Text>
-              </View>
-              <Text style={{ fontSize: 14, color: "white", opacity: 0.4 }}>
-                Accuracy
-              </Text>
-            </View>
-          </View>
-        </View>
-      )}
-    </View>
+    <CompletedInsights
+      viewMode={viewMode}
+      selectedIso={selectedIso || null}
+      reviewedWords={reviewedWords}
+      totalWords={totalWords}
+      successRate={dayData.successRate || 0}
+    />
   );
 };
 

@@ -1,4 +1,4 @@
-import { ReviewSchedule } from "../store/slices/reviewScheduleSlice";
+import { CompletedReviewSchedule } from "../store/slices/completedReviewScheduleSlice";
 import { ScheduleWord } from "../store/slices/reviewScheduleWordsSlice";
 import { Word, WordStatus } from "../types/common/Word";
 
@@ -12,45 +12,36 @@ export const getLocalDate = (date: Date = new Date()): string => {
   return `${year}-${month}-${day}`;
 };
 
+export const getNextLocalDate = (date: Date = new Date()): string => {
+  const next = new Date(date);
+  next.setDate(next.getDate() + 1);
+  return getLocalDate(next);
+};
 /**
  * Transforms raw Amplify Word items into the clean Word type used by the UI.
  */
 export const cleanWords = (rawItems: any[]): Word[] => {
   return rawItems.map((item) => {
-    // 1. Parse the stringified JSON payload
-    let parsedData: any = {};
-    try {
-      parsedData =
-        typeof item.data === "string" ? JSON.parse(item.data) : item.data || {};
-    } catch (e) {
-      console.error(`Error parsing data for word ID: ${item.id}`, e);
-    }
-
     // 2. Build the object following your Word type exactly
+
     return {
       id: item.id,
-      word: item.word || parsedData.word || "",
-      imgUrl: parsedData.imgUrl || item.imgUrl,
-      status: (item.status || parsedData.status || "COLLECTED") as WordStatus,
+      word: item.word || "",
+      imgUrl: item.imgUrl,
+      status: item.status as WordStatus,
 
-      meanings: parsedData.meanings || item.meanings || [],
+      meanings: JSON.parse(item.meanings),
+      phonetics: {
+        text: item.phoneticText,
+        audioUrl: item.audioUrl,
+      },
+      exampleSentences: item.exampleSentences,
+      translatedMeanings: item.translatedMeanings,
 
-      phonetics:
-        parsedData.phonetics || item.phonetics
-          ? {
-              text: parsedData.phonetics?.text || item.phonetics?.text || "",
-              audioUrl:
-                parsedData.phonetics?.audioUrl || item.phonetics?.audioUrl,
-            }
-          : undefined,
-
-      exampleSentences: parsedData.exampleSentences || item.exampleSentences,
-      timeStamp: parsedData.timeStamp || item.timeStamp,
-      translatedMeanings:
-        parsedData.translatedMeanings || item.translatedMeanings,
-
-      review_interval: parsedData.review_interval ?? item.review_interval ?? 1,
-      ease_factor: parsedData.ease_factor ?? item.ease_factor ?? 2.5,
+      review_interval: item.reviewInterval ?? 1,
+      ease_factor: item.easeFactor ?? 2.5,
+      nextReviewDate: item.nextReviewDate,
+      reviewedTimeline: item.reviewedTimeline,
 
       // FIX: Strip the Amplify function.
       // We check if it's an actual array; if it's a function (lazy loader),
@@ -60,28 +51,22 @@ export const cleanWords = (rawItems: any[]): Word[] => {
         : [],
 
       // Default as requested
-      ifPastDue: false,
       createdAt: item.createdAt,
       updatedAt: item.updatedAt,
     };
   });
 };
 
-export const cleanSchedules = (rawItems: any[]): ReviewSchedule[] => {
+export const cleanSchedules = (rawItems: any[]): CompletedReviewSchedule[] => {
   return rawItems.map((item) => ({
     id: item.id,
-    notificationId: item.notificationId,
     owner: item.owner,
     scheduleDate: item.scheduleDate,
-    toBeReviewedCount: item.toBeReviewedCount || 0,
     totalWords: item.totalWords || 0,
-    reviewedCount: item.reviewedCount || 0,
-    successRate: item.successRate,
     userProfileId: item.userProfileId,
+    reviewLogs: item.reviewLogs || "",
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
-    // We explicitly DO NOT include scheduleWords or userProfile
-    // to avoid non-serializable function errors.
   }));
 };
 

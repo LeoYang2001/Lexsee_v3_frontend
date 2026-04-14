@@ -5,28 +5,20 @@ import { Alert, AppState } from "react-native";
 import { client } from "../app/client";
 import { setProfile, UserProfile } from "../store/slices/profileSlice";
 import { useDispatch } from "react-redux";
-import { cleanSchedules, cleanScheduleWords, cleanWords } from "../util/utli";
+import { cleanSchedules, cleanWords } from "../util/utli";
 import { setSynced, setWords } from "../store/slices/wordsListSlice";
-import {
-  setReviewSchedules,
-  setSchedulesSynced,
-} from "../store/slices/reviewScheduleSlice";
-import {
-  setScheduleWords,
-  setScheduleWordsSynced,
-} from "../store/slices/reviewScheduleWordsSlice";
+
 import {
   setCompletedReviewSchedules,
   setCompletedSchedulesSynced,
 } from "../store/slices/completedReviewScheduleSlice";
 import { useAppSelector } from "../store/hooks";
 import { probeOpenAIConnection } from "../store/slices/aiSettingsSlice";
-import { useRouter } from "expo-router";
 import * as Notifications from "expo-notifications";
 import Purchases from "react-native-purchases";
 import { setProStatus } from "../store/slices/subscriptionSlice";
-import { store } from "../store";
 import RevenueCatUI from "react-native-purchases-ui";
+import Constants from "expo-constants";
 
 type AuthMode = "unknown" | "authed" | "guest";
 const REVENUECAT_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY;
@@ -52,8 +44,6 @@ const isKnownLegacyDisplayNameNullError = (err: any) => {
 };
 
 export function useLaunchSequence() {
-  const router = useRouter();
-
   const [authMode, setAuthMode] = useState<AuthMode>("unknown");
 
   // what screen RootLayout should navigate to AFTER splash hides
@@ -64,14 +54,11 @@ export function useLaunchSequence() {
 
   //Subscription to Words WebSocket
   const [wordsSubscription, setWordsSubscription] = useState<any>(null);
-  const [reviewScheduleSubscription, setReviewScheduleSubscription] =
-    useState<any>(null);
+
   const [
     completedReviewScheduleSubscription,
     setCompletedReviewScheduleSubscription,
   ] = useState<any>(null);
-  const [reviewScheduleWordSubscription, setReviewScheduleWordSubscription] =
-    useState<any>(null);
 
   const [profileSubscription, setProfileSubscription] = useState<any>(null);
 
@@ -167,14 +154,9 @@ export function useLaunchSequence() {
         if (!wordsSubscription) {
           subscribeToWords();
         }
-        if (!reviewScheduleSubscription) {
-          subscribeToReviewSchedules();
-        }
+
         if (!completedReviewScheduleSubscription) {
           subscribeToCompletedReviewSchedules();
-        }
-        if (!reviewScheduleWordSubscription) {
-          subscribeToReviewScheduleWords();
         }
       } catch {
         handleAuthFail("resume_session_invalid");
@@ -308,46 +290,41 @@ export function useLaunchSequence() {
       } else {
         console.log("REVENUECAT_API_KEY is not set");
       }
-      const profile = await fetchProfile(userId);
-      console.log("profile fetched:", JSON.stringify(profile));
-      let isNewUser = false; // Track if we are in provisioning mode
-      await requestNotificationPermissions();
-
       // Start the AI Probe (Silent / Non-blocking)
       checkAISettings();
 
       // check if user completed onboarding, profile.nativeLanguage? profile.timezone?
+      let profile = await fetchProfile(userId);
+      let isNewUser = false;
+      let activeProfileId: string; // We'll store the ID here safely
+
       if (!profile) {
         isNewUser = true;
-        console.log(
-          "📝 [Sequence] New user detected, will show provision page",
-        );
+        const newProfileRes = await createProfile(userId);
+        const newProfileData = newProfileRes.data;
 
-        const newProfile = await createProfile(userId);
-        await loadProfileIntoRedux(newProfile.data);
-        const success = await createInitialWordsList(newProfile.data.id);
-        if (!success)
-          throw new Error("Failed to create initial data for new user");
-      } else if (profile && (!profile.nativeLanguage || !profile.timezone)) {
-        isNewUser = true;
-        // load existing profile into redux
-        await loadProfileIntoRedux(profile);
-        console.log("📝 [Sequence] Profile wasnt completed, go to provision");
+        activeProfileId = newProfileData.id; // Get ID from the new one
+
+        await loadProfileIntoRedux(newProfileData);
+        await createInitialWordsList(activeProfileId);
       } else {
-        console.log(
-          "✅ [Sequence] Existing User detected. Loading preferences...",
-        );
+        activeProfileId = profile.id; // Get ID from the fetched one
+
+        if (!profile.nativeLanguage || !profile.timezone) {
+          isNewUser = true;
+        }
         await loadProfileIntoRedux(profile);
       }
+
+      // ✅ SAFE: This now uses the ID we extracted above
+      await requestNotificationPermissions(userId, activeProfileId);
 
       // 2. Subscriptions
       console.log("📡 [Sequence] Opening data streams (Subscriptions)...");
 
       // await subscribeToPurchases();
       subscribeToWords();
-      subscribeToReviewSchedules();
       subscribeToCompletedReviewSchedules();
-      subscribeToReviewScheduleWords();
       subscribeToProfile(userId);
 
       // const isPro = store.getState().subscription.isPro;
@@ -418,9 +395,7 @@ export function useLaunchSequence() {
     return true;
   };
 
-  const loadProfileIntoRedux = async (profile: any) => {
-    console.log("⏳ [Redux] Syncing profile to global state...");
-    console.log("loading profile info:", JSON.stringify(profile));
+  const loadProfileIntoRedux = async (profile: any, suppressError = false) => {
     try {
       const attributes = await fetchUserAttributes();
 
@@ -441,7 +416,7 @@ export function useLaunchSequence() {
         wordsListId: profile.wordsListId || undefined,
         nativeLanguage: profile.nativeLanguage,
         timezone: profile.timezone,
-
+        currentStreak: profile.currentStreak,
         providerType,
         onboardingStage: profile.onboardingStage || "SEARCH",
       };
@@ -455,7 +430,9 @@ export function useLaunchSequence() {
       await new Promise((res) => setTimeout(res, 500));
       return true;
     } catch (error) {
-      console.error("❌ [Redux] Failed to load profile:", error);
+      if (!suppressError) {
+        console.error("❌ [Redux] Failed to load profile:", error);
+      }
       return false;
     }
   };
@@ -472,8 +449,10 @@ export function useLaunchSequence() {
       next: ({ items, isSynced }: any) => {
         // 1. Transform the raw items into our clean UI format
         // This uses the transformer we just built
-
-        const cleanedItems = cleanWords(items).sort((a, b) => {
+        const validItems = items.filter(
+          (item: any) => item !== null && item.word,
+        );
+        const cleanedItems = cleanWords(validItems).sort((a, b) => {
           // If updatedAt is undefined, we treat it as 0 (the beginning of time)
           const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
           const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
@@ -497,41 +476,6 @@ export function useLaunchSequence() {
     });
 
     setWordsSubscription(sub);
-    return true;
-  };
-
-  const subscribeToReviewSchedules = async () => {
-    console.log("⏳ [Sub] Connecting to Review Schedules subscription...");
-
-    if (reviewScheduleSubscription) {
-      console.log("⚠️ [Sub] Review Schedules subscription already connected.");
-      return true;
-    }
-
-    const sub = (client.models as any).ReviewSchedule.observeQuery().subscribe({
-      next: ({ items, isSynced }: any) => {
-        // 1. Transform raw Amplify instances into plain serializable objects
-        // This strips the [Function anonymous] fields that cause Redux errors
-        const cleanedSchedules = cleanSchedules(items);
-
-        // 2. Dispatch the cleaned array to your new slice
-        dispatch(setReviewSchedules(cleanedSchedules));
-
-        // 3. Update the sync status
-        dispatch(setSchedulesSynced(isSynced));
-
-        console.log(
-          `✅ [Sub] Review Schedules: ${items.length} items processed. (Synced: ${isSynced})`,
-        );
-      },
-      error: (error: any) => {
-        console.error("❌ Review Schedules subscription error:", error);
-        // Optional: dispatch(setSchedulesError(error.message));
-      },
-    });
-
-    setReviewScheduleSubscription(sub);
-    console.log("✅ [Sub] Review Schedules subscription connected.");
     return true;
   };
 
@@ -574,43 +518,6 @@ export function useLaunchSequence() {
     });
     setCompletedReviewScheduleSubscription(sub);
     console.log("✅ [Sub] Completed Review Schedules subscription connected.");
-    return true;
-  };
-
-  const subscribeToReviewScheduleWords = async () => {
-    console.log("⏳ [Sub] Subscribing to Review Schedule Words...");
-
-    if (reviewScheduleWordSubscription) {
-      console.log(
-        "⚠️ [Sub] Review Schedule Words subscription already connected.",
-      );
-      return true;
-    }
-
-    const sub = (
-      client.models as any
-    ).ReviewScheduleWord.observeQuery().subscribe({
-      next: ({ items, isSynced }: any) => {
-        // 1. Transform the raw items into our clean UI format
-        // This strips the [Function anonymous] relationships
-        const cleanedWords = cleanScheduleWords(items);
-
-        // 2. Update Redux with the data
-        dispatch(setScheduleWords(cleanedWords));
-
-        // 3. Update the Sync status
-        dispatch(setScheduleWordsSynced(isSynced));
-
-        console.log(
-          `📡 [ReviewScheduleWord] Updated: ${items.length} records. Synced: ${isSynced}`,
-        );
-      },
-      error: (error: any) => {
-        console.error("❌ ReviewScheduleWord subscription error:", error);
-      },
-    });
-
-    setReviewScheduleWordSubscription(sub);
     return true;
   };
 
@@ -670,8 +577,8 @@ export function useLaunchSequence() {
           JSON.stringify(profile),
         );
 
-        // 1. Sync to Redux
-        await loadProfileIntoRedux(profile);
+        // 1. Sync to Redux, suppress errors during logout
+        await loadProfileIntoRedux(profile, true);
       },
       error: (err: any) => {
         // Temporary guard: suppress legacy records that violate current schema
@@ -707,38 +614,69 @@ export function useLaunchSequence() {
   const unsubscribeAll = () => {
     console.log("🧹 [Cleanup] Closing all data streams...");
     wordsSubscription?.unsubscribe();
-    reviewScheduleSubscription?.unsubscribe();
     completedReviewScheduleSubscription?.unsubscribe();
-    reviewScheduleWordSubscription?.unsubscribe();
     profileSubscription?.unsubscribe();
 
     setWordsSubscription(null);
-    setReviewScheduleSubscription(null);
     setCompletedReviewScheduleSubscription(null);
-    setReviewScheduleWordSubscription(null);
     setProfileSubscription(null);
     console.log("✅ [Cleanup] All subscriptions closed.");
   };
 
-  const requestNotificationPermissions = async () => {
-    // 1. Check current status
-    const { status: existingStatus } =
-      await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
+  const requestNotificationPermissions = async (
+    userId: string,
+    profileId: string,
+  ) => {
+    try {
+      // 1. Check if we are on a physical device (Push doesn't work on most simulators)
+      // if (!Constants.isDevice) {
+      //   console.log("📱 [Push] Skipping: Not a physical device.");
+      //   return false;
+      // }
 
-    // 2. Only ask if we don't have it yet
-    if (existingStatus !== "granted") {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
+      // 2. Handle Permissions
+      const { status: existingStatus } =
+        await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
 
-    if (finalStatus !== "granted") {
-      console.warn("Permission not granted for notifications!");
+      if (existingStatus !== "granted") {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus !== "granted") {
+        console.warn("⚠️ [Push] Permission not granted.");
+        return false;
+      }
+
+      // 3. Get the Token from Expo
+      // This requires the projectId from your app.json / eas.json
+      const projectId =
+        Constants.expoConfig?.extra?.eas?.projectId ??
+        Constants.easConfig?.projectId;
+
+      const tokenResponse = await Notifications.getExpoPushTokenAsync({
+        projectId,
+      });
+
+      const token = tokenResponse.data;
+      console.log("🎫 [Push] Current Token:", token);
+
+      // 4. Update the UserProfile in the Backend
+      // We do this every launch to ensure the token never goes stale
+      await (client.models as any).UserProfile.update({
+        id: profileId,
+        expoPushToken: token,
+      });
+
+      console.log("✅ [Push] Token synced to backend.");
+      return true;
+    } catch (error) {
+      console.error("❌ [Push] Failed to register token:", error);
       return false;
     }
-
-    return true;
   };
+
   return {
     authMode,
     targetRoute,

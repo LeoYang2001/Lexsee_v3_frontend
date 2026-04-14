@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { DrawerActions } from "@react-navigation/routers";
 import { DAILY_LEXSEE_DISCOVER, DiscoverCategory } from "./dailyLexsee.mock";
@@ -22,6 +23,7 @@ export default function DailyLexseeDetailScreen() {
   ) as DiscoverCategory | undefined;
 
   const openDrawer = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     navigation.dispatch(DrawerActions.openDrawer());
   };
 

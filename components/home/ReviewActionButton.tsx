@@ -1,9 +1,9 @@
 import { View, Text, TouchableOpacity } from "react-native";
 import React from "react";
+import * as Haptics from "expo-haptics";
 import { ArrowRight, ChevronRight } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { ReviewStatus } from "../../store/selectors/todayReviewSelectors";
-
 
 interface ReviewActionButtonProps {
   reviewStatus: ReviewStatus;
@@ -19,11 +19,12 @@ const ReviewActionButton: React.FC<ReviewActionButtonProps> = ({
 
   const handlePress = () => {
     if (reviewStatus === "viewProgress") {
-      // Slide right animation
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       router.push({
         pathname: "/(progress)",
       });
     } else {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
       router.push("/(reviewQueue)");
     }
   };

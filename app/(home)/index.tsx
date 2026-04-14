@@ -8,6 +8,7 @@ import {
   TouchableWithoutFeedback,
   StyleSheet,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -22,7 +23,6 @@ import CustomHeader from "../../components/home/Header";
 import { useTheme } from "../../theme/ThemeContext";
 import DashCard from "../../components/home/DashCard";
 import FlexCard from "../../components/common/FlexCard";
-import { useOnboarding } from "../../hooks/useOnboarding";
 
 const snappyTransition = SharedTransition.custom((values) => {
   "worklet";
@@ -49,30 +49,6 @@ export default function HomeScreen() {
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
 
   const { words } = useAppSelector((state) => state.wordsList);
-
-  //NEW USER GUIDE
-  const { activeStep, setTargetLayout } = useOnboarding();
-  const searchBarRef = useRef<View>(null);
-
-  const handleLayout = () => {
-    if (activeStep === "SEARCH") {
-      const tryMeasure = (retries = 3) => {
-        searchBarRef.current?.measureInWindow((x, y, width, height) => {
-          // Check if we actually got data (height/width shouldn't be 0 for a search bar)
-          if (width > 0 && height > 0) {
-            setTargetLayout({ x, y, width, height });
-          } else if (retries > 0) {
-            // If zeros, wait 100ms and try again
-            setTimeout(() => tryMeasure(retries - 1), 100);
-          }
-        });
-      };
-
-      tryMeasure();
-    }
-  };
-
-  // Filter words for crrent user
 
   // Filter by status
 
@@ -122,6 +98,7 @@ export default function HomeScreen() {
     <TouchableWithoutFeedback
       onPress={() => {
         if (activeCardId) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           setActiveCardId(null);
         }
       }}
@@ -140,7 +117,12 @@ export default function HomeScreen() {
             <CustomHeader />
             <View className="flex-col gap-6 items-center mt-6">
               <View style={{ width: "100%" }}>
-                <TouchableOpacity onPress={() => router.push("/(home)/search")}>
+                <TouchableOpacity
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    router.push("/(home)/search");
+                  }}
+                >
                   <Animated.View
                     sharedTransitionTag="searchBar" // This ID must match Page B
                     sharedTransitionStyle={snappyTransition}
@@ -193,10 +175,10 @@ export default function HomeScreen() {
               showsVerticalScrollIndicator={false}
               onScroll={handleScroll}
             >
-            
               {collectedWords.slice(0, 10).map((word, idx) => (
                 <TouchableWithoutFeedback
                   onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     if (activeCardId === word.id) {
                       setActiveCardId(null);
                     } else {

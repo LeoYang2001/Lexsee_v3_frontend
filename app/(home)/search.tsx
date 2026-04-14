@@ -10,6 +10,7 @@ import {
   Modal,
   Alert,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useTheme } from "../../theme/ThemeContext";
 import { ChevronLeft } from "lucide-react-native";
 import { AntDesign } from "@expo/vector-icons";
@@ -113,6 +114,8 @@ export default function SearchPage() {
   };
 
   const handleWordSelect = (word: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
     // Check for admin entry trigger
     if (word.toLowerCase() === "admin-review") {
       setShowAdminModal(true);
@@ -189,8 +192,6 @@ export default function SearchPage() {
         </View>
         <View className=" w-full mt-3">
           <Animated.View
-            sharedTransitionTag="searchBar" // Identical tag
-            sharedTransitionStyle={snappyTransition}
             style={{
               height: 49,
               backgroundColor: "#2b2c2d",
@@ -202,12 +203,16 @@ export default function SearchPage() {
               ref={inputRef}
               autoFocus
               value={searchQuery}
-              onChangeText={setSearchQuery}
+              onChangeText={(text) => {
+                Haptics.selectionAsync();
+                setSearchQuery(text);
+              }}
               style={{
                 height: "100%",
                 backgroundColor: "#2b2c2d",
                 borderRadius: 12,
-                paddingHorizontal: 16,
+                paddingLeft: 16,
+                paddingRight: searchQuery.length > 0 ? 40 : 16,
                 color: "white",
                 fontSize: 16,
                 opacity: showInput ? 1 : 0,
@@ -254,6 +259,27 @@ export default function SearchPage() {
                   name="search1"
                   size={22}
                 />
+              </TouchableOpacity>
+            )}
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setSearchQuery("");
+                  setSuggestions([]);
+                  inputRef.current?.focus();
+                }}
+                style={{
+                  position: "absolute",
+                  right: 12,
+                  top: 0,
+                  bottom: 0,
+                  justifyContent: "center",
+                  zIndex: 10,
+                  padding: 4,
+                }}
+              >
+                <AntDesign name="closecircle" size={16} color="#aaa" />
               </TouchableOpacity>
             )}
           </Animated.View>

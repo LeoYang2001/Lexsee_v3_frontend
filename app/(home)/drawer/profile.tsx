@@ -23,6 +23,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useNavigation } from "expo-router";
 import { DrawerActions } from "@react-navigation/routers";
+import * as Haptics from "expo-haptics";
 import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import { client } from "../../client";
 import { GrowthStyle, setProfile } from "../../../store/slices/profileSlice";
@@ -161,7 +162,10 @@ export default function ProfileSettingsScreen() {
     [timezoneSearch],
   );
 
-  const openDrawer = () => navigation.dispatch(DrawerActions.openDrawer());
+  const openDrawer = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    navigation.dispatch(DrawerActions.openDrawer());
+  };
 
   const validateAndSetDisplayName = (text: string) => {
     setDisplayName(text);

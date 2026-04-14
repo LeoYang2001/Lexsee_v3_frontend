@@ -11,6 +11,7 @@ import {
   Image,
   Alert,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useTheme } from "../../theme/ThemeContext";
 import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import {
@@ -41,11 +42,8 @@ import { fetchAudioUrl } from "../../apis/fetchPhonetics";
 
 import { client } from "../client";
 import ConversationView from "../../components/definition/ConversationView";
-import {
-  handleScheduleNotification,
-  uncollectWord,
-} from "../../apis/setSchedule";
-import { getLocalDate } from "../../util/utli";
+import { uncollectWord } from "../../apis/setSchedule";
+import { getNextLocalDate } from "../../util/utli";
 import { useOnboarding } from "../../hooks/useOnboarding";
 import SaveOptionsModal from "../../components/definition/SaveOptionsModal";
 
@@ -54,11 +52,6 @@ export default function DefinitionPage() {
   const params = useLocalSearchParams();
   const { words } = useAppSelector((state) => state.wordsList);
   const profile = useAppSelector((state) => state.profile.data);
-
-  const reviewScheduleWords = useAppSelector(
-    (state) => state.reviewScheduleWords.items,
-  );
-  const reviewSchedules = useAppSelector((state) => state.reviewSchedule.items);
 
   const [wordInfo, setWordInfo] = useState<Word | undefined>(undefined);
 
@@ -153,28 +146,68 @@ export default function DefinitionPage() {
   };
 
   const handleSaveWord = async (wordInfo: Word, conversation?: any) => {
+    setSaveStatus("saving");
+
     // save/resave, we reset the schedule
     let wordInfoToSave = {
       ...wordInfo,
       phonetics: phonetics || undefined,
       translatedMeanings: translatedMeanings || undefined,
-      exampleSentences:
-        JSON.stringify(conversation) ||
-        JSON.stringify(conversationData) ||
-        null,
+      exampleSentences: conversation || conversationData || null,
     };
 
-    setSaveStatus("saving");
     try {
       //step1: check if the word exist
       const existingWord = words.find(
         (word) => word.word === wordInfoToSave.word,
       );
       if (existingWord) {
-        const updateData = {
+        const updateData: any = {
           id: existingWord.id,
-          data: JSON.stringify(wordInfoToSave),
         };
+
+        // always update word if you want
+        if (wordInfoToSave.word !== undefined) {
+          updateData.word = wordInfoToSave.word;
+        }
+
+        // phonetics
+        if (wordInfoToSave.phonetics?.text !== undefined) {
+          updateData.phoneticText = wordInfoToSave.phonetics.text;
+        }
+
+        if (wordInfoToSave.phonetics?.audioUrl !== undefined) {
+          updateData.audioUrl = wordInfoToSave.phonetics.audioUrl;
+        }
+
+        // image
+        if (wordInfoToSave.imgUrl !== undefined) {
+          updateData.imgUrl = wordInfoToSave.imgUrl;
+        }
+
+        // meanings
+        if (wordInfoToSave.meanings !== undefined) {
+          updateData.meanings = JSON.stringify(wordInfoToSave.meanings);
+        }
+
+        // example sentences
+        if (wordInfoToSave.exampleSentences !== undefined) {
+          updateData.exampleSentences = JSON.stringify(
+            wordInfoToSave.exampleSentences,
+          );
+        }
+
+        // translated meanings
+        if (wordInfoToSave.translatedMeanings !== undefined) {
+          updateData.translatedMeanings = JSON.stringify(
+            wordInfoToSave.translatedMeanings,
+          );
+        }
+
+        // relationship (only if exists)
+        if (profile?.id) {
+          updateData.userProfileId = profile.id;
+        }
 
         // If exists, update it, use client function, do not directly update redux as its already listening the updates
         // The generated client may have empty model typings in some environments; cast to any to avoid the TS error.
@@ -182,40 +215,41 @@ export default function DefinitionPage() {
         wordInfoToSave.id = res.data.id;
       } else {
         // If not exists, create new word entry
+
         const createData = {
-          data: JSON.stringify({
-            ...wordInfoToSave,
-            timeStamp: getLocalDate(),
-          }),
-          wordsListId: profile?.wordsListId,
+          word: wordInfoToSave.word,
           status: "COLLECTED",
+          phoneticText: wordInfoToSave.phonetics?.text || "",
+          audioUrl: wordInfoToSave.phonetics?.audioUrl || "",
+          imgUrl: wordInfoToSave.imgUrl || "",
+
+          // AWSJSON fields: Pass as objects, NOT stringified
+          meanings: wordInfoToSave.meanings
+            ? JSON.stringify(wordInfoToSave.meanings)
+            : "[]",
+          exampleSentences:
+            JSON.stringify(wordInfoToSave.exampleSentences) || "{}",
+          translatedMeanings:
+            JSON.stringify(wordInfoToSave.translatedMeanings) || "[]",
+
+          reviewedTimeline: JSON.stringify([]),
+
+          // SRS Fields: Match camelCase in your JSON
+          reviewInterval: wordInfoToSave.review_interval || 1,
+          easeFactor: wordInfoToSave.ease_factor || 2.5,
+          nextReviewDate: getNextLocalDate(),
+
+          // Relationship
+          userProfileId: profile?.id,
         };
+
         const res = await (client.models as any).Word.create(createData);
         wordInfoToSave.id = res.data.id;
       }
     } catch (error) {
-      console.log(error);
+      console.error("error saving word:", error);
     }
-    // initiate sheduling only when theres no shceduleWord that exists for this word and still has TO_REVIEW status
-    const existingScheduleWord = reviewScheduleWords.find(
-      (sw) => sw.wordId === wordInfoToSave.id && sw.status === "TO_REVIEW",
-    );
 
-    if (!existingScheduleWord) {
-      //initiate scheduling notification update
-      const currentLocalDate = getLocalDate();
-      // newNextDue should be the day after currentLocalDate
-      const newNextDue = new Date(currentLocalDate);
-      newNextDue.setDate(newNextDue.getDate() + wordInfoToSave.review_interval);
-      if (userProfile) {
-        const ifSuccess = await handleScheduleNotification(
-          userProfile,
-          wordInfoToSave.id,
-          newNextDue,
-        );
-        console.log("Handle schedule notification success:", ifSuccess);
-      }
-    }
     // 4. Force refresh to get accurate state
     setSaveStatus("saved");
   };
@@ -229,7 +263,6 @@ export default function DefinitionPage() {
       partOfSpeech: meaning.partOfSpeech,
     }));
 
-    console.log("userprofile:", JSON.stringify(userProfile));
     setIfTranslating(true);
 
     try {
@@ -431,7 +464,11 @@ export default function DefinitionPage() {
 
             // If translation exist, set it
             if (translatedMeanings) {
-              setTranslatedMeanings(translatedMeanings);
+              const parsed =
+                typeof translatedMeanings === "string"
+                  ? JSON.parse(translatedMeanings)
+                  : translatedMeanings;
+              setTranslatedMeanings(parsed);
             } else {
               console.warn("⚠️ Invalid format in translatedMeanings");
             }
@@ -604,10 +641,12 @@ export default function DefinitionPage() {
 
   const handleSaveOrUnsave = async () => {
     if (saveStatus === "saved") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       if (wordInfo) {
         await handleUnsaveWord(wordInfo);
       }
     } else {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       if (wordInfo) {
         //navigate to gallery
         router.push({
@@ -622,45 +661,17 @@ export default function DefinitionPage() {
 
   const handleUnsaveWord = async (wordInfo: Word) => {
     // - [ ] UNCOLLECT A WORD
-    // 1. Get the review entity to get the review schedule based on date
-    //     1. First,  get the id of entity based on word id
-    //     2. Second, get the entity id to get schedule id
-    // 2. If there’s only one entity
-    //     1. Cancel notification
-    //     2. Delete entity & schedule
-    // 3. If its not the only one
-    //     1. Delete entity
-    //     2. Update notification
-    // 4. Delete the word
-    //     1. Remove from wordlist
-    //     2. Delete the word
+    // 1. Check wordInfo has id
+    if (!wordInfo.id) {
+      alert("Cannot unsave a word that hasn't been saved yet.");
+      return;
+    }
+    // 2. Delete the word
 
     setSaveStatus("saving");
 
-    const unreviewScheduleWords = reviewScheduleWords.filter(
-      (rsw: any) => rsw.status === "TO_REVIEW",
-    );
-    const correspondingScheduleWord = unreviewScheduleWords.find(
-      (rsw: any) => rsw.wordId === wordInfo.id,
-    );
-    const correspondingSchedule = reviewSchedules.find(
-      (rs: any) => rs.id === correspondingScheduleWord?.reviewScheduleId,
-    );
-    if (
-      !wordInfo.id ||
-      !correspondingScheduleWord?.id ||
-      !correspondingSchedule?.id
-    ) {
-      console.error("❌ Missing required IDs for unsaving word");
-      setSaveStatus("unsaved");
-      return;
-    } else {
-      await uncollectWord(
-        wordInfo.id,
-        correspondingScheduleWord,
-        correspondingSchedule,
-      );
-    }
+    await uncollectWord(wordInfo.id);
+
     try {
       if (wordInfo.id) {
         const deleteData = {
@@ -724,6 +735,7 @@ export default function DefinitionPage() {
 
   const handleImagePress = () => {
     if (wordInfo?.imgUrl) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setIsImageZoomed(true);
     }
   };
@@ -813,8 +825,10 @@ export default function DefinitionPage() {
         overlayOpacity={0.9}
       />
 
-      <Pressable
+      <TouchableOpacity
+        activeOpacity={0.8}
         onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           setViewMode("definition");
         }}
       >
@@ -831,6 +845,7 @@ export default function DefinitionPage() {
             <View className="mt-16  w-full justify-between flex-row items-center">
               <TouchableOpacity
                 onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   router.back();
                 }}
               >
@@ -874,6 +889,7 @@ export default function DefinitionPage() {
             <View className="mt-16 w-full justify-between flex-row items-center">
               <TouchableOpacity
                 onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   router.back();
                 }}
               >
@@ -1056,6 +1072,7 @@ export default function DefinitionPage() {
                     {translatedMeanings && (
                       <TouchableOpacity
                         onPress={() => {
+                          Haptics.selectionAsync();
                           if (ifDisplayTranslation) {
                             setIfDisplayTranslation(false);
                           } else {
@@ -1146,6 +1163,9 @@ export default function DefinitionPage() {
                               key={index}
                               className=" mb-4 flex flex-col gap-2"
                               onPress={() => {
+                                Haptics.impactAsync(
+                                  Haptics.ImpactFeedbackStyle.Medium,
+                                );
                                 fetchConversationExample(
                                   meaning.partOfSpeech,
                                   meaning.definition,
@@ -1206,10 +1226,12 @@ export default function DefinitionPage() {
             </View>
           </Animated.View>
         )}
-      </Pressable>
+      </TouchableOpacity>
 
-      <Pressable
+      <TouchableOpacity
+        activeOpacity={0.8}
         onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           setViewMode("conversation");
         }}
         className=" flex-1"
@@ -1238,7 +1260,10 @@ export default function DefinitionPage() {
                 source={require("../../assets/images/convoButton.png")}
               >
                 <TouchableOpacity
-                  onPress={() => fetchConversationExample("", "")}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                    fetchConversationExample("", "");
+                  }}
                   disabled={isLoadingConversation}
                   style={{
                     paddingHorizontal: 16,
@@ -1348,7 +1373,7 @@ export default function DefinitionPage() {
             )}
           </ScrollView>
         </View>
-      </Pressable>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -1477,6 +1502,7 @@ function CollectBtn({
       onPress={handleSaveOrUnsave}
       onLongPress={() => {
         if (saveStatus === "unsaved") {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
           onLongPress();
         }
       }}

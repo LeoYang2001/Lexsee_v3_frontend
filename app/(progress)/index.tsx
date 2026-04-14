@@ -1,12 +1,7 @@
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Pressable,
-  Dimensions,
-} from "react-native";
+import { View, Text, TouchableOpacity, Dimensions } from "react-native";
 import React, { useEffect, useState } from "react";
 import { router } from "expo-router";
+import * as Haptics from "expo-haptics";
 import { ChevronLeft, EllipsisVertical } from "lucide-react-native";
 import ProgressBar from "../../components/common/ProgressBar";
 import Animated, {
@@ -15,37 +10,26 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import Card1Content from "../../components/progress/Card1Content";
-import Card2Content from "../../components/progress/Card2Content";
 import { useAppSelector } from "../../store/hooks";
 import { wordsListSelector } from "../../store/selectors/wordsListSelector";
+import ProgressReview from "../../components/progress/ProgressReview";
+import { getLocalDate } from "../../util/utli";
+import LearningPulse from "../../components/progress/LearningPulse";
 type ViewMode = "default" | "card1Expanded" | "card2Expanded";
 
 // Constants
-const { width, height } = Dimensions.get("window");
-const BORDER_RADIUS = Math.min(width, height) * 0.06;
 const COLLAPSED_CARD_HEIGHT_PX = 60;
-const COLLAPSED_BORDER_RADIUS = 16; // top corners for collapsed card2
-const EXPANDED_BORDER_RADIUS = BORDER_RADIUS * 2;
+const CARD1_COLLAPSED_HEIGHT = 25; // Card1 height when collapsed (%)
+const CARD1_EXPANDED_HEIGHT = 50; // Card1 height when expanded (%)
 
 const ProgressPage = () => {
-
   const [viewMode, setViewMode] = useState<ViewMode>("default");
   const [containerHeight, setContainerHeight] = useState(0);
-
-   
-    const {collectedList, masteredList} = useAppSelector(wordsListSelector);
+  const [selectedIso, setSelectedIso] = useState<string | null>(getLocalDate());
 
   // Animated values for card heights
   const card1Height = useSharedValue(0);
   const card2Height = useSharedValue(0);
-
-  // Animated values for border radii (separate top / bottom)
-  const card1TopRadius = useSharedValue(EXPANDED_BORDER_RADIUS);
-  const card1BottomRadius = useSharedValue(EXPANDED_BORDER_RADIUS);
-  const card2TopRadius = useSharedValue(EXPANDED_BORDER_RADIUS);
-  const card2BottomRadius = useSharedValue(EXPANDED_BORDER_RADIUS);
-
-
 
   // Calculate collapsed card height as percentage
   const collapsedCardHeightPercentage =
@@ -56,19 +40,6 @@ const ProgressPage = () => {
   // Animated styles
   const card1AnimatedStyle = useAnimatedStyle(() => ({
     height: `${card1Height.value}%`,
-    borderTopLeftRadius: card1TopRadius.value,
-    borderTopRightRadius: card1TopRadius.value,
-    borderBottomLeftRadius: card1BottomRadius.value,
-    borderBottomRightRadius: card1BottomRadius.value,
-  }));
-
-  const card2AnimatedStyle = useAnimatedStyle(() => ({
-    height: `${card2Height.value}%`,
-    // top corners animate (card2TopRadius), bottom corners stay expanded
-    borderTopLeftRadius: card2TopRadius.value,
-    borderTopRightRadius: card2TopRadius.value,
-    borderBottomLeftRadius: card2BottomRadius.value,
-    borderBottomRightRadius: card2BottomRadius.value,
   }));
 
   // Animate heights and border radius based on viewMode
@@ -77,92 +48,32 @@ const ProgressPage = () => {
 
     switch (viewMode) {
       case "default":
-        // Card 1: 63%, Card 2: 37%
-        card1Height.value = withTiming(63, { duration });
-        card2Height.value = withTiming(37, { duration });
-        // both cards fully expanded (top & bottom)
-        card1TopRadius.value = withTiming(EXPANDED_BORDER_RADIUS, { duration });
-        card1BottomRadius.value = withTiming(EXPANDED_BORDER_RADIUS, {
+        // Card 1: 15%, Card 2: 85%
+        card1Height.value = withTiming(CARD1_COLLAPSED_HEIGHT, { duration });
+        card2Height.value = withTiming(100 - CARD1_COLLAPSED_HEIGHT, {
           duration,
         });
-        card2TopRadius.value = withTiming(EXPANDED_BORDER_RADIUS, { duration });
-        card2BottomRadius.value = withTiming(EXPANDED_BORDER_RADIUS, {
-          duration,
-        });
+
         break;
 
       case "card1Expanded":
-        // Card 1: expanded, Card 2: collapsed
-        card1Height.value = withTiming(100 - collapsedCardHeightPercentage, {
+        // Card 1: 32%, Card 2: 68%
+        card1Height.value = withTiming(CARD1_EXPANDED_HEIGHT, { duration });
+        card2Height.value = withTiming(100 - CARD1_EXPANDED_HEIGHT, {
           duration,
         });
-        card2Height.value = withTiming(collapsedCardHeightPercentage, {
-          duration,
-        });
-        // Card1: top expanded, bottom collapsed to visually match collapsed card2
-        card1TopRadius.value = withTiming(EXPANDED_BORDER_RADIUS, { duration });
-        card1BottomRadius.value = withTiming(COLLAPSED_BORDER_RADIUS, {
-          duration,
-        });
-        // Card2: top collapsed, bottom stays expanded
-        card2TopRadius.value = withTiming(COLLAPSED_BORDER_RADIUS, {
-          duration,
-        });
-        card2BottomRadius.value = withTiming(EXPANDED_BORDER_RADIUS, {
-          duration,
-        });
-        break;
 
-      case "card2Expanded":
-        // Card 1: collapsed, Card 2: expanded
-        card1Height.value = withTiming(collapsedCardHeightPercentage, {
-          duration,
-        });
-        card2Height.value = withTiming(100 - collapsedCardHeightPercentage, {
-          duration,
-        });
-        // Card1 collapsed: top collapsed, bottom stays expanded
-        card1TopRadius.value = withTiming(COLLAPSED_BORDER_RADIUS, {
-          duration,
-        });
-        card1BottomRadius.value = withTiming(COLLAPSED_BORDER_RADIUS, {
-          duration,
-        });
-        // Card2 expanded: top collapsed, bottom expanded (special visual)
-        card2TopRadius.value = withTiming(COLLAPSED_BORDER_RADIUS, {
-          duration,
-        });
-        card2BottomRadius.value = withTiming(EXPANDED_BORDER_RADIUS, {
-          duration,
-        });
         break;
     }
   }, [viewMode, containerHeight, collapsedCardHeightPercentage]);
 
   // Handle card 1 press
   const handleCard1Press = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (viewMode === "card1Expanded") {
       setViewMode("default");
     } else {
       setViewMode("card1Expanded");
-    }
-  };
-
-  // Handle card 2 press
-  const handleCard2Press = () => {
-    console.log(`🖱️ Card 2 pressed - Current mode: ${viewMode}`);
-    if (viewMode === "card2Expanded") {
-      setViewMode("default");
-    } else {
-      setViewMode("card2Expanded");
-    }
-  };
-
-  // Handle outside press (collapse cards)
-  const handleOutsidePress = () => {
-    if (viewMode !== "default") {
-      console.log(`🖱️ Outside press - Returning to default`);
-      setViewMode("default");
     }
   };
 
@@ -174,9 +85,10 @@ const ProgressPage = () => {
       className="w-full h-full flex flex-col"
     >
       {/* Header */}
-      <View className="mt-16  mx-3 justify-between flex-row items-center">
+      <View className="mt-16 py-3   mx-3 justify-between flex-row items-center">
         <TouchableOpacity
           onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             router.back();
           }}
         >
@@ -185,107 +97,26 @@ const ProgressPage = () => {
         <Text style={{ fontSize: 18 }} className="opacity-70 text-white">
           Recall Dashboard
         </Text>
-        <TouchableOpacity className="p-2" onPress={() => {}}>
-          <EllipsisVertical size={18} color={"#fff"} />
-        </TouchableOpacity>
+        <TouchableOpacity
+          className="p-2 opacity-0"
+          onPress={() => {}}
+        ></TouchableOpacity>
       </View>
 
       {/* Progress Overview */}
-      <View className="flex w-full p-3 mt-6 flex-col justify-center">
-        <View className="flex-row justify-around items-center mb-6">
-          <View className="flex flex-col items-center gap-2">
-            <Text
-              style={{
-                fontSize: 32,
-                fontWeight: "400",
-                color: "#FFFFFF",
-              }}
-            >
-              {masteredList.length}
-            </Text>
-            <View className="flex flex-row items-center justify-center gap-1">
-              <Text
-                style={{
-                  fontSize: 12,
-                  opacity: 0.7,
-                  color: "#FFFFFF",
-                }}
-              >
-                Mastered
-              </Text>
-              <View
-                style={{
-                  height: 8,
-                  width: 8,
-                  borderRadius: 2,
-                  backgroundColor: "#fff",
-                  opacity: 0.7,
-                }}
-              />
-            </View>
-          </View>
-          <View
-            style={{
-              height: 12,
-              width: 1,
-              backgroundColor: "#FFFFFF",
-              opacity: 0.2,
-            }}
-          />
-          <View className="flex flex-col items-center gap-2">
-            <Text
-              style={{
-                fontSize: 32,
-                fontWeight: "400",
-                color: "#FFFFFF",
-              }}
-            >
-              {collectedList.length}
-            </Text>
-            <View className="flex flex-row items-center justify-center gap-1">
-              <Text
-                style={{
-                  fontSize: 12,
-                  opacity: 0.7,
-                  color: "#FFFFFF",
-                }}
-              >
-                Collected
-              </Text>
-              <View
-                style={{
-                  height: 8,
-                  width: 8,
-                  borderRadius: 2,
-                  backgroundColor: "#424345",
-                  opacity: 0.7,
-                }}
-              />
-            </View>
-          </View>
-        </View>
-
-        {/* ProgressBar with animation */}
-        <ProgressBar
-          solidProgress={masteredList.length / (masteredList.length + collectedList.length)}
-          dashedProgress={collectedList.length / (masteredList.length + collectedList.length)}
-          height={11}
-          solidColor="#c4c4c5"
-          dashedColor="#424345"
-          duration={2500}
-        />
+      <View className="flex w-full   px-6  mt-2 flex-col justify-center h-[15%]">
+        <LearningPulse />
       </View>
 
       {/* Main Content - Expandable Cards Container */}
-      <Pressable
-        className="mt-10 "
+      <View
+        className="mt-4  "
         style={{
           flex: 1,
           width: "100%",
           padding: 6,
           transform: [{ translateY: -6 }],
         }}
-        onPress={handleOutsidePress}
         onLayout={(event) => {
           const { height } = event.nativeEvent.layout;
           setContainerHeight(height);
@@ -296,45 +127,33 @@ const ProgressPage = () => {
         <Animated.View
           style={[
             {
-              backgroundColor: "#202123",
               overflow: "hidden",
+              paddingHorizontal: 12,
             },
             card1AnimatedStyle,
           ]}
         >
-          <Pressable
-            className="flex flex-col justify-start"
+          <TouchableOpacity
+            className="flex flex-col   rounded-2xl   justify-start"
             onPress={handleCard1Press}
-            style={{ height: "100%", padding: 12 }}
+            style={{
+              height: "100%",
+              padding: 12,
+              backgroundColor: "#202123",
+            }}
           >
             <Card1Content
+              selectedIso={selectedIso}
+              setSelectedIso={setSelectedIso}
               viewMode={viewMode}
             />
-          </Pressable>
+          </TouchableOpacity>
         </Animated.View>
 
-        {/* Card 2 - All-Time Schedules */}
-        <Animated.View
-          style={[
-            {
-              backgroundColor: "#202123",
-              overflow: "hidden",
-              marginTop: 6,
-            },
-            card2AnimatedStyle,
-          ]}
-        >
-          <Pressable
-            onPress={handleCard2Press}
-            style={{ height: "100%", padding: 12 }}
-          >
-            <Card2Content
-              viewMode={viewMode}
-              isLoading={false}
-            />
-          </Pressable>
-        </Animated.View>
-      </Pressable>
+        <View className=" flex-1 mt-3 w-full  ">
+          <ProgressReview viewMode={viewMode} selectedIso={selectedIso} />
+        </View>
+      </View>
     </View>
   );
 };

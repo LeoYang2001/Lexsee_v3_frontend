@@ -27,6 +27,7 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import emailjs from "@emailjs/react-native";
 import { getCurrentUser } from "aws-amplify/auth";
+import { useAppSelector } from "../../store/hooks";
 
 const SERVICE_ID = "service_8m223te";
 const TEMPLATE_ID = "template_2ozcmnn";
@@ -57,6 +58,8 @@ export default function GalleryPage() {
   const [isReporting, setIsReporting] = useState(false);
 
   const [ifSelectedPendingImage, setIfSelectedPendingImage] = useState(false);
+
+  const profile = useAppSelector((state) => state.profile.data);
 
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -109,13 +112,13 @@ export default function GalleryPage() {
     try {
       // 1. Execute the S3 Upload to the Pending Bucket
       // We pass userId and userName to track the contributor
-      if (!userId)
+      if (!userId || !profile)
         return alert("User not authenticated. Please log in to upload images.");
 
       await uploadImageToReviewQueue(
         currentWord,
         userId, // Assuming you have access to user context
-        "anonymous", // You can replace this with actual user name if available
+        profile?.displayName || "anonymous", // You can replace this with actual user name if available
         selectedLocalImage,
       );
 
