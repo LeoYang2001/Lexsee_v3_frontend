@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity, Dimensions } from "react-native";
 import React, { useEffect, useState } from "react";
 import { router } from "expo-router";
+import * as Haptics from "expo-haptics";
 import { ChevronLeft, EllipsisVertical } from "lucide-react-native";
 import ProgressBar from "../../components/common/ProgressBar";
 import Animated, {
@@ -17,11 +18,7 @@ import LearningPulse from "../../components/progress/LearningPulse";
 type ViewMode = "default" | "card1Expanded" | "card2Expanded";
 
 // Constants
-const { width, height } = Dimensions.get("window");
-const BORDER_RADIUS = Math.min(width, height) * 0.06;
 const COLLAPSED_CARD_HEIGHT_PX = 60;
-const COLLAPSED_BORDER_RADIUS = BORDER_RADIUS * 2; // top corners for collapsed card2
-const EXPANDED_BORDER_RADIUS = BORDER_RADIUS * 2;
 const CARD1_COLLAPSED_HEIGHT = 25; // Card1 height when collapsed (%)
 const CARD1_EXPANDED_HEIGHT = 50; // Card1 height when expanded (%)
 
@@ -29,8 +26,6 @@ const ProgressPage = () => {
   const [viewMode, setViewMode] = useState<ViewMode>("default");
   const [containerHeight, setContainerHeight] = useState(0);
   const [selectedIso, setSelectedIso] = useState<string | null>(getLocalDate());
-
-  const { collectedList, masteredList } = useAppSelector(wordsListSelector);
 
   // Animated values for card heights
   const card1Height = useSharedValue(0);
@@ -74,6 +69,7 @@ const ProgressPage = () => {
 
   // Handle card 1 press
   const handleCard1Press = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (viewMode === "card1Expanded") {
       setViewMode("default");
     } else {
@@ -89,9 +85,10 @@ const ProgressPage = () => {
       className="w-full h-full flex flex-col"
     >
       {/* Header */}
-      <View className="mt-16  mx-3 justify-between flex-row items-center">
+      <View className="mt-16 py-3   mx-3 justify-between flex-row items-center">
         <TouchableOpacity
           onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             router.back();
           }}
         >
@@ -100,9 +97,10 @@ const ProgressPage = () => {
         <Text style={{ fontSize: 18 }} className="opacity-70 text-white">
           Recall Dashboard
         </Text>
-        <TouchableOpacity className="p-2" onPress={() => {}}>
-          <EllipsisVertical size={18} color={"#fff"} />
-        </TouchableOpacity>
+        <TouchableOpacity
+          className="p-2 opacity-0"
+          onPress={() => {}}
+        ></TouchableOpacity>
       </View>
 
       {/* Progress Overview */}

@@ -6,6 +6,7 @@ import {
   AppState,
 } from "react-native";
 import React, { useEffect, useState } from "react";
+import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   useSharedValue,
@@ -211,7 +212,10 @@ const DashCard = () => {
             }}
           >
             <TouchableOpacity
-              onPress={() => router.push("/(inventory)")}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                router.push("/(inventory)");
+              }}
               className="flex flex-row items-center justify-between w-full"
             >
               {/* Review Words Count */}

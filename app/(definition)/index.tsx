@@ -11,6 +11,7 @@ import {
   Image,
   Alert,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useTheme } from "../../theme/ThemeContext";
 import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import {
@@ -640,10 +641,12 @@ export default function DefinitionPage() {
 
   const handleSaveOrUnsave = async () => {
     if (saveStatus === "saved") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       if (wordInfo) {
         await handleUnsaveWord(wordInfo);
       }
     } else {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       if (wordInfo) {
         //navigate to gallery
         router.push({
@@ -732,6 +735,7 @@ export default function DefinitionPage() {
 
   const handleImagePress = () => {
     if (wordInfo?.imgUrl) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setIsImageZoomed(true);
     }
   };
@@ -821,8 +825,10 @@ export default function DefinitionPage() {
         overlayOpacity={0.9}
       />
 
-      <Pressable
+      <TouchableOpacity
+        activeOpacity={0.8}
         onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           setViewMode("definition");
         }}
       >
@@ -839,6 +845,7 @@ export default function DefinitionPage() {
             <View className="mt-16  w-full justify-between flex-row items-center">
               <TouchableOpacity
                 onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   router.back();
                 }}
               >
@@ -882,6 +889,7 @@ export default function DefinitionPage() {
             <View className="mt-16 w-full justify-between flex-row items-center">
               <TouchableOpacity
                 onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   router.back();
                 }}
               >
@@ -1064,6 +1072,7 @@ export default function DefinitionPage() {
                     {translatedMeanings && (
                       <TouchableOpacity
                         onPress={() => {
+                          Haptics.selectionAsync();
                           if (ifDisplayTranslation) {
                             setIfDisplayTranslation(false);
                           } else {
@@ -1154,6 +1163,9 @@ export default function DefinitionPage() {
                               key={index}
                               className=" mb-4 flex flex-col gap-2"
                               onPress={() => {
+                                Haptics.impactAsync(
+                                  Haptics.ImpactFeedbackStyle.Medium,
+                                );
                                 fetchConversationExample(
                                   meaning.partOfSpeech,
                                   meaning.definition,
@@ -1214,10 +1226,12 @@ export default function DefinitionPage() {
             </View>
           </Animated.View>
         )}
-      </Pressable>
+      </TouchableOpacity>
 
-      <Pressable
+      <TouchableOpacity
+        activeOpacity={0.8}
         onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           setViewMode("conversation");
         }}
         className=" flex-1"
@@ -1246,7 +1260,10 @@ export default function DefinitionPage() {
                 source={require("../../assets/images/convoButton.png")}
               >
                 <TouchableOpacity
-                  onPress={() => fetchConversationExample("", "")}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                    fetchConversationExample("", "");
+                  }}
                   disabled={isLoadingConversation}
                   style={{
                     paddingHorizontal: 16,
@@ -1356,7 +1373,7 @@ export default function DefinitionPage() {
             )}
           </ScrollView>
         </View>
-      </Pressable>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -1485,6 +1502,7 @@ function CollectBtn({
       onPress={handleSaveOrUnsave}
       onLongPress={() => {
         if (saveStatus === "unsaved") {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
           onLongPress();
         }
       }}

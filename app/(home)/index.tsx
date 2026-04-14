@@ -8,6 +8,7 @@ import {
   TouchableWithoutFeedback,
   StyleSheet,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -22,7 +23,6 @@ import CustomHeader from "../../components/home/Header";
 import { useTheme } from "../../theme/ThemeContext";
 import DashCard from "../../components/home/DashCard";
 import FlexCard from "../../components/common/FlexCard";
-import { useOnboarding } from "../../hooks/useOnboarding";
 
 const snappyTransition = SharedTransition.custom((values) => {
   "worklet";
@@ -98,6 +98,7 @@ export default function HomeScreen() {
     <TouchableWithoutFeedback
       onPress={() => {
         if (activeCardId) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           setActiveCardId(null);
         }
       }}
@@ -116,7 +117,12 @@ export default function HomeScreen() {
             <CustomHeader />
             <View className="flex-col gap-6 items-center mt-6">
               <View style={{ width: "100%" }}>
-                <TouchableOpacity onPress={() => router.push("/(home)/search")}>
+                <TouchableOpacity
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    router.push("/(home)/search");
+                  }}
+                >
                   <Animated.View
                     sharedTransitionTag="searchBar" // This ID must match Page B
                     sharedTransitionStyle={snappyTransition}
@@ -172,6 +178,7 @@ export default function HomeScreen() {
               {collectedWords.slice(0, 10).map((word, idx) => (
                 <TouchableWithoutFeedback
                   onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     if (activeCardId === word.id) {
                       setActiveCardId(null);
                     } else {

@@ -22,6 +22,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation, useRouter, useFocusEffect } from "expo-router";
 import { DrawerActions } from "@react-navigation/routers";
+import * as Haptics from "expo-haptics";
 import { useAppSelector } from "../../../../store/hooks";
 import BrainLoadSlider from "../../../../components/provision/BrainLoadSlider";
 import {
@@ -485,6 +486,7 @@ export default function DailyLexseeScreen() {
   };
 
   const openDrawer = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     navigation.dispatch(DrawerActions.openDrawer());
   };
 

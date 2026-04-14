@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import React, { useEffect, useState } from "react";
+import * as Haptics from "expo-haptics";
 import { useSelector } from "react-redux";
 import {
   selectMonthlyReport,
@@ -164,8 +165,11 @@ const LearningPulse = () => {
   return (
     <>
       <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={() => setIsSheetVisible(true)}
+        activeOpacity={0.6}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          setIsSheetVisible(true);
+        }}
         className="w-full h-full"
       >
         <ProgressCard>
@@ -210,7 +214,10 @@ const LearningPulse = () => {
         <View className="flex-1 justify-end">
           <Pressable
             className="flex-1"
-            onPress={() => setIsSheetVisible(false)}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setIsSheetVisible(false);
+            }}
           />
 
           <View

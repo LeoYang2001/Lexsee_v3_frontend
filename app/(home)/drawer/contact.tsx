@@ -15,6 +15,7 @@ import {
 
 import { useNavigation } from "expo-router";
 import { DrawerActions } from "@react-navigation/routers";
+import * as Haptics from "expo-haptics";
 import Animated, {
   FadeInUp,
   FadeOutUp,
@@ -54,6 +55,7 @@ const ContactScreen = () => {
   const navigation = useNavigation();
 
   const handleDrawerToggle = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     navigation.dispatch(DrawerActions.openDrawer());
   };
 

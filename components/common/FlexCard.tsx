@@ -1,5 +1,6 @@
 import { View, Text, Image, TouchableOpacity } from "react-native";
 import React, { useEffect } from "react";
+import * as Haptics from "expo-haptics";
 import { ArrowRight, Phone } from "lucide-react-native";
 import { Word } from "../../types/common/Word";
 import PhoneticAudio from "./PhoneticAudio";
@@ -42,6 +43,7 @@ const FlexCard = ({ word, ifDetail, ifGraphic, index }: FlexCardProps) => {
 
   // Function to navigate to definition page with word as param
   const goToDefinition = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     router.navigate({
       pathname: "/(definition)",
       params: { word: word.word },

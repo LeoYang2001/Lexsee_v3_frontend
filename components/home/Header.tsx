@@ -7,6 +7,7 @@ import {
   Text,
   Dimensions,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { DrawerActions } from "@react-navigation/native";
@@ -21,13 +22,12 @@ interface CustomHeaderProps {
   anchorDistance?: number;
 }
 
-export default function Header({
-  logoSize = 60,
-}: CustomHeaderProps) {
+export default function Header({ logoSize = 60 }: CustomHeaderProps) {
   const navigation = useNavigation();
   const theme = useTheme();
 
   const handleDrawerToggle = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     navigation.dispatch(DrawerActions.openDrawer());
   };
 
